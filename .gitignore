@@ -1,4 +1,11 @@
 data/admin1.geojson
+data/10m_geography_regions_polys.geojson
+data/10m_geography_regions_elevation_points.geojson
+data/10m_geography_regions_points.geojson
+data/50m_rivers_lake_centerlines.geojson
+data/50m_lakes.geojson
+data/50m_glaciated_areas.geojson
 data/mundo.json
+data/relieve.json
 __pycache__/
 *.pyc

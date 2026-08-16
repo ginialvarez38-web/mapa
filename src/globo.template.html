@@ -524,6 +524,7 @@ body {
   <dl class="facts">
     <dt>Superficie</dt><dd id="c-area">—</dd>
     <dt id="c-divs-lab">Divisiones</dt><dd id="c-divs">—</dd>
+    <dt id="c-alt-lab">Altitud</dt><dd id="c-alt">—</dd>
     <dt>Centro</dt><dd id="c-center">—</dd>
     <dt>Antípoda</dt><dd id="c-anti">—</dd>
     <dt>Hora solar</dt><dd id="c-solar">—</dd>
@@ -540,6 +541,7 @@ body {
   <button class="btn" id="t-spin" aria-pressed="true">Rotar</button>
   <button class="btn" id="t-night" aria-pressed="false">Día/Noche</button>
   <button class="btn" id="t-divs" aria-pressed="true">Divisiones</button>
+  <button class="btn" id="t-relieve" aria-pressed="true">Relieve</button>
   <button class="btn" id="t-grid" aria-pressed="false">Retícula</button>
   <button class="btn" id="t-style" aria-pressed="false">Carta</button>
   <span class="sep" aria-hidden="true"></span>
@@ -561,6 +563,7 @@ body {
 </p>
 
 <script id="mundo-data" type="application/json">__MUNDO_DATA__</script>
+<script id="relieve-data" type="application/json">__RELIEVE_DATA__</script>
 
 <script>
 (function () {
@@ -587,7 +590,13 @@ body {
       stars:  1.0,
       land: ["#3A6F5C", "#4E7F6B", "#6E7C4A", "#8B6A44", "#7C5260",
              "#4A5F80", "#5A7E9A", "#8B7A48", "#6A5876"],
+      tierra: "#4C6B4A",
+      fisico: { mtn: "#8A6A3E", meseta: "#7E6B42", desierto: "#9A8A50",
+                llanura: "#4F7048", cuenca: "#6B6448", humedal: "#3B6154",
+                tundra: "#5B6660", hielo: "#D8E4EE", lago: "#1E4463" },
+      rio: [0.35, 0.60, 0.82, 0.75],
       label:  "#E9EFF7",
+      marca:  "#F0D6A8",
       halo:   "rgba(4,8,16,.82)"
     },
     carta: {
@@ -603,7 +612,13 @@ body {
       stars:  0.0,
       land: ["#C3D2B4", "#DCD2AE", "#E2C2A6", "#D6BAC6", "#BCC9DD",
              "#C4D9CC", "#E4D2A6", "#D0BCD8", "#B4CBD2"],
+      tierra: "#D6DCC4",
+      fisico: { mtn: "#BC9A6C", meseta: "#CBAF80", desierto: "#E9DAA6",
+                llanura: "#C4D6A6", cuenca: "#CFC29E", humedal: "#A8C6B6",
+                tundra: "#C7D0CA", hielo: "#F0F5F9", lago: "#8FB6CE" },
+      rio: [0.32, 0.50, 0.68, 0.85],
       label:  "#14202C",
+      marca:  "#7A5322",
       halo:   "rgba(255,255,255,.85)"
     }
   };
@@ -743,6 +758,92 @@ body {
     }
   })();
 
+  // ---------------------------------------------------------------- //
+  // Geografía física: áreas, ríos y puntos con nombre                 //
+  // ---------------------------------------------------------------- //
+
+  var relieve = null;
+  (function () {
+    var el = document.getElementById("relieve-data");
+    if (!el || !el.textContent) return;
+    try { relieve = JSON.parse(el.textContent); } catch (e) { return; }
+    if (!relieve.areas || !relieve.areas.length) { relieve = null; return; }
+
+    var areas = relieve.areas;
+    var n = areas.length;
+    var totalV = 0, totalT = 0;
+    var dec = new Array(n);
+
+    for (var i = 0; i < n; i++) {
+      var rec = areas[i];
+      var vb = b64Bytes(rec.v);
+      var lonlat = new Int16Array(vb.buffer, vb.byteOffset, vb.byteLength >> 1);
+      var tb = b64Bytes(rec.t);
+      var tris = rec.i32
+        ? new Uint32Array(tb.buffer, tb.byteOffset, tb.byteLength >> 2)
+        : new Uint16Array(tb.buffer, tb.byteOffset, tb.byteLength >> 1);
+      dec[i] = { lonlat: lonlat, tris: tris, nv: lonlat.length >> 1,
+                 rings: rec.r, vStart: totalV, tStart: totalT };
+      totalV += dec[i].nv;
+      totalT += tris.length;
+    }
+
+    var pos = new Float32Array(totalV * 3);
+    var idx = new Float32Array(totalV);
+    var fill = new Uint32Array(totalT);
+    // Los lagos van al final para poder dibujarlos opacos sobre el resto.
+    var corte = 0;
+
+    for (var i = 0; i < n; i++) {
+      var d = dec[i], ll = d.lonlat, base = d.vStart;
+      for (var k = 0; k < d.nv; k++) {
+        var lon = ll[k * 2] / SCALE * DEG;
+        var lat = ll[k * 2 + 1] / SCALE * DEG;
+        var cl = Math.cos(lat);
+        var o = (base + k) * 3;
+        pos[o] = cl * Math.sin(lon);
+        pos[o + 1] = Math.sin(lat);
+        pos[o + 2] = cl * Math.cos(lon);
+        idx[base + k] = i;
+      }
+      for (var k = 0; k < d.tris.length; k++) fill[d.tStart + k] = d.tris[k] + base;
+      if (areas[i].cl !== "lago") corte = d.tStart + d.tris.length;
+    }
+
+    relieve.dec = dec;
+    relieve.pos = pos;
+    relieve.idx = idx;
+    relieve.fill = fill;
+    relieve.corte = corte;
+
+    // Ríos: polilíneas con su rango de importancia.
+    var r = relieve.rios;
+    if (r && r.v) {
+      var rb = b64Bytes(r.v);
+      var rll = new Int16Array(rb.buffer, rb.byteOffset, rb.byteLength >> 1);
+      var m = rll.length >> 1;
+      var rpos = new Float32Array(m * 3);
+      for (var k = 0; k < m; k++) {
+        var lon = rll[k * 2] / SCALE * DEG;
+        var lat = rll[k * 2 + 1] / SCALE * DEG;
+        var cl = Math.cos(lat);
+        rpos[k * 3] = cl * Math.sin(lon);
+        rpos[k * 3 + 1] = Math.sin(lat);
+        rpos[k * 3 + 2] = cl * Math.cos(lon);
+      }
+      var total = 0;
+      for (var t = 0; t < r.s.length; t += 2) total += (r.s[t + 1] - 1) * 2;
+      var ridx = new Uint32Array(total);
+      var w = 0;
+      for (var t = 0; t < r.s.length; t += 2) {
+        var start = r.s[t], count = r.s[t + 1];
+        for (var k = 0; k < count - 1; k++) { ridx[w++] = start + k; ridx[w++] = start + k + 1; }
+      }
+      relieve.rioPos = rpos;
+      relieve.rioIdx = ridx;
+    }
+  })();
+
   // Rejilla de 6° para no probar 4.315 divisiones en cada movimiento del ratón.
   var CELDA = 6, GX = 60, GY = 30;
   var celdas = new Array(GX * GY);
@@ -831,9 +932,10 @@ body {
     "uniform sampler2D uPal; uniform vec2 uPalSize;",
     "uniform vec3 uLight; uniform float uNight; uniform float uShade;",
     "uniform float uHover, uSel, uHovPais, uSelPais; uniform vec3 uAccent;",
+    "uniform float uAlpha, uFisico; uniform vec3 uTierra;",
     "void main(){",
     "  vec2 uv = vec2(mod(vIdx, uPalSize.x) + 0.5, floor(vIdx / uPalSize.x) + 0.5) / uPalSize;",
-    "  vec3 base = texture2D(uPal, uv).rgb;",
+    "  vec3 base = mix(texture2D(uPal, uv).rgb, uTierra, uFisico);",
     "  vec3 n = normalize(vN);",
     "  float day = smoothstep(-0.09, 0.22, dot(n, uLight));",
     "  float raw = mix(0.64 + 0.36 * max(dot(n, uLight), 0.0), 0.24 + 0.76 * day, uNight);",
@@ -843,7 +945,7 @@ body {
     "  bool hov = abs(vIdx - uHover) < 0.5 || abs(vPais - uHovPais) < 0.5;",
     "  if (sel) col = mix(col, uAccent, 0.62);",
     "  else if (hov) col = mix(col, uAccent, 0.26);",
-    "  gl_FragColor = vec4(col, 1.0);",
+    "  gl_FragColor = vec4(col * uAlpha, uAlpha);",   // premultiplicado
     "}"
   ].join("\n"));
 
@@ -935,6 +1037,20 @@ body {
   var bufFrontPos = frontPos ? buffer(gl.ARRAY_BUFFER, frontPos) : null;
   var bufFrontIdx = frontIdx ? buffer(gl.ELEMENT_ARRAY_BUFFER, frontIdx) : null;
   var nFill = fillIdx.length, nLine = lineIdx.length;
+
+  if (relieve) {
+    relieve.bufPos = buffer(gl.ARRAY_BUFFER, relieve.pos);
+    relieve.bufIdx = buffer(gl.ARRAY_BUFFER, relieve.idx);
+    relieve.bufFill = buffer(gl.ELEMENT_ARRAY_BUFFER, relieve.fill);
+    relieve.nFill = relieve.fill.length;
+    relieve.pos = relieve.idx = relieve.fill = null;
+    if (relieve.rioPos) {
+      relieve.bufRioPos = buffer(gl.ARRAY_BUFFER, relieve.rioPos);
+      relieve.bufRioIdx = buffer(gl.ELEMENT_ARRAY_BUFFER, relieve.rioIdx);
+      relieve.nRio = relieve.rioIdx.length;
+      relieve.rioPos = relieve.rioIdx = null;
+    }
+  }
   var nFront = frontIdx ? frontIdx.length : 0;
   positions = owner = ownerPais = fillIdx = lineIdx = frontPos = frontIdx = null;
 
@@ -1018,6 +1134,32 @@ body {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+  var palRel = null;
+  if (relieve) {
+    palRel = { w: 64, h: Math.ceil(relieve.areas.length / 64), tex: gl.createTexture() };
+    palRel.data = new Uint8Array(palRel.w * palRel.h * 4);
+    gl.bindTexture(gl.TEXTURE_2D, palRel.tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  }
+
+  function subirPaletaRelieve(scene) {
+    if (!palRel) return;
+    var areas = relieve.areas;
+    for (var i = 0; i < areas.length; i++) {
+      var rgb = hexToRgb(scene.fisico[areas[i].cl] || scene.fisico.mtn);
+      palRel.data[i * 4] = rgb[0] * 255;
+      palRel.data[i * 4 + 1] = rgb[1] * 255;
+      palRel.data[i * 4 + 2] = rgb[2] * 255;
+      palRel.data[i * 4 + 3] = 255;
+    }
+    gl.bindTexture(gl.TEXTURE_2D, palRel.tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, palRel.w, palRel.h, 0,
+                  gl.RGBA, gl.UNSIGNED_BYTE, palRel.data);
+  }
+
   function colorPais(scene, i) {
     // El índice alfabético no guarda relación con la vecindad geográfica, así
     // que este salto reparte tonos distintos entre países limítrofes.
@@ -1038,6 +1180,7 @@ body {
     gl.bindTexture(gl.TEXTURE_2D, palTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, palW, palH, 0,
                   gl.RGBA, gl.UNSIGNED_BYTE, palData);
+    subirPaletaRelieve(scene);
   }
 
   // ---------------------------------------------------------------- //
@@ -1140,6 +1283,7 @@ body {
     night: false,
     grid: false,
     divs: true,
+    relieve: true,
     scene: matchMedia("(prefers-color-scheme: dark)").matches ||
            document.documentElement.getAttribute("data-theme") === "dark" ? "noche" : "carta"
   };
@@ -1151,6 +1295,7 @@ body {
   var flight = null;
 
   function marcaDiv(e) { return e.tipo === "div" ? e.i : -1; }
+  function marcaTipo(e, tipo) { return e.tipo === tipo ? e.i : -1; }
   function marcaPais(e) { return e.tipo === "pais" ? e.i : -1; }
   var cursorLL = null;
 
@@ -1234,6 +1379,18 @@ body {
   }
 
   // Con las divisiones a la vista se señala la división; si no, el país.
+  // Las marcas del relieve son pequeñas: se buscan en pantalla, no en la esfera.
+  function marcaCerca(px, py) {
+    var mejor = null, d2 = 20 * 20;
+    for (var k = 0; k < marcas.length; k++) {
+      var m = marcas[k];
+      var dx = m.sx - px, dy = m.sy - py;
+      var d = dx * dx + dy * dy;
+      if (d < d2) { d2 = d; mejor = m; }
+    }
+    return mejor ? { tipo: mejor.tipo, i: mejor.i } : null;
+  }
+
   function regionEn(lon, lat) {
     var i = divisionEn(lon, lat);
     if (i < 0) return null;
@@ -1304,7 +1461,10 @@ body {
     var wasDrag = moved > 6;
     endPointer(e);
     if (!wasDrag) {
-      var ll = pickLonLat(e.clientX - rect.left, e.clientY - rect.top);
+      var px = e.clientX - rect.left, py = e.clientY - rect.top;
+      var m = opts.relieve ? marcaCerca(px, py) : null;
+      if (m) { seleccionar(m); return; }
+      var ll = pickLonLat(px, py);
       seleccionar(ll ? regionEn(ll.lon, ll.lat) : null);
     }
   });
@@ -1401,6 +1561,8 @@ body {
   var elArea = document.getElementById("c-area");
   var elDivs = document.getElementById("c-divs");
   var elDivsLab = document.getElementById("c-divs-lab");
+  var elAlt = document.getElementById("c-alt");
+  var elAltLab = document.getElementById("c-alt-lab");
   var elCenter = document.getElementById("c-center");
   var elAnti = document.getElementById("c-anti");
   var elSolar = document.getElementById("c-solar");
@@ -1424,7 +1586,12 @@ body {
   var elPais = document.getElementById("c-pais");
 
   function registro(e) {
-    return e.tipo === "div" ? divisiones[e.i] : (e.tipo === "pais" ? paises[e.i] : null);
+    if (e.tipo === "div") return divisiones[e.i];
+    if (e.tipo === "pais") return paises[e.i];
+    if (!relieve) return null;
+    if (e.tipo === "area") return relieve.areas[e.i];
+    if (e.tipo === "punto") return relieve.puntos[e.i];
+    return null;
   }
 
   function seleccionar(r) {
@@ -1434,24 +1601,31 @@ body {
     if (!rec) { card.hidden = true; return; }
 
     var esDiv = sel.tipo === "div";
+    var esPais = sel.tipo === "pais";
+    var esPunto = sel.tipo === "punto";
     card.hidden = false;
     elName.textContent = rec.n;
-    elIso.textContent = rec.id || "—";
-    elKind.textContent = esDiv ? (rec.ty || "División") : "País";
+    elIso.textContent = rec.id || (esPunto || sel.tipo === "area" ? "Relieve" : "—");
+    elKind.textContent = esDiv ? (rec.ty || "División")
+                       : esPais ? "País" : (rec.ty || "Accidente natural");
     elPais.hidden = !esDiv;
     if (esDiv) {
       elPais.textContent = paises[rec.pa].n;
       elPais.dataset.pais = rec.pa;
     }
-    elArea.textContent = "≈ " + fmtNum(rec.a) + " km²";
-    elDivs.hidden = elDivsLab.hidden = esDiv;
-    if (!esDiv) elDivs.textContent = fmtNum(rec.nd) + (rec.nd === 1 ? " división" : " divisiones");
+    elArea.hidden = elArea.previousElementSibling.hidden = esPunto;
+    if (!esPunto) elArea.textContent = "≈ " + fmtNum(rec.a) + " km²";
+    elDivs.hidden = elDivsLab.hidden = !esPais;
+    if (esPais) elDivs.textContent = fmtNum(rec.nd) + (rec.nd === 1 ? " división" : " divisiones");
+    var conAlt = esPunto && rec.e > 0;
+    elAlt.hidden = elAltLab.hidden = !conAlt;
+    if (conAlt) elAlt.textContent = fmtNum(rec.e) + " m";
     elCenter.textContent = fmtLatLon(rec.c[1], rec.c[0]);
     elAnti.textContent = fmtLatLon(-rec.c[1], antipoda(rec.c[0]));
     updateSolar();
 
     var b = rec.b;
-    var span = Math.max(b[2] - b[0], (b[3] - b[1]) * 1.6);
+    var span = b ? Math.max(b[2] - b[0], (b[3] - b[1]) * 1.6) : 3;
     flyTo(rec.c[0], rec.c[1], clampDist(1.28 + span * 0.032));
   }
 
@@ -1550,6 +1724,25 @@ body {
       }
     }
 
+    // Relieve: cordilleras, desiertos, cumbres... también al buscar.
+    if (q && relieve && opts.relieve) {
+      var fis = 0;
+      for (var i = 0; i < relieve.areas.length && mostrados < MAX_RESULTADOS; i++) {
+        var a = relieve.areas[i];
+        if (normalize(a.n).indexOf(q) === -1) continue;
+        if (!fis) { var h2 = document.createElement("h3"); h2.textContent = "Relieve"; listEl.appendChild(h2); }
+        fila("area", i, a.n, a.ty);
+        mostrados++; fis++;
+      }
+      for (var i = 0; i < relieve.puntos.length && mostrados < MAX_RESULTADOS; i++) {
+        var pt = relieve.puntos[i];
+        if (normalize(pt.n).indexOf(q) === -1) continue;
+        if (!fis) { var h3 = document.createElement("h3"); h3.textContent = "Relieve"; listEl.appendChild(h3); }
+        fila("punto", i, pt.n, pt.e ? fmtNum(pt.e) + " m" : pt.ty);
+        mostrados++; fis++;
+      }
+    }
+
     if (!mostrados) {
       var p = document.createElement("p");
       p.textContent = "Sin resultados para “" + filter + "”.";
@@ -1595,6 +1788,12 @@ body {
   toggle("t-spin", opts.spin, function (v) { opts.spin = v; });
   toggle("t-night", opts.night, function (v) { opts.night = v; });
   toggle("t-grid", opts.grid, function (v) { opts.grid = v; });
+  var relBtn = toggle("t-relieve", opts.relieve, function (v) {
+    opts.relieve = v;
+    if (!v && (sel.tipo === "area" || sel.tipo === "punto")) seleccionar(null);
+    renderList(searchEl.value);
+  });
+  if (!relieve) relBtn.hidden = true;
   toggle("t-divs", opts.divs, function (v) {
     opts.divs = v;
     // Sin divisiones a la vista, la selección pasa al país que la contiene.
@@ -1672,6 +1871,93 @@ body {
     return out;
   }
 
+  // Marcas dibujadas en el último fotograma, para poder pincharlas.
+  var marcas = [];
+
+  function dibujaRelieve(scene, boxes, aspect, t) {
+    marcas.length = 0;
+    if (!relieve || !opts.relieve) return;
+
+    var p = [0, 0, 0];
+    var horizon = 1 / view.dist;
+    var monte = 600 * view.dist * view.dist;         // altitud mínima visible
+    var minArea = view.dist * view.dist * 9000;
+    var puestos = 0, tope = view.dist < 2 ? 22 : 14;
+
+    function coloca(rec, texto, glifo, tipo, indice) {
+      if (puestos >= tope) return false;
+      unit(p, rec.c[0] * DEG, rec.c[1] * DEG);
+      rotateModel(p, mRot, p[0], p[1], p[2]);
+      var facing = (p[2] - horizon) / (1 - horizon);
+      if (facing < 0.06) return false;
+      var z = view.dist - p[2];
+      if (z <= 0.01) return false;
+      var sx = (p[0] / (z * t * aspect)) * 0.5 * W + W / 2;
+      var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
+      if (sx < 30 || sx > W - 30 || sy < 20 || sy > H - 20) return false;
+
+      var w = ctx.measureText(texto).width;
+      var box = [sx - w / 2 - 4, sy - 8, sx + w / 2 + 4, sy + 16];
+      for (var b = 0; b < boxes.length; b++) {
+        var o = boxes[b];
+        if (box[0] < o[2] && box[2] > o[0] && box[1] < o[3] && box[3] > o[1]) return false;
+      }
+      boxes.push(box);
+      puestos++;
+
+      ctx.globalAlpha = Math.min(1, 0.4 + facing * 1.6);
+      if (glifo === "monte") {
+        // un triángulo pequeño: el signo cartográfico de cumbre
+        ctx.beginPath();
+        ctx.moveTo(sx, sy - 7);
+        ctx.lineTo(sx + 5, sy + 1);
+        ctx.lineTo(sx - 5, sy + 1);
+        ctx.closePath();
+        ctx.fillStyle = scene.marca;
+        ctx.fill();
+      } else if (glifo === "punto") {
+        ctx.beginPath();
+        ctx.arc(sx, sy - 2, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = scene.marca;
+        ctx.fill();
+      }
+      ctx.strokeStyle = scene.halo;
+      ctx.lineWidth = 3;
+      ctx.strokeText(texto, sx, sy + 10);
+      ctx.fillStyle = scene.label;
+      ctx.fillText(texto, sx, sy + 10);
+      ctx.globalAlpha = 1;
+      marcas.push({ tipo: tipo, i: indice, sx: sx, sy: sy });
+      return true;
+    }
+
+    ctx.save();
+    ctx.font = 'italic 500 11.5px ' + getComputedStyle(document.body).fontFamily;
+
+    // Las cumbres van primero: son lo más concreto y lo que se busca en un
+    // mapa físico. Las regiones ocupan el hueco que quede.
+    var pts = relieve.puntos;
+    for (var i = 0; i < pts.length && puestos < tope; i++) {
+      var pt = pts[i];
+      var esMonte = pt.cl === "cumbre";
+      if (esMonte) {
+        if (pt.e < monte) continue;
+      } else if (view.dist > 2.3) continue;
+      var texto = esMonte && pt.e ? pt.n + " " + fmtNum(pt.e) + " m" : pt.n;
+      coloca(pt, texto, esMonte ? "monte" : "punto", "punto", i);
+    }
+
+    var areas = relieve.areas;
+    for (var i = 0; i < areas.length && puestos < tope; i++) {
+      var a = areas[i];
+      if (a.cl === "hielo") continue;                // el hielo no lleva nombre
+      if (a.a < minArea && !(sel.tipo === "area" && sel.i === i)) continue;
+      coloca(a, a.n, null, "area", i);
+    }
+
+    ctx.restore();
+  }
+
   function drawLabels(scene) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
@@ -1740,6 +2026,8 @@ body {
       ctx.fill();
       ctx.globalAlpha = 1;
     }
+
+    dibujaRelieve(scene, boxes, aspect, t);
   }
 
   // ---------------------------------------------------------------- //
@@ -1829,6 +2117,7 @@ body {
     var night = opts.night ? 1 : 0;
     // El terminador solo se lee con sombreado completo, aunque la carta sea plana.
     var shade = opts.night ? 1 : scene.shade;
+    var verRelieve = opts.relieve && !!relieve;
 
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -1885,6 +2174,9 @@ body {
     gl.uniformMatrix4fv(progLand.u.uVP, false, mVP);
     gl.uniformMatrix3fv(progLand.u.uRot, false, mRot);
     gl.uniform1f(progLand.u.uR, 1.0016);
+    gl.uniform1f(progLand.u.uAlpha, 1.0);
+    gl.uniform1f(progLand.u.uFisico, verRelieve ? 0.68 : 0.0);
+    gl.uniform3fv(progLand.u.uTierra, hexToRgb(scene.tierra));
     gl.uniform3fv(progLand.u.uLight, lightWorld);
     gl.uniform1f(progLand.u.uNight, night);
     gl.uniform1f(progLand.u.uShade, shade);
@@ -1894,6 +2186,33 @@ body {
     gl.uniform1f(progLand.u.uHovPais, marcaPais(hover));
     gl.uniform1f(progLand.u.uSelPais, marcaPais(sel));
     gl.drawElements(gl.TRIANGLES, nFill, gl.UNSIGNED_INT, 0);
+
+    // --- geografía física ---
+    if (verRelieve) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // color premultiplicado
+      disableAll();
+      bindAttrib(progLand, "aPos", relieve.bufPos, 3);
+      bindAttrib(progLand, "aIdx", relieve.bufIdx, 1);
+      bindAttrib(progLand, "aPais", relieve.bufIdx, 1);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, relieve.bufFill);
+      gl.bindTexture(gl.TEXTURE_2D, palRel.tex);
+      gl.uniform2f(progLand.u.uPalSize, palRel.w, palRel.h);
+      gl.uniform1f(progLand.u.uFisico, 0.0);
+      gl.uniform1f(progLand.u.uR, 1.0026);
+      gl.uniform1f(progLand.u.uHover, marcaTipo(hover, "area"));
+      gl.uniform1f(progLand.u.uSel, marcaTipo(sel, "area"));
+      gl.uniform1f(progLand.u.uHovPais, -1);
+      gl.uniform1f(progLand.u.uSelPais, -1);
+      // relieve translúcido; los lagos, que van al final, opacos y más altos
+      gl.uniform1f(progLand.u.uAlpha, 0.82);
+      gl.drawElements(gl.TRIANGLES, relieve.corte, gl.UNSIGNED_INT, 0);
+      gl.uniform1f(progLand.u.uAlpha, 1.0);
+      gl.uniform1f(progLand.u.uR, 1.0034);
+      gl.drawElements(gl.TRIANGLES, relieve.nFill - relieve.corte,
+                      gl.UNSIGNED_INT, relieve.corte * 4);
+      gl.disable(gl.BLEND);
+    }
     gl.enable(gl.CULL_FACE);
 
     // --- retícula y fronteras ---
@@ -1909,9 +2228,18 @@ body {
       disableAll();
       bindAttrib(progLine, "aPos", grid.pos, 3);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, grid.idx);
-      gl.uniform1f(progLine.u.uR, 1.0060);
+      gl.uniform1f(progLine.u.uR, 1.0068);
       gl.uniform4fv(progLine.u.uColor, scene.grid);
       gl.drawElements(gl.LINES, grid.count, gl.UNSIGNED_INT, 0);
+    }
+
+    if (verRelieve && relieve.nRio) {
+      disableAll();
+      bindAttrib(progLine, "aPos", relieve.bufRioPos, 3);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, relieve.bufRioIdx);
+      gl.uniform1f(progLine.u.uR, 1.0042);
+      gl.uniform4fv(progLine.u.uColor, scene.rio);
+      gl.drawElements(gl.LINES, relieve.nRio, gl.UNSIGNED_INT, 0);
     }
 
     // Los contornos de cada división van finos y por debajo de las fronteras
@@ -1920,7 +2248,7 @@ body {
       disableAll();
       bindAttrib(progLine, "aPos", bufPos, 3);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufLine);
-      gl.uniform1f(progLine.u.uR, 1.0030);
+      gl.uniform1f(progLine.u.uR, 1.0050);
       gl.uniform4fv(progLine.u.uColor, scene.divs);
       gl.drawElements(gl.LINES, nLine, gl.UNSIGNED_INT, 0);
     }
@@ -1929,7 +2257,7 @@ body {
       disableAll();
       bindAttrib(progLine, "aPos", bufFrontPos, 3);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufFrontIdx);
-      gl.uniform1f(progLine.u.uR, 1.0042);
+      gl.uniform1f(progLine.u.uR, 1.0060);
       gl.uniform4fv(progLine.u.uColor, scene.border);
       gl.drawElements(gl.LINES, nFront, gl.UNSIGNED_INT, 0);
     }
@@ -1939,7 +2267,7 @@ body {
       disableAll();
       bindAttrib(progLine, "aPos", bufPos, 3);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufLine);
-      gl.uniform1f(progLine.u.uR, 1.0056);
+      gl.uniform1f(progLine.u.uR, 1.0076);
       gl.uniform4f(progLine.u.uColor, accentRGB[0], accentRGB[1], accentRGB[2], 1.0);
       gl.drawElements(gl.LINES, d.lCount, gl.UNSIGNED_INT, d.lStart * 4);
     }
@@ -1978,7 +2306,9 @@ body {
   // ---------------------------------------------------------------- //
 
   var sub = document.getElementById("sub");
-  sub.textContent = fmtNum(NP) + " países · " + fmtNum(ND) + " divisiones";
+  sub.textContent = fmtNum(NP) + " países · " + fmtNum(ND) + " divisiones" +
+    (relieve ? " · " + fmtNum(relieve.areas.length + relieve.puntos.length) +
+               " accidentes naturales" : "");
 
   readAccent();
   uploadPalette(SCENES[opts.scene]);
@@ -2002,6 +2332,9 @@ body {
     seleccionar: seleccionar,
     select: function (i) { seleccionar(i >= 0 ? { tipo: "pais", i: i } : null); },
     selectDiv: function (i) { seleccionar(i >= 0 ? { tipo: "div", i: i } : null); },
+    relieve: relieve,
+    marcas: null,        // se rellena en cada fotograma con lo dibujado
+    selectPunto: function (i) { seleccionar(i >= 0 ? { tipo: "punto", i: i } : null); },
     setView: function (lon, lat, dist) {      // sin animación, para pruebas
       flight = null;
       view.yaw = -lon * DEG;
@@ -2023,6 +2356,8 @@ body {
       uploadPalette(SCENES[name]);
     }
   };
+
+  window.atlas.marcas = marcas;
 
   requestAnimationFrame(function (t) {
     last = t;

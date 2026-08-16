@@ -2,8 +2,9 @@
 
 Un mapa del mundo en 3D: un globo terráqueo que se dibuja con WebGL a partir de
 las fronteras reales de **241 países y 4.314 provincias, estados y
-departamentos**, sin librerías externas y en **un solo archivo HTML** que
-funciona abriéndolo con doble clic.
+departamentos**, más **2.249 accidentes naturales** —cordilleras, desiertos,
+mesetas, cumbres, ríos, lagos y glaciares—, sin librerías externas y en **un
+solo archivo HTML** que funciona abriéndolo con doble clic.
 
 ```
 index.html      → abre esto en el navegador
@@ -21,7 +22,13 @@ index.html      → abre esto en el navegador
   al que pertenece —pinchable, para saltar al país entero—, superficie, punto
   central, antípoda y hora solar del lugar.
 - **Índice lateral** con los 241 países y su superficie. El buscador acepta
-  también divisiones: escribe «navarra», «baviera» o «chubut».
+  también divisiones y accidentes: escribe «navarra», «baviera», «chubut»,
+  «himalaya», «aconcagua» o «sahara».
+- **Relieve**: el botón `Relieve` apaga los colores políticos y pinta la
+  geografía física — 225 cordilleras, 72 mesetas, 58 desiertos, llanuras,
+  cuencas, humedales, 289 masas de hielo y 334 lagos, con los ríos y **632
+  cumbres rotuladas con su altitud** (Everest 8.848 m, Aconcagua 6.959 m…).
+  Cada cumbre lleva el triángulo cartográfico y se puede pinchar.
 - **Modo día/noche**: ilumina el globo con la posición real del Sol calculada
   para el instante actual, con su terminador y el halo atmosférico encendido
   solo en el limbo iluminado.
@@ -39,18 +46,25 @@ git clone --depth 1 --filter=blob:none --sparse \
     https://github.com/nvkelso/natural-earth-vector.git /tmp/ne
 git -C /tmp/ne sparse-checkout set geojson
 cp /tmp/ne/geojson/ne_10m_admin_1_states_provinces.geojson data/admin1.geojson
+for c in 10m_geography_regions_polys 10m_geography_regions_elevation_points \
+         10m_geography_regions_points 50m_rivers_lake_centerlines \
+         50m_lakes 50m_glaciated_areas; do
+  cp /tmp/ne/geojson/ne_$c.geojson data/$c.geojson
+done
 
-# 2. geometría lista para la GPU  (~45 s)
-python3 tools/build_mundo.py     # data/admin1.geojson → data/mundo.json
+# 2. geometría lista para la GPU  (~50 s)
+python3 tools/build_mundo.py     # divisiones y fronteras → data/mundo.json
+python3 tools/build_relieve.py   # geografía física       → data/relieve.json
 
 # 3. archivo único
-python3 tools/bundle.py          # plantilla + datos   → index.html
+python3 tools/bundle.py          # plantilla + datos      → index.html
 ```
 
 | Archivo | Función |
 | --- | --- |
 | `src/globo.template.html` | La aplicación: estilos, interfaz y el motor WebGL. |
 | `tools/build_mundo.py` | Divisiones, países y fronteras a partir del GeoJSON. |
+| `tools/build_relieve.py` | Cordilleras, desiertos, cumbres, ríos, lagos y hielo. |
 | `tools/topologia.py` | Simplificación que respeta las fronteras compartidas. |
 | `tools/geometria.py` | De polígonos lon/lat a triángulos sobre la esfera. |
 | `tools/nombres_es.py` | Nombres de países en español. |
@@ -112,6 +126,16 @@ volviendo por el otro lado: el polígono vuelve a ser simple y además cubre el
 polo. Ese tramo se marca como no dibujable para que no aparezca una línea
 artificial sobre el hielo.
 
+**7. Lo físico sobre lo político.** El relieve no sustituye al mapa, se
+superpone: al encenderlo, los colores políticos se apagan hacia un verde
+neutro (un `mix` en el sombreador, no otra geometría) y encima se dibujan las
+áreas físicas translúcidas, los lagos opacos, los ríos y las cumbres. Los
+límites de una cordillera o un desierto son indicativos, así que se simplifican
+mucho más que las fronteras; los lagos, que sí tienen forma reconocible,
+conservan el detalle. Las cumbres son rótulos del lienzo 2D, no geometría: se
+registran con su posición en pantalla al dibujarlas, y por eso se pueden
+pinchar aunque midan doce píxeles.
+
 En el navegador, toda la geometría vive en un juego de búferes —uno para los
 rellenos, otro para los contornos, otro para las fronteras de país— y el color
 de cada división se lee de una textura-paleta indexada por atributos de
@@ -122,8 +146,8 @@ deshace la rotación y se resuelve el punto en polígono, con una rejilla de 6°
 que reduce las 4.314 divisiones a las pocas candidatas de esa celda.
 
 Los datos van cuantizados a enteros de 16 bits e indexados a 16 bits siempre
-que caben, y codificados en base64: 4.314 divisiones, 280.000 vértices y
-295.000 triángulos ocupan 5,2 MB.
+que caben, y codificados en base64: 4.314 divisiones (280.000 vértices,
+295.000 triángulos) ocupan 5,2 MB y toda la geografía física, 1,2 MB más.
 
 ## Comprobaciones
 
@@ -145,6 +169,10 @@ que caben, y codificados en base64: 4.314 divisiones, 280.000 vértices y
 - Divisiones: [Natural Earth](https://www.naturalearthdata.com/), capa
   `ne_10m_admin_1_states_provinces`, dominio público. Los nombres en español
   vienen del propio conjunto de datos (`name_es`).
+- Geografía física: Natural Earth, capas `geography_regions_polys`,
+  `geography_regions_elevation_points`, `geography_regions_points` (1:10 M) y
+  `rivers_lake_centerlines`, `lakes`, `glaciated_areas` (1:50 M). También en
+  dominio público y también con los nombres en español.
 - Países sin divisiones y nombres de país:
   [`johan/world.geo.json`](https://github.com/johan/world.geo.json), derivado
   de Natural Earth 1:110 M, dominio público (`data/LICENSE-countries-geo-json`).
