@@ -2,7 +2,7 @@
 
 Un mapa del mundo en 3D: un globo terráqueo que se dibuja con WebGL a partir de
 las fronteras reales de **241 países y 4.314 provincias, estados y
-departamentos**, más **2.249 accidentes naturales** —cordilleras, desiertos,
+departamentos**, más **3.536 accidentes naturales** —cordilleras, desiertos,
 mesetas, cumbres, ríos, lagos y glaciares—, sin librerías externas y en **un
 solo archivo HTML** que funciona abriéndolo con doble clic.
 
@@ -26,8 +26,9 @@ index.html      → abre esto en el navegador
   «himalaya», «aconcagua» o «sahara».
 - **Relieve**: el botón `Relieve` apaga los colores políticos y pinta la
   geografía física — 225 cordilleras, 72 mesetas, 58 desiertos, llanuras,
-  cuencas, humedales, 289 masas de hielo y 334 lagos, con los ríos y **632
-  cumbres rotuladas con su altitud** (Everest 8.848 m, Aconcagua 6.959 m…).
+  cuencas, humedales, 289 masas de hielo y 1.270 lagos, con 351 ríos con
+  nombre y **632 cumbres rotuladas con su altitud** (Everest 8.848 m,
+  Aconcagua 6.959 m…).
 - **Todo se puede pinchar**: con el relieve encendido, pinchar el globo
   selecciona el accidente natural que haya bajo el cursor —gana el más
   concreto, un lago antes que la cuenca que lo contiene— y su ficha da el
@@ -44,6 +45,11 @@ index.html      → abre esto en el navegador
   solo en el limbo iluminado.
 - **Dos estilos**: `Noche` (globo sobre fondo estrellado) y `Carta` (aspecto de
   atlas político impreso). Por defecto sigue el tema claro u oscuro del visor.
+- **Zoom hasta 127 km de altitud**, la escala a la que se sigue el curso de un
+  río o se reconoce la forma de un lago: 1.270 lagos y 2.442 tramos de río a
+  1:10 M, con los afluentes apareciendo a medida que te acercas. El arrastre
+  es de agarre exacto en corto —el punto se queda bajo el cursor— y se acelera
+  en las vistas lejanas.
 - **Retícula** de meridianos y paralelos cada 15°.
 - Teclado: flechas para girar, `+` / `−` para acercar, `Inicio` para reiniciar
   la vista y `Esc` para cerrar la ficha.
@@ -57,8 +63,8 @@ git clone --depth 1 --filter=blob:none --sparse \
 git -C /tmp/ne sparse-checkout set geojson
 cp /tmp/ne/geojson/ne_10m_admin_1_states_provinces.geojson data/admin1.geojson
 for c in 10m_geography_regions_polys 10m_geography_regions_elevation_points \
-         10m_geography_regions_points 50m_rivers_lake_centerlines \
-         50m_lakes 50m_glaciated_areas; do
+         10m_geography_regions_points 10m_rivers_lake_centerlines \
+         10m_lakes 50m_glaciated_areas; do
   cp /tmp/ne/geojson/ne_$c.geojson data/$c.geojson
 done
 
@@ -149,7 +155,17 @@ interfaz lo dice y el botón `3D` lo apaga. El sombreado de laderas se calcula
 del gradiente de esa rejilla, una vez por vértice al cargar, así que cambiar la
 exageración es mover un uniforme.
 
-**8. Lo físico sobre lo político.** El relieve no sustituye al mapa, se
+**8. Zoom hasta el río.** Acercarse a 127 km de altitud obliga a cambiar cuatro
+cosas a la vez: los ríos y lagos pasan a 1:10 M —2.442 tramos ordenados por
+importancia, de los que solo se dibuja el prefijo que corresponde al zoom—; el
+plano de recorte cercano y el paso del teclado se hacen proporcionales a la
+altura; la exageración del relieve se recoge al acercarse, porque a ×16 la
+cámara acabaría dentro de la montaña; y el arrastre pasa a calcularse de la
+geometría de la vista, así que en corto el punto agarrado se queda bajo el
+cursor. La esfera del océano subió a 256×128 caras: a esa altura sus facetas
+se notaban en el horizonte.
+
+**9. Lo físico sobre lo político.** El relieve no sustituye al mapa, se
 superpone: al encenderlo, los colores políticos se apagan hacia un verde
 neutro (un `mix` en el sombreador, no otra geometría) y encima se dibujan las
 áreas físicas translúcidas, los lagos opacos, los ríos y las cumbres. Los
@@ -197,9 +213,9 @@ que caben, y codificados en base64: 4.314 divisiones (280.000 vértices,
   `ne_10m_admin_1_states_provinces`, dominio público. Los nombres en español
   vienen del propio conjunto de datos (`name_es`).
 - Geografía física: Natural Earth, capas `geography_regions_polys`,
-  `geography_regions_elevation_points`, `geography_regions_points` (1:10 M) y
-  `rivers_lake_centerlines`, `lakes`, `glaciated_areas` (1:50 M). También en
-  dominio público y también con los nombres en español.
+  `geography_regions_elevation_points`, `geography_regions_points`,
+  `rivers_lake_centerlines` y `lakes` (1:10 M) y `glaciated_areas` (1:50 M).
+  También en dominio público y también con los nombres en español.
 - Países sin divisiones y nombres de país:
   [`johan/world.geo.json`](https://github.com/johan/world.geo.json), derivado
   de Natural Earth 1:110 M, dominio público (`data/LICENSE-countries-geo-json`).

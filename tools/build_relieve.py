@@ -5,8 +5,8 @@ Entradas (capas de Natural Earth, ver README)
   data/10m_geography_regions_polys.geojson             cordilleras, desiertos, mesetas...
   data/10m_geography_regions_elevation_points.geojson  cumbres con altitud
   data/10m_geography_regions_points.geojson            cabos, cataratas, polos
-  data/50m_rivers_lake_centerlines.geojson             rios
-  data/50m_lakes.geojson                               lagos
+  data/10m_rivers_lake_centerlines.geojson             rios
+  data/10m_lakes.geojson                               lagos
   data/50m_glaciated_areas.geojson                     hielo permanente
 
 Salida
@@ -23,7 +23,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from geometria import SCALE, b64_i16, densify_open, pack_polygons, point_in_rings, quantize
-from topologia import simplificar
+from topologia import _dp, simplificar
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -129,7 +129,7 @@ def centro_de(anillo):
     return [round(sum(xs) / len(xs), 3), round(sum(ys) / len(ys), 3)]
 
 
-def empaqueta_areas(entradas, tol, fraccion):
+def empaqueta_areas(entradas, tol, fraccion, minima=MINIMA):
     """entradas: lista de (nombre, clase, tipo_es, polys). Devuelve areas listas."""
     anillos = []
     plano = []
@@ -160,7 +160,7 @@ def empaqueta_areas(entradas, tol, fraccion):
         if not polys:
             continue
         packed = pack_polygons(polys)
-        if not packed or packed["a"] < MINIMA:
+        if not packed or packed["a"] < minima:
             continue
         salida.append({
             "_anillos": [r for poly in polys for r in poly],
@@ -295,41 +295,69 @@ def main():
 
     # --- lagos: conservan mas detalle, su forma se reconoce ------------------
     lagos_in = []
-    for f in cargar("50m_lakes.geojson")["features"]:
+    for f in cargar("10m_lakes.geojson")["features"]:
         polys = anillos_de(f)
         if polys:
             lagos_in.append((nombre(f["properties"]) or "Lago", "lago", "Lago", polys))
-    lagos, la, ld = empaqueta_areas(lagos_in, tol=0.02, fraccion=0.02)
+    lagos, la, ld = empaqueta_areas(lagos_in, tol=0.012, fraccion=0.015, minima=25.0)
     print("lagos: %d  %d -> %d puntos" % (len(lagos), la, ld))
     areas.extend(lagos)
 
     # --- rios ---------------------------------------------------------------
     lineas = []
-    for f in cargar("50m_rivers_lake_centerlines.geojson")["features"]:
+    crudos = 0
+    for f in cargar("10m_rivers_lake_centerlines.geojson")["features"]:
         g = f.get("geometry")
         if not g:
             continue
         trozos = [g["coordinates"]] if g["type"] == "LineString" else g["coordinates"]
-        rank = campo(f["properties"], "scalerank") or 8
+        rank = int(campo(f["properties"], "scalerank") or 8)
         nom = nombre(f["properties"]) or ""
         for tr in trozos:
-            if len(tr) >= 2:
-                lineas.append((nom, int(rank), [(float(x), float(y)) for x, y in tr]))
+            if len(tr) < 2:
+                continue
+            crudos += len(tr)
+            pts = [(float(x), float(y)) for x, y in tr]
+            # Un rio secundario no necesita el mismo detalle que el Amazonas:
+            # la tolerancia crece con el rango, que es su orden de importancia.
+            tol = 0.004 * (1.0 + rank * 0.35)
+            idx = _dp(pts, tol * tol)
+            lineas.append((nom, rank, [pts[i] for i in idx]))
 
+    # Ordenados por importancia: el cliente dibuja solo el prefijo que toca
+    # segun el zoom, sin tener que filtrar tramo a tramo.
+    lineas.sort(key=lambda t: t[1])
     verts = []
     tramos = []
-    rangos = []
+    cortes = [0] * 12          # primer tramo de cada rango
+    rango_ant = -1
+    nombres_rio = {}
     for nom, rank, pts in lineas:
         densa = densify_open(pts)
         if len(densa) < 2:
             continue
+        while rango_ant < rank:
+            rango_ant += 1
+            cortes[rango_ant] = len(tramos)
         tramos.append((len(verts) // 2, len(densa)))
-        rangos.append(rank)
         for lon, lat in densa:
             verts.append(quantize(lon, -32767, 32767))
             verts.append(quantize(lat, -32767, 32767))
-    rios = {"v": b64_i16(verts), "s": [x for t in tramos for x in t], "rk": rangos}
-    print("rios: %d tramos  %d puntos" % (len(tramos), len(verts) // 2))
+        if nom and (nom not in nombres_rio or len(pts) > nombres_rio[nom][1]):
+            nombres_rio[nom] = (pts[len(pts) // 2], len(pts), rank)
+    while rango_ant < 11:
+        rango_ant += 1
+        cortes[rango_ant] = len(tramos)
+
+    rios = {"v": b64_i16(verts), "s": [x for t in tramos for x in t], "c": cortes}
+    print("rios: %d tramos  %d -> %d puntos  cortes=%s"
+          % (len(tramos), crudos, len(verts) // 2, cortes))
+
+    # los rios con nombre entran como puntos: buscables y rotulables
+    for nom, (pt, largo, rank) in nombres_rio.items():
+        if rank <= 6:
+            puntos.append({"n": nom, "ty": "Río", "cl": "rio",
+                           "c": [round(pt[0], 3), round(pt[1], 3)], "e": 0})
 
     # --- cumbres y otros puntos --------------------------------------------
     for fichero in ("10m_geography_regions_elevation_points.geojson",

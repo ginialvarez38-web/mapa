@@ -764,10 +764,18 @@ body {
       for (var t = 0; t < r.s.length; t += 2) total += (r.s[t + 1] - 1) * 2;
       var ridx = new Uint32Array(total);
       var w = 0;
-      for (var t = 0; t < r.s.length; t += 2) {
+      // r.c trae el primer tramo de cada rango; aquí se traduce a posiciones
+      // del búfer de índices, para dibujar solo hasta el rango que toque.
+      var cortes = r.c || [0];
+      var cortesIdx = new Int32Array(cortes.length);
+      var tramo = 0, sig = 0;
+      for (var t = 0; t < r.s.length; t += 2, tramo++) {
+        while (sig < cortes.length && cortes[sig] === tramo) cortesIdx[sig++] = w;
         var start = r.s[t], count = r.s[t + 1];
         for (var k = 0; k < count - 1; k++) { ridx[w++] = start + k; ridx[w++] = start + k + 1; }
       }
+      while (sig < cortes.length) cortesIdx[sig++] = w;
+      relieve.rioCortes = cortesIdx;
       relieve.rioPos = rpos;
       relieve.rioAlt = ralt;
       relieve.rioIdx = ridx;
@@ -1190,7 +1198,7 @@ body {
     return { pos: buffer(gl.ARRAY_BUFFER, new Float32Array(pos)),
              idx: buffer(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(idx)),
              count: idx.length };
-  })(128, 64);
+  })(256, 128);   // a 130 km de altitud las facetas de la esfera se notan
 
   // Retícula: meridianos y paralelos cada 15°.
   var grid = (function () {
@@ -1591,7 +1599,7 @@ body {
       var dx = e.clientX - lastX, dy = e.clientY - lastY;
       lastX = e.clientX; lastY = e.clientY;
       moved += Math.abs(dx) + Math.abs(dy);
-      var k = 0.0042 * Math.min(view.dist, 3.2);
+      var k = arrastrePorPixel();
       view.vYaw = dx * k;
       view.vPitch = dy * k;
       view.yaw += view.vYaw;
@@ -1643,7 +1651,7 @@ body {
 
   canvas.tabIndex = 0;
   canvas.addEventListener("keydown", function (e) {
-    var step = 6 * DEG;
+    var step = Math.max(0.06, Math.min(6, 6 * (view.dist - 1) / 2)) * DEG;
     if (e.key === "ArrowLeft") view.yaw -= step;
     else if (e.key === "ArrowRight") view.yaw += step;
     else if (e.key === "ArrowUp") view.pitch = clampPitch(view.pitch + step);
@@ -1658,7 +1666,20 @@ body {
   });
 
   function clampPitch(p) { return Math.max(-88 * DEG, Math.min(88 * DEG, p)); }
-  function clampDist(d) { return Math.max(1.32, Math.min(7.5, d)); }
+  // 1,02 radios ~ 130 km de altitud: la escala a la que se sigue el curso de
+  // un río o la forma de un lago.
+  function clampDist(d) { return Math.max(1.02, Math.min(7.5, d)); }
+
+  // Radianes de giro por píxel arrastrado. Sale de la geometría de la vista,
+  // así que a 130 km de altitud el globo ya no se dispara con un gesto corto.
+  function arrastrePorPixel() {
+    var alto = H || 800;
+    var base = (view.dist - 1) * 2 * Math.tan(FOV / 2) / alto;
+    // De cerca conviene el agarre exacto, para seguir un río sin pasarse; de
+    // lejos se acelera, o girar el globo entero cuesta varios gestos.
+    var suelta = 1 + 1.6 * Math.max(0, Math.min(1, (view.dist - 1.3) / 1.8));
+    return Math.max(0.00003, base * suelta);
+  }
 
   var tip = document.getElementById("tip");
 
@@ -1788,8 +1809,8 @@ body {
     updateSolar();
 
     var b = rec.b;
-    var span = b ? Math.max(b[2] - b[0], (b[3] - b[1]) * 1.6) : 3;
-    flyTo(rec.c[0], rec.c[1], clampDist(1.28 + span * 0.032));
+    var span = b ? Math.max(b[2] - b[0], (b[3] - b[1]) * 1.6) : 0.6;
+    flyTo(rec.c[0], rec.c[1], clampDist(1.03 + span * 0.05));
   }
 
   function antipoda(lon) { return lon > 0 ? lon - 180 : lon + 180; }
@@ -2045,8 +2066,8 @@ body {
 
     var p = [0, 0, 0];
     var horizon = 1 / view.dist;
-    var monte = 600 * view.dist * view.dist;         // altitud mínima visible
-    var minArea = view.dist * view.dist * 9000;
+    var monte = Math.max(200, 3000 * (view.dist - 1));   // altitud mínima visible
+    var minArea = Math.max(8, (view.dist - 1) * (view.dist - 1) * 45000);
     var puestos = 0, tope = view.dist < 2 ? 22 : 14;
 
     function coloca(rec, texto, glifo, tipo, indice) {
@@ -2107,7 +2128,7 @@ body {
       var esMonte = pt.cl === "cumbre";
       if (esMonte) {
         if (pt.e < monte) continue;
-      } else if (view.dist > 2.3) continue;
+      } else if (view.dist > (pt.cl === "rio" ? 2.0 : 2.3)) continue;
       var texto = esMonte && pt.e ? pt.n + " " + fmtNum(pt.e) + " m" : pt.n;
       coloca(pt, texto, esMonte ? "monte" : "punto", "punto", i);
     }
@@ -2136,7 +2157,10 @@ body {
     var t = Math.tan(FOV / 2);
     var boxes = chromeBoxes();
     var limit = view.dist < 2.0 ? 18 : view.dist < 3.2 ? 12 : 9;
-    var minArea = view.dist * view.dist * (porDivs ? 4200 : 62000);
+    // El umbral va con el ancho de la vista —proporcional a dist−1—, no con la
+    // distancia: así al acercarse van apareciendo los nombres pequeños.
+    var vista = (view.dist - 1) * (view.dist - 1);
+    var minArea = Math.max(5, vista * (porDivs ? 17000 : 135000));
     var drawn = 0;
     var p = [0, 0, 0];
 
@@ -2261,7 +2285,7 @@ body {
 
     var scene = SCENES[opts.scene];
 
-    perspective(mProj, FOV, W / H, 0.05, 100);
+    perspective(mProj, FOV, W / H, Math.max(0.002, (view.dist - 1) * 0.2), 100);
     vpMatrix(mVP, mProj, view.dist);
     rotation(mRot, view.yaw, view.pitch);
 
@@ -2284,7 +2308,8 @@ body {
     var shade = opts.night ? 1 : scene.shade;
     var verRelieve = opts.relieve && !!relieve;
     // El paso a 3D se hace suave: el terreno crece en vez de saltar.
-    var meta = (opts.tresd && relieve && relieve.hv) ? EXAG : 0;
+    var cerca = Math.max(0.10, Math.min(1, (view.dist - 1) / 0.5));
+    var meta = (opts.tresd && relieve && relieve.hv) ? EXAG * cerca : 0;
     exag += (meta - exag) * Math.min(1, dt / 220);
     if (Math.abs(meta - exag) < 0.02) exag = meta;
 
@@ -2413,13 +2438,24 @@ body {
     }
 
     if (verRelieve && relieve.nRio) {
+      // Cuanto más cerca, más afluentes: de lejos solo los grandes ríos.
+      var d = view.dist;
+      var maxRango = d > 2.6 ? 3 : d > 1.9 ? 5 : d > 1.45 ? 7 : d > 1.15 ? 9 : 11;
+      var cor = relieve.rioCortes;
+      var hasta = cor ? cor[Math.min(maxRango + 1, cor.length - 1)] : relieve.nRio;
+      var medio = cor ? cor[Math.min(5, cor.length - 1)] : hasta;
       disableAll();
       bindAttrib(progLine, "aPos", relieve.bufRioPos, 3);
       bindAttrib(progLine, "aH", relieve.bufRioAlt, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, relieve.bufRioIdx);
       gl.uniform1f(progLine.u.uR, 1.0042);
       gl.uniform4fv(progLine.u.uColor, scene.rio);
-      gl.drawElements(gl.LINES, relieve.nRio, gl.UNSIGNED_INT, 0);
+      gl.drawElements(gl.LINES, medio, gl.UNSIGNED_INT, 0);
+      if (hasta > medio) {          // los afluentes, más tenues
+        gl.uniform4f(progLine.u.uColor, scene.rio[0], scene.rio[1], scene.rio[2],
+                     scene.rio[3] * 0.55);
+        gl.drawElements(gl.LINES, hasta - medio, gl.UNSIGNED_INT, medio * 4);
+      }
     }
 
     // Los contornos de cada división van finos y por debajo de las fronteras
