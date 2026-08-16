@@ -1,36 +1,19 @@
-#!/usr/bin/env python3
-"""Convierte data/countries.geo.json en el blob que consume el globo 3D.
+# -*- coding: utf-8 -*-
+"""Geometria compartida por los generadores de datos del globo.
 
-Para cada pais produce:
-  - vertices densificados (lon/lat) para que las aristas sigan la curvatura de la esfera
-  - triangulos (ear clipping, con puente para el unico hueco del dataset)
-  - offsets de anillos para dibujar los contornos
-  - bbox y centroide para el buscador y el "volar a"
-
-Los arrays van cuantizados a int16 y codificados en base64 para que el HTML
-final siga siendo un solo archivo autocontenido.
+Todo lo que hace falta para llevar poligonos lon/lat a triangulos que se
+apoyen sobre una esfera: limpieza de anillos, recorte de orejas, cierre por
+el polo y refinamiento conforme de la malla.
 """
 
 import base64
-import json
 import math
-import os
 import struct
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from nombres_es import NOMBRES
-
-HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)
-SRC = os.path.join(ROOT, "data", "countries.geo.json")
-OUT = os.path.join(ROOT, "data", "world.json")
 
 SCALE = 180.0        # 1/180 grados ~ 620 m de resolucion, entra en int16
 MAX_SEG = 1.5        # grados: longitud maxima de arista antes de subdividir
 MAX_TRI = 4.0        # grados de arco: aristas mas largas hunden el triangulo en la esfera
 EARTH_R = 6371.0     # km, radio medio
-
 
 # --------------------------------------------------------------------------
 # geometria basica
@@ -131,6 +114,24 @@ def densify(ring):
             t = s / (steps + 1.0)
             out.append((x1 + (x2 - x1) * t, y1 + (y2 - y1) * t))
     return out, anchors
+
+
+def densify_open(pts):
+    """Como densify, pero sobre una polilinea: no une el ultimo punto con el
+    primero. Usarla mal dibuja una linea recta de vuelta al inicio."""
+    out = []
+    for i in range(len(pts) - 1):
+        x1, y1 = pts[i]
+        x2, y2 = pts[i + 1]
+        out.append((x1, y1))
+        d = max(abs(x2 - x1), abs(y2 - y1))
+        steps = int(d / MAX_SEG)
+        for s in range(1, steps + 1):
+            t = s / (steps + 1.0)
+            out.append((x1 + (x2 - x1) * t, y1 + (y2 - y1) * t))
+    if pts:
+        out.append(pts[-1])
+    return out
 
 
 def point_in_triangle(px, py, ax, ay, bx, by, cx, cy):
@@ -335,138 +336,168 @@ def b64_u32(values):
     return base64.b64encode(struct.pack("<%dI" % len(values), *values)).decode("ascii")
 
 
+def b64_u16(values):
+    return base64.b64encode(struct.pack("<%dH" % len(values), *values)).decode("ascii")
+
+
 def quantize(v, lo, hi):
     return max(lo, min(hi, int(round(v * SCALE))))
 
 
-def build():
-    with open(SRC, "r", encoding="utf-8") as fh:
-        geo = json.load(fh)
 
-    countries = []
-    total_v = total_t = 0
+# --------------------------------------------------------------------------
+# de poligonos lon/lat a geometria lista para la GPU
+# --------------------------------------------------------------------------
 
-    for feature in geo["features"]:
-        name_en = feature["properties"].get("name") or feature.get("id") or "?"
-        if name_en not in NOMBRES:
-            raise SystemExit("falta la traduccion de %r en tools/nombres_es.py" % name_en)
-        name = NOMBRES[name_en]
-        geom = feature["geometry"]
-        polys = [geom["coordinates"]] if geom["type"] == "Polygon" else geom["coordinates"]
+def solo_dentro(verts, tris, rings):
+    """Descarta los triangulos cuyo centro cae fuera del poligono.
 
-        verts = []          # (lon, lat) densificados, compartidos por relleno y contorno
-        ring_offsets = []   # [inicio, longitud] por anillo, para dibujar los bordes
-        tris = []
-        pick_rings = []     # anillos sin densificar, para el point-in-polygon en CPU
+    En anillos que se tocan a si mismos —islas minusculas tras cuantizar, o
+    costas muy recortadas— el recorte de orejas produce algun triangulo que se
+    sale por fuera. Es preferible una pequena falta de relleno, que deja ver el
+    color del pais debajo, a una cuna dibujada donde no hay tierra.
+    """
+    # Caja de cada anillo: evita recorrer todos los puntos en cada prueba.
+    cajas = []
+    for ring in rings:
+        xs = [p[0] for p in ring]
+        ys = [p[1] for p in ring]
+        cajas.append((min(xs), min(ys), max(xs), max(ys)))
 
-        for poly in polys:
-            ring_index = []
-            for r, raw in enumerate(poly):
-                ring = strip_collinear(dedupe(raw))
-                if len(ring) < 3:
-                    continue
-                ring, coast = close_over_pole(ring)
-                pick_rings.append(ring)
-                extra = len(ring) - coast          # vertices anadidos en el polo
-                # el exterior antihorario, los huecos horarios
-                area = ring_area(ring)
-                if (r == 0 and area < 0) or (r > 0 and area > 0):
-                    ring.reverse()
-                    # al invertir, el cierre polar pasa al principio: se rota
-                    # para que la costa vuelva a ocupar los primeros vertices
-                    ring = ring[extra:] + ring[:extra]
-                dense, anchors = densify(ring)
-                start = len(verts)
-                verts.extend(dense)
-                # Solo la costa real se dibuja: el cierre por el polo es artificial.
-                if extra:
-                    # hasta el ultimo punto de costa: los intermedios que bajan
-                    # al polo pertenecen ya al cierre artificial
-                    ring_offsets.append((start, anchors[coast - 1] + 1, 0))
-                else:
-                    ring_offsets.append((start, len(dense), 1))
-                # El recorte de orejas trabaja solo sobre los vertices originales:
-                # los intermedios son colineales y bloquearian las orejas validas.
-                ring_index.append((r, [start + a for a in anchors]))
-
-            if not ring_index:
+    out = []
+    for i in range(0, len(tris), 3):
+        a, b, c = verts[tris[i]], verts[tris[i + 1]], verts[tris[i + 2]]
+        x = (a[0] + b[0] + c[0]) / 3.0
+        y = (a[1] + b[1] + c[1]) / 3.0
+        dentro = False
+        for k, ring in enumerate(rings):
+            x0, y0, x1, y1 = cajas[k]
+            if x < x0 or x > x1 or y < y0 or y > y1:
                 continue
-            outer = ring_index[0][1]
-            holes = [ix for r, ix in ring_index[1:]]
-            loop = bridge_holes(verts, outer, holes) if holes else outer
-            tris.extend(earcut(verts, loop))
+            n = len(ring)
+            j = n - 1
+            for m in range(n):
+                xi, yi = ring[m]
+                xj, yj = ring[j]
+                if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+                    dentro = not dentro
+                j = m
+        if dentro:
+            out.extend((tris[i], tris[i + 1], tris[i + 2]))
+    return out
 
-        if not verts or not tris:
+
+def pack_polygons(polys):
+    """Convierte una lista de poligonos (anillos lon/lat) en geometria de globo.
+
+    Devuelve None si no queda nada dibujable. El diccionario trae los vertices
+    densificados, los triangulos, los tramos de contorno, la caja, un punto
+    representativo que cae siempre dentro y la superficie sobre la esfera.
+    """
+    verts = []          # (lon, lat) densificados, compartidos por relleno y contorno
+    ring_offsets = []   # [inicio, puntos, cerrado] por anillo, para los bordes
+    tris = []
+    pick_rings = []     # anillos sin densificar, para el point-in-polygon en CPU
+
+    for poly in polys:
+        ring_index = []
+        for r, raw in enumerate(poly):
+            ring = strip_collinear(dedupe(raw))
+            if len(ring) < 3:
+                continue
+            ring, coast = close_over_pole(ring)
+            pick_rings.append(ring)
+            extra = len(ring) - coast          # vertices anadidos en el polo
+            # el exterior antihorario, los huecos horarios
+            area = ring_area(ring)
+            if (r == 0 and area < 0) or (r > 0 and area > 0):
+                ring.reverse()
+                # al invertir, el cierre polar pasa al principio: se rota para
+                # que la costa vuelva a ocupar los primeros vertices
+                ring = ring[extra:] + ring[:extra]
+            dense, anchors = densify(ring)
+            start = len(verts)
+            verts.extend(dense)
+            # Solo la costa real se dibuja: el cierre por el polo es artificial.
+            # [inicio, puntos dibujables, cerrado, puntos totales]: el tramo
+            # dibujable excluye el cierre por el polo, el total sirve para el
+            # point-in-polygon, que si necesita el anillo completo.
+            if extra:
+                ring_offsets.append((start, anchors[coast - 1] + 1, 0, len(dense)))
+            else:
+                ring_offsets.append((start, len(dense), 1, len(dense)))
+            # El recorte de orejas trabaja solo sobre los vertices originales:
+            # los intermedios son colineales y bloquearian las orejas validas.
+            ring_index.append((r, [start + a for a in anchors]))
+
+        if not ring_index:
             continue
+        outer = ring_index[0][1]
+        holes = [ix for r, ix in ring_index[1:]]
+        loop = bridge_holes(verts, outer, holes) if holes else outer
+        tris.extend(earcut(verts, loop))
 
-        tris = subdivide(verts, tris)
+    if not verts or not tris:
+        return None
 
-        lons = [v[0] for v in verts]
-        lats = [v[1] for v in verts]
-        bbox = [min(lons), min(lats), max(lons), max(lats)]
+    # El filtro va despues de subdividir: un triangulo grande con el centro
+    # dentro puede dar trozos que caen fuera, y son esos los que se ven.
+    tris = subdivide(verts, tris)
+    tris = solo_dentro(verts, tris, pick_rings)
+    if not tris:
+        return None
 
-        # centroide ponderado por area y superficie real sobre la esfera:
-        # los triangulos ya son pequenos, asi que la cuerda aproxima bien al casquete
-        cx = cy = wsum = 0.0
-        steradians = 0.0
+    lons = [v[0] for v in verts]
+    lats = [v[1] for v in verts]
+    bbox = [min(lons), min(lats), max(lons), max(lats)]
+
+    # centroide ponderado por area y superficie real sobre la esfera: los
+    # triangulos ya son pequenos, asi que la cuerda aproxima bien al casquete
+    cx = cy = wsum = 0.0
+    steradians = 0.0
+    for i in range(0, len(tris), 3):
+        a, b, c = verts[tris[i]], verts[tris[i + 1]], verts[tris[i + 2]]
+        w = abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / 2.0
+        cx += (a[0] + b[0] + c[0]) / 3.0 * w
+        cy += (a[1] + b[1] + c[1]) / 3.0 * w
+        wsum += w
+        steradians += tri_solid_area(a, b, c)
+    if wsum > 0:
+        cx /= wsum
+        cy /= wsum
+    else:
+        cx, cy = (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2
+
+    # El centroide de una region alargada o troceada puede caer en el mar (el
+    # de Japon cae en el mar del Japon). Entonces se usa el centro del
+    # triangulo mas grande, que por construccion esta dentro.
+    if not point_in_rings(pick_rings, cx, cy):
+        biggest, barea = None, -1.0
         for i in range(0, len(tris), 3):
             a, b, c = verts[tris[i]], verts[tris[i + 1]], verts[tris[i + 2]]
-            w = abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / 2.0
-            cx += (a[0] + b[0] + c[0]) / 3.0 * w
-            cy += (a[1] + b[1] + c[1]) / 3.0 * w
-            wsum += w
-            steradians += tri_solid_area(a, b, c)
-        if wsum > 0:
-            cx /= wsum
-            cy /= wsum
-        else:
-            cx, cy = (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2
+            ar = abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]))
+            if ar > barea:
+                barea, biggest = ar, (a, b, c)
+        if biggest:
+            cx = sum(p[0] for p in biggest) / 3.0
+            cy = sum(p[1] for p in biggest) / 3.0
 
-        # El centroide de un pais alargado o troceado puede caer en el mar
-        # (Japon cae en el mar del Japon). En ese caso se usa el centro del
-        # triangulo mas grande, que por construccion esta dentro de tierra.
-        if not point_in_rings(pick_rings, cx, cy):
-            biggest, barea = None, -1.0
-            for i in range(0, len(tris), 3):
-                a_, b_, c_ = verts[tris[i]], verts[tris[i + 1]], verts[tris[i + 2]]
-                ar = abs((b_[0] - a_[0]) * (c_[1] - a_[1]) - (b_[1] - a_[1]) * (c_[0] - a_[0]))
-                if ar > barea:
-                    barea, biggest = ar, (a_, b_, c_)
-            if biggest:
-                cx = sum(p[0] for p in biggest) / 3.0
-                cy = sum(p[1] for p in biggest) / 3.0
-        km2 = steradians * EARTH_R * EARTH_R
+    flat = []
+    for lon, lat in verts:
+        flat.append(quantize(lon, -32767, 32767))
+        flat.append(quantize(lat, -32767, 32767))
 
-        flat = []
-        for lon, lat in verts:
-            flat.append(quantize(lon, -32767, 32767))
-            flat.append(quantize(lat, -32767, 32767))
-
-        countries.append({
-            "id": (feature.get("id") or "").replace("-99", "").replace("CS-KM", "XKX") or "—",
-            "n": name,
-            "en": name_en,
-            "v": b64_i16(flat),
-            "t": b64_u32(tris),
-            "r": [x for off in ring_offsets for x in off],   # [inicio, puntos, cerrado]
-            "b": [round(x, 3) for x in bbox],
-            "c": [round(cx, 3), round(cy, 3)],
-            "a": round(km2),                           # superficie aproximada en km2
-            "p": [[[round(x, 3), round(y, 3)] for x, y in ring] for ring in pick_rings],
-        })
-        total_v += len(verts)
-        total_t += len(tris) // 3
-
-    countries.sort(key=lambda c: c["n"])
-    out = {"scale": SCALE, "countries": countries}
-    with open(OUT, "w", encoding="utf-8") as fh:
-        json.dump(out, fh, separators=(",", ":"), ensure_ascii=False)
-
-    size = os.path.getsize(OUT)
-    print("paises: %d  vertices: %d  triangulos: %d  salida: %.0f KB"
-          % (len(countries), total_v, total_t, size / 1024.0))
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(build())
+    ancho = len(verts) < 65536      # casi siempre caben indices de 16 bits
+    out = {
+        "v": b64_i16(flat),
+        "t": b64_u16(tris) if ancho else b64_u32(tris),
+        "r": [x for off in ring_offsets for x in off],
+        "b": [round(x, 3) for x in bbox],
+        "c": [round(cx, 3), round(cy, 3)],
+        "a": round(steradians * EARTH_R * EARTH_R),
+        "nv": len(verts),
+        "nt": len(tris) // 3,
+    }
+    if not ancho:
+        out["i32"] = 1
+    return out

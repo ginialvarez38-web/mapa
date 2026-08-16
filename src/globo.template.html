@@ -254,6 +254,18 @@ body {
 }
 .list p { margin: 0; padding: 14px; color: var(--muted); font-size: 12.5px; }
 
+.list h3 {
+  margin: 6px 0 2px;
+  padding: 6px 14px 4px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-data);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* --- ficha del país ----------------------------------------------- */
 
 .card {
@@ -272,6 +284,30 @@ body {
 .card[hidden] { display: none; }
 
 .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+
+.card .pais {
+  display: block;
+  margin: 5px 0 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  background: none;
+  color: var(--ink-soft);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.card .pais:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.card .pais:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.card .kind {
+  margin: 3px 0 0;
+  font-family: var(--font-data);
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 
 .card h3 {
   margin: 0;
@@ -300,6 +336,9 @@ body {
   gap: 6px 14px;
   font-size: 12.5px;
 }
+/* display:grid en .facts gana al display:none del atributo hidden */
+.facts [hidden] { display: none; }
+
 .facts dt {
   font-family: var(--font-data);
   font-size: 9.5px;
@@ -455,7 +494,7 @@ body {
 
 <header class="masthead">
   <h1>Atlas Orbital</h1>
-  <p>180 países · esfera de 6 371 km</p>
+  <p id="sub">el mundo por divisiones</p>
 </header>
 
 <div class="readout" id="readout">
@@ -475,11 +514,16 @@ body {
 
 <section class="card" id="card" hidden aria-live="polite">
   <div class="card-top">
-    <h3 id="c-name">—</h3>
+    <div>
+      <h3 id="c-name">—</h3>
+      <p class="kind" id="c-kind">—</p>
+      <button class="pais" id="c-pais" type="button" hidden>—</button>
+    </div>
     <span class="iso" id="c-iso">—</span>
   </div>
   <dl class="facts">
     <dt>Superficie</dt><dd id="c-area">—</dd>
+    <dt id="c-divs-lab">Divisiones</dt><dd id="c-divs">—</dd>
     <dt>Centro</dt><dd id="c-center">—</dd>
     <dt>Antípoda</dt><dd id="c-anti">—</dd>
     <dt>Hora solar</dt><dd id="c-solar">—</dd>
@@ -495,6 +539,7 @@ body {
   <button class="btn panel-toggle" id="t-panel" aria-pressed="false">Índice</button>
   <button class="btn" id="t-spin" aria-pressed="true">Rotar</button>
   <button class="btn" id="t-night" aria-pressed="false">Día/Noche</button>
+  <button class="btn" id="t-divs" aria-pressed="true">Divisiones</button>
   <button class="btn" id="t-grid" aria-pressed="false">Retícula</button>
   <button class="btn" id="t-style" aria-pressed="false">Carta</button>
   <span class="sep" aria-hidden="true"></span>
@@ -515,7 +560,7 @@ body {
   fronteras reales de 180 países; el índice lateral permite localizar y centrar cada uno.
 </p>
 
-<script id="world-data" type="application/json">__WORLD_DATA__</script>
+<script id="mundo-data" type="application/json">__MUNDO_DATA__</script>
 
 <script>
 (function () {
@@ -533,6 +578,7 @@ body {
       ocean:  [0.055, 0.145, 0.255],
       ocean2: [0.012, 0.035, 0.075],
       border: [0.016, 0.043, 0.075, 0.85],
+      divs:   [0.80, 0.86, 0.94, 0.17],
       grid:   [0.62, 0.72, 0.85, 0.16],
       atmo:   [0.32, 0.56, 0.92],
       atmoK:  0.70,
@@ -547,7 +593,8 @@ body {
     carta: {
       ocean:  [0.659, 0.769, 0.839],
       ocean2: [0.478, 0.639, 0.741],
-      border: [0.090, 0.160, 0.230, 0.70],
+      border: [0.055, 0.110, 0.170, 0.92],
+      divs:   [0.24, 0.32, 0.40, 0.26],
       grid:   [0.09, 0.18, 0.27, 0.22],
       atmo:   [0.42, 0.55, 0.66],
       atmoK:  0.28,
@@ -589,35 +636,44 @@ body {
     return out;
   }
 
-  var world;
+  var mundo;
   try {
-    world = JSON.parse(document.getElementById("world-data").textContent);
+    mundo = JSON.parse(document.getElementById("mundo-data").textContent);
   } catch (e) {
     fail("No se pudieron leer los datos del mapa.");
     return;
   }
 
-  var countries = world.countries;
-  var SCALE = world.scale;
-  var N = countries.length;
+  var SCALE = mundo.scale;
+  var divisiones = mundo.divisiones;
+  var paises = mundo.paises;
+  var ND = divisiones.length;
+  var NP = paises.length;
 
-  // Geometría global: un solo búfer para los rellenos y otro para las fronteras.
+  // Divisiones por país, para seleccionar un país entero desde el índice.
+  for (var i = 0; i < NP; i++) paises[i].hijos = [];
+  for (var i = 0; i < ND; i++) paises[divisiones[i].pa].hijos.push(i);
+
+  // Toda la geometría vive en un solo juego de búferes: posiciones, índice de
+  // división e índice de país por vértice.
+  var decoded = new Array(ND);
   var totalV = 0, totalT = 0, totalL = 0;
-  var decoded = new Array(N);
 
-  for (var i = 0; i < N; i++) {
-    var c = countries[i];
-    var vb = b64Bytes(c.v);
+  for (var i = 0; i < ND; i++) {
+    var rec = divisiones[i];
+    var vb = b64Bytes(rec.v);
     var lonlat = new Int16Array(vb.buffer, vb.byteOffset, vb.byteLength >> 1);
-    var tb = b64Bytes(c.t);
-    var tris = new Uint32Array(tb.buffer, tb.byteOffset, tb.byteLength >> 2);
+    var tb = b64Bytes(rec.t);
+    var tris = rec.i32
+      ? new Uint32Array(tb.buffer, tb.byteOffset, tb.byteLength >> 2)
+      : new Uint16Array(tb.buffer, tb.byteOffset, tb.byteLength >> 1);
     var nv = lonlat.length >> 1;
     var lineCount = 0;
-    // c.r llega como tripletas [inicio, puntos, cerrado]
-    for (var r = 0; r < c.r.length; r += 3) {
-      lineCount += (c.r[r + 2] ? c.r[r + 1] : c.r[r + 1] - 1) * 2;
+    // rec.r llega como cuartetos [inicio, dibujables, cerrado, totales]
+    for (var r = 0; r < rec.r.length; r += 4) {
+      lineCount += (rec.r[r + 2] ? rec.r[r + 1] : rec.r[r + 1] - 1) * 2;
     }
-    decoded[i] = { lonlat: lonlat, tris: tris, nv: nv, rings: c.r,
+    decoded[i] = { lonlat: lonlat, tris: tris, nv: nv, rings: rec.r,
                    vStart: totalV, tStart: totalT, lStart: totalL, lCount: lineCount };
     totalV += nv;
     totalT += tris.length;
@@ -626,11 +682,12 @@ body {
 
   var positions = new Float32Array(totalV * 3);
   var owner = new Float32Array(totalV);
+  var ownerPais = new Float32Array(totalV);
   var fillIdx = new Uint32Array(totalT);
   var lineIdx = new Uint32Array(totalL);
 
-  for (var i = 0; i < N; i++) {
-    var d = decoded[i], ll = d.lonlat, base = d.vStart;
+  for (var i = 0; i < ND; i++) {
+    var d = decoded[i], ll = d.lonlat, base = d.vStart, ip = divisiones[i].pa;
     for (var k = 0; k < d.nv; k++) {
       var lon = ll[k * 2] / SCALE * DEG;
       var lat = ll[k * 2 + 1] / SCALE * DEG;
@@ -640,10 +697,11 @@ body {
       positions[o + 1] = Math.sin(lat);
       positions[o + 2] = cl * Math.cos(lon);
       owner[base + k] = i;
+      ownerPais[base + k] = ip;
     }
     for (var k = 0; k < d.tris.length; k++) fillIdx[d.tStart + k] = d.tris[k] + base;
     var w = d.lStart;
-    for (var r = 0; r < d.rings.length; r += 3) {
+    for (var r = 0; r < d.rings.length; r += 4) {
       var start = d.rings[r], count = d.rings[r + 1], closed = d.rings[r + 2];
       // Un anillo abierto es un contorno cortado por el antimeridiano: su
       // cierre es artificial y no debe dibujarse.
@@ -651,6 +709,53 @@ body {
       for (var k = 0; k < segs; k++) {
         lineIdx[w++] = base + start + k;
         lineIdx[w++] = base + start + ((k + 1) % count);
+      }
+    }
+  }
+
+  // Fronteras de país: polilíneas ya clasificadas en el generador de datos.
+  var frontPos = null, frontIdx = null;
+  (function () {
+    var f = mundo.fronteras;
+    if (!f || !f.v) return;
+    var fb = b64Bytes(f.v);
+    var ll = new Int16Array(fb.buffer, fb.byteOffset, fb.byteLength >> 1);
+    var n = ll.length >> 1;
+    frontPos = new Float32Array(n * 3);
+    for (var k = 0; k < n; k++) {
+      var lon = ll[k * 2] / SCALE * DEG;
+      var lat = ll[k * 2 + 1] / SCALE * DEG;
+      var cl = Math.cos(lat);
+      frontPos[k * 3] = cl * Math.sin(lon);
+      frontPos[k * 3 + 1] = Math.sin(lat);
+      frontPos[k * 3 + 2] = cl * Math.cos(lon);
+    }
+    var total = 0;
+    for (var t = 0; t < f.s.length; t += 2) total += (f.s[t + 1] - 1) * 2;
+    frontIdx = new Uint32Array(total);
+    var w = 0;
+    for (var t = 0; t < f.s.length; t += 2) {
+      var start = f.s[t], count = f.s[t + 1];
+      for (var k = 0; k < count - 1; k++) {
+        frontIdx[w++] = start + k;
+        frontIdx[w++] = start + k + 1;
+      }
+    }
+  })();
+
+  // Rejilla de 6° para no probar 4.315 divisiones en cada movimiento del ratón.
+  var CELDA = 6, GX = 60, GY = 30;
+  var celdas = new Array(GX * GY);
+  for (var i = 0; i < ND; i++) {
+    var b = divisiones[i].b;
+    var x0 = Math.max(0, Math.floor((b[0] + 180) / CELDA));
+    var x1 = Math.min(GX - 1, Math.floor((b[2] + 180) / CELDA));
+    var y0 = Math.max(0, Math.floor((b[1] + 90) / CELDA));
+    var y1 = Math.min(GY - 1, Math.floor((b[3] + 90) / CELDA));
+    for (var y = y0; y <= y1; y++) {
+      for (var x = x0; x <= x1; x++) {
+        var k = y * GX + x;
+        (celdas[k] || (celdas[k] = [])).push(i);
       }
     }
   }
@@ -715,26 +820,29 @@ body {
   // Relleno de países: color por índice desde una textura-paleta.
   var progLand = program([
     "precision highp float;",
-    "attribute vec3 aPos; attribute float aIdx;",
+    "attribute vec3 aPos; attribute float aIdx; attribute float aPais;",
     "uniform mat4 uVP; uniform mat3 uRot; uniform float uR;",
-    "varying vec3 vN; varying float vIdx;",
-    "void main(){ vN = uRot * aPos; vIdx = aIdx;",
+    "varying vec3 vN; varying float vIdx; varying float vPais;",
+    "void main(){ vN = uRot * aPos; vIdx = aIdx; vPais = aPais;",
     "  gl_Position = uVP * vec4(vN * uR, 1.0); }"
   ].join("\n"), [
     "precision highp float;",
-    "varying vec3 vN; varying float vIdx;",
-    "uniform sampler2D uPal; uniform float uCount;",
+    "varying vec3 vN; varying float vIdx; varying float vPais;",
+    "uniform sampler2D uPal; uniform vec2 uPalSize;",
     "uniform vec3 uLight; uniform float uNight; uniform float uShade;",
-    "uniform float uHover, uSel; uniform vec3 uAccent;",
+    "uniform float uHover, uSel, uHovPais, uSelPais; uniform vec3 uAccent;",
     "void main(){",
-    "  vec3 base = texture2D(uPal, vec2((vIdx + 0.5) / uCount, 0.5)).rgb;",
+    "  vec2 uv = vec2(mod(vIdx, uPalSize.x) + 0.5, floor(vIdx / uPalSize.x) + 0.5) / uPalSize;",
+    "  vec3 base = texture2D(uPal, uv).rgb;",
     "  vec3 n = normalize(vN);",
     "  float day = smoothstep(-0.09, 0.22, dot(n, uLight));",
     "  float raw = mix(0.64 + 0.36 * max(dot(n, uLight), 0.0), 0.24 + 0.76 * day, uNight);",
     "  float lit = 1.0 - uShade * (1.0 - raw);",
     "  vec3 col = base * lit;",
-    "  if (abs(vIdx - uSel) < 0.5) col = mix(col, uAccent, 0.62);",
-    "  else if (abs(vIdx - uHover) < 0.5) col = mix(col, uAccent, 0.26);",
+    "  bool sel = abs(vIdx - uSel) < 0.5 || abs(vPais - uSelPais) < 0.5;",
+    "  bool hov = abs(vIdx - uHover) < 0.5 || abs(vPais - uHovPais) < 0.5;",
+    "  if (sel) col = mix(col, uAccent, 0.62);",
+    "  else if (hov) col = mix(col, uAccent, 0.26);",
     "  gl_FragColor = vec4(col, 1.0);",
     "}"
   ].join("\n"));
@@ -821,8 +929,14 @@ body {
 
   var bufPos = buffer(gl.ARRAY_BUFFER, positions);
   var bufOwner = buffer(gl.ARRAY_BUFFER, owner);
+  var bufPais = buffer(gl.ARRAY_BUFFER, ownerPais);
   var bufFill = buffer(gl.ELEMENT_ARRAY_BUFFER, fillIdx);
   var bufLine = buffer(gl.ELEMENT_ARRAY_BUFFER, lineIdx);
+  var bufFrontPos = frontPos ? buffer(gl.ARRAY_BUFFER, frontPos) : null;
+  var bufFrontIdx = frontIdx ? buffer(gl.ELEMENT_ARRAY_BUFFER, frontIdx) : null;
+  var nFill = fillIdx.length, nLine = lineIdx.length;
+  var nFront = frontIdx ? frontIdx.length : 0;
+  positions = owner = ownerPais = fillIdx = lineIdx = frontPos = frontIdx = null;
 
   // Esfera del océano.
   var sphere = (function (segLon, segLat) {
@@ -893,27 +1007,37 @@ body {
     return { pos: buffer(gl.ARRAY_BUFFER, pos), mag: buffer(gl.ARRAY_BUFFER, mag), count: count };
   })(900);
 
-  // Textura-paleta: un téxel por país.
+  // Textura-paleta: un téxel por división. Con 4.315 no cabe en una fila (el
+  // ancho máximo de textura suele ser 4.096), así que va en 2D.
+  var palW = 64, palH = Math.ceil(ND / palW);
+  var palData = new Uint8Array(palW * palH * 4);
   var palTex = gl.createTexture();
-  var palData = new Uint8Array(N * 4);
   gl.bindTexture(gl.TEXTURE_2D, palTex);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+  function colorPais(scene, i) {
+    // El índice alfabético no guarda relación con la vecindad geográfica, así
+    // que este salto reparte tonos distintos entre países limítrofes.
+    return hexToRgb(scene.land[(i * 7) % scene.land.length]);
+  }
+
   function uploadPalette(scene) {
-    for (var i = 0; i < N; i++) {
-      // El índice alfabético no guarda relación con la vecindad geográfica,
-      // así que este salto reparte tonos distintos entre países limítrofes.
-      var rgb = hexToRgb(scene.land[(i * 7) % scene.land.length]);
-      palData[i * 4] = rgb[0] * 255;
-      palData[i * 4 + 1] = rgb[1] * 255;
-      palData[i * 4 + 2] = rgb[2] * 255;
+    for (var i = 0; i < ND; i++) {
+      var rgb = colorPais(scene, divisiones[i].pa);
+      // Con las divisiones a la vista, cada una toma el tono de su país en un
+      // matiz distinto; sin ellas, todo el país va de un color.
+      var k = opts.divs ? 0.88 + 0.20 * (((i * 37) % 5) / 4) : 1;
+      palData[i * 4] = Math.min(255, rgb[0] * 255 * k);
+      palData[i * 4 + 1] = Math.min(255, rgb[1] * 255 * k);
+      palData[i * 4 + 2] = Math.min(255, rgb[2] * 255 * k);
       palData[i * 4 + 3] = 255;
     }
     gl.bindTexture(gl.TEXTURE_2D, palTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, N, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, palData);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, palW, palH, 0,
+                  gl.RGBA, gl.UNSIGNED_BYTE, palData);
   }
 
   // ---------------------------------------------------------------- //
@@ -1015,13 +1139,19 @@ body {
     spin: !reduceMotion,
     night: false,
     grid: false,
+    divs: true,
     scene: matchMedia("(prefers-color-scheme: dark)").matches ||
            document.documentElement.getAttribute("data-theme") === "dark" ? "noche" : "carta"
   };
   if (document.documentElement.getAttribute("data-theme") === "light") opts.scene = "carta";
 
-  var hover = -1, selected = -1;
+  // Una selección es una división concreta o un país entero.
+  var hover = { tipo: null, i: -1 };
+  var sel = { tipo: null, i: -1 };
   var flight = null;
+
+  function marcaDiv(e) { return e.tipo === "div" ? e.i : -1; }
+  function marcaPais(e) { return e.tipo === "pais" ? e.i : -1; }
   var cursorLL = null;
 
   var labelsCanvas = document.getElementById("labels");
@@ -1068,26 +1198,46 @@ body {
     return { lon: Math.atan2(tmp[0], tmp[2]) / DEG, lat: Math.asin(Math.max(-1, Math.min(1, tmp[1]))) / DEG };
   }
 
-  function pointInCountry(c, lon, lat) {
-    var b = c.b;
+  function dentroDe(i, lon, lat) {
+    var b = divisiones[i].b;
     if (lon < b[0] || lon > b[2] || lat < b[1] || lat > b[3]) return false;
+    // Regla par-impar sobre los anillos ya decodificados, en unidades
+    // cuantizadas: los huecos se descuentan solos.
+    var d = decoded[i], ll = d.lonlat, rings = d.rings;
+    var x = lon * SCALE, y = lat * SCALE;
     var inside = false;
-    for (var r = 0; r < c.p.length; r++) {
-      var ring = c.p[r], n = ring.length;
-      for (var i = 0, j = n - 1; i < n; j = i++) {
-        var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
-        if ((yi > lat) !== (yj > lat) &&
-            lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) inside = !inside;
+    for (var k = 0; k < rings.length; k += 4) {
+      var start = rings[k], n = rings[k + 3];   // el anillo completo, con su cierre
+      for (var a = 0, j = n - 1; a < n; j = a++) {
+        var ai = (start + a) * 2, ji = (start + j) * 2;
+        var yi = ll[ai + 1], yj = ll[ji + 1];
+        if ((yi > y) !== (yj > y)) {
+          var xi = ll[ai], xj = ll[ji];
+          if (x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+        }
       }
     }
     return inside;
   }
 
-  function countryAt(lon, lat) {
-    for (var i = 0; i < N; i++) {
-      if (pointInCountry(countries[i], lon, lat)) return i;
+  function divisionEn(lon, lat) {
+    var gx = Math.floor((lon + 180) / CELDA);
+    var gy = Math.floor((lat + 90) / CELDA);
+    if (gx < 0) gx = 0; else if (gx >= GX) gx = GX - 1;
+    if (gy < 0) gy = 0; else if (gy >= GY) gy = GY - 1;
+    var lista = celdas[gy * GX + gx];
+    if (!lista) return -1;
+    for (var k = 0; k < lista.length; k++) {
+      if (dentroDe(lista[k], lon, lat)) return lista[k];
     }
     return -1;
+  }
+
+  // Con las divisiones a la vista se señala la división; si no, el país.
+  function regionEn(lon, lat) {
+    var i = divisionEn(lon, lat);
+    if (i < 0) return null;
+    return opts.divs ? { tipo: "div", i: i } : { tipo: "pais", i: divisiones[i].pa };
   }
 
   // ---------------------------------------------------------------- //
@@ -1155,12 +1305,12 @@ body {
     endPointer(e);
     if (!wasDrag) {
       var ll = pickLonLat(e.clientX - rect.left, e.clientY - rect.top);
-      select(ll ? countryAt(ll.lon, ll.lat) : -1);
+      seleccionar(ll ? regionEn(ll.lon, ll.lat) : null);
     }
   });
   canvas.addEventListener("pointercancel", endPointer);
   canvas.addEventListener("pointerleave", function () {
-    if (hover !== -1) { hover = -1; }
+    hover = { capa: null, i: -1 };
     tip.classList.remove("on");
     cursorLL = null;
   });
@@ -1187,7 +1337,7 @@ body {
     else if (e.key === "+" || e.key === "=") view.distTarget = clampDist(view.distTarget * 0.82);
     else if (e.key === "-" || e.key === "_") view.distTarget = clampDist(view.distTarget * 1.22);
     else if (e.key === "Home") goHome();
-    else if (e.key === "Escape") select(-1);
+    else if (e.key === "Escape") seleccionar(null);
     else return;
     e.preventDefault();
     flight = null;
@@ -1201,11 +1351,15 @@ body {
   function hoverAt(px, py, clientX, clientY) {
     var ll = pickLonLat(px, py);
     cursorLL = ll;
-    var idx = ll ? countryAt(ll.lon, ll.lat) : -1;
-    hover = idx;
-    if (idx >= 0) {
-      tip.innerHTML = "";
-      tip.appendChild(document.createTextNode(countries[idx].n));
+    var r = ll ? regionEn(ll.lon, ll.lat) : null;
+    hover = r || { capa: null, i: -1 };
+    if (r) {
+      var rec = r.tipo === "div" ? divisiones[r.i] : paises[r.i];
+      var texto = r.tipo === "div"
+        ? rec.n + " · " + paises[rec.pa].n
+        : rec.n;
+      tip.textContent = "";
+      tip.appendChild(document.createTextNode(texto));
       var em = document.createElement("em");
       em.textContent = fmtLatLon(ll.lat, ll.lon);
       tip.appendChild(em);
@@ -1245,6 +1399,8 @@ body {
   var elName = document.getElementById("c-name");
   var elIso = document.getElementById("c-iso");
   var elArea = document.getElementById("c-area");
+  var elDivs = document.getElementById("c-divs");
+  var elDivsLab = document.getElementById("c-divs-lab");
   var elCenter = document.getElementById("c-center");
   var elAnti = document.getElementById("c-anti");
   var elSolar = document.getElementById("c-solar");
@@ -1264,49 +1420,76 @@ body {
     return fmtNum(km2) + " km²";
   }
 
-  function select(idx) {
-    selected = idx;
-    Array.prototype.forEach.call(listEl.querySelectorAll("button"), function (b) {
-      b.setAttribute("aria-current", String(Number(b.dataset.i) === idx));
-    });
-    if (idx < 0) { card.hidden = true; return; }
-    var c = countries[idx];
+  var elKind = document.getElementById("c-kind");
+  var elPais = document.getElementById("c-pais");
+
+  function registro(e) {
+    return e.tipo === "div" ? divisiones[e.i] : (e.tipo === "pais" ? paises[e.i] : null);
+  }
+
+  function seleccionar(r) {
+    sel = r || { tipo: null, i: -1 };
+    marcarLista();
+    var rec = registro(sel);
+    if (!rec) { card.hidden = true; return; }
+
+    var esDiv = sel.tipo === "div";
     card.hidden = false;
-    elName.textContent = c.n;
-    elIso.textContent = c.id;
-    elArea.textContent = "≈ " + fmtNum(c.a) + " km²";
-    elCenter.textContent = fmtLatLon(c.c[1], c.c[0]);
-    var alon = c.c[0] > 0 ? c.c[0] - 180 : c.c[0] + 180;
-    elAnti.textContent = fmtLatLon(-c.c[1], alon);
+    elName.textContent = rec.n;
+    elIso.textContent = rec.id || "—";
+    elKind.textContent = esDiv ? (rec.ty || "División") : "País";
+    elPais.hidden = !esDiv;
+    if (esDiv) {
+      elPais.textContent = paises[rec.pa].n;
+      elPais.dataset.pais = rec.pa;
+    }
+    elArea.textContent = "≈ " + fmtNum(rec.a) + " km²";
+    elDivs.hidden = elDivsLab.hidden = esDiv;
+    if (!esDiv) elDivs.textContent = fmtNum(rec.nd) + (rec.nd === 1 ? " división" : " divisiones");
+    elCenter.textContent = fmtLatLon(rec.c[1], rec.c[0]);
+    elAnti.textContent = fmtLatLon(-rec.c[1], antipoda(rec.c[0]));
     updateSolar();
-    var b = c.b;
+
+    var b = rec.b;
     var span = Math.max(b[2] - b[0], (b[3] - b[1]) * 1.6);
-    flyTo(c.c[0], c.c[1], clampDist(1.28 + span * 0.032));
+    flyTo(rec.c[0], rec.c[1], clampDist(1.28 + span * 0.032));
+  }
+
+  function antipoda(lon) { return lon > 0 ? lon - 180 : lon + 180; }
+
+  function marcarLista() {
+    Array.prototype.forEach.call(listEl.querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-current",
+        String(b.dataset.tipo === sel.tipo && Number(b.dataset.i) === sel.i));
+    });
   }
 
   function updateSolar() {
-    if (selected < 0) return;
-    var c = countries[selected];
+    var rec = registro(sel);
+    if (!rec) return;
     var now = new Date();
-    var solar = new Date(now.getTime() + c.c[0] / 15 * 3600000);
+    var solar = new Date(now.getTime() + rec.c[0] / 15 * 3600000);
     var hh = String(solar.getUTCHours()).padStart(2, "0");
     var mm = String(solar.getUTCMinutes()).padStart(2, "0");
     var sun = subsolar(now);
-    var s = unit([0, 0, 0], sun.lon * DEG, sun.lat * DEG);
-    var p = unit([0, 0, 0], c.c[0] * DEG, c.c[1] * DEG);
-    var dot = s[0] * p[0] + s[1] * p[1] + s[2] * p[2];
-    elSolar.textContent = hh + ":" + mm + (dot > 0 ? "  ☀ día" : "  ☾ noche");
+    var a = unit([0, 0, 0], sun.lon * DEG, sun.lat * DEG);
+    var b = unit([0, 0, 0], rec.c[0] * DEG, rec.c[1] * DEG);
+    var dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    elSolar.textContent = hh + ":" + mm + (dot > 0 ? "  \u2600 día" : "  \u263e noche");
   }
   setInterval(updateSolar, 30000);
 
-  document.getElementById("c-close").addEventListener("click", function () { select(-1); });
+  elPais.addEventListener("click", function () {
+    seleccionar({ tipo: "pais", i: Number(elPais.dataset.pais) });
+  });
+  document.getElementById("c-close").addEventListener("click", function () { seleccionar(null); });
   document.getElementById("c-goto").addEventListener("click", function () {
-    if (selected >= 0) { var c = countries[selected]; flyTo(c.c[0], c.c[1]); }
+    var rec = registro(sel);
+    if (rec) flyTo(rec.c[0], rec.c[1]);
   });
   document.getElementById("c-anti-go").addEventListener("click", function () {
-    if (selected < 0) return;
-    var c = countries[selected];
-    flyTo(c.c[0] > 0 ? c.c[0] - 180 : c.c[0] + 180, -c.c[1]);
+    var rec = registro(sel);
+    if (rec) flyTo(antipoda(rec.c[0]), -rec.c[1]);
   });
 
   // ---------------------------------------------------------------- //
@@ -1320,43 +1503,75 @@ body {
     return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   }
 
+  function fila(tipo, i, nombre, sub) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.dataset.i = i;
+    b.dataset.tipo = tipo;
+    b.appendChild(document.createTextNode(nombre));
+    var em = document.createElement("i");
+    em.textContent = sub;
+    b.appendChild(em);
+    listEl.appendChild(b);
+  }
+
+  var MAX_RESULTADOS = 240;
+
   function renderList(filter) {
     var q = normalize(filter || "");
     listEl.textContent = "";
-    var shown = 0;
-    for (var i = 0; i < N; i++) {
-      var c = countries[i];
+    var mostrados = 0;
+
+    for (var i = 0; i < NP && mostrados < MAX_RESULTADOS; i++) {
+      var c = paises[i];
       if (q && normalize(c.n).indexOf(q) === -1 &&
-          normalize(c.en).indexOf(q) === -1 &&
+          normalize(c.en || "").indexOf(q) === -1 &&
           normalize(c.id).indexOf(q) === -1) continue;
-      var b = document.createElement("button");
-      b.type = "button";
-      b.dataset.i = i;
-      b.setAttribute("aria-current", String(i === selected));
-      b.appendChild(document.createTextNode(c.n));
-      var em = document.createElement("i");
-      em.textContent = fmtArea(c.a);
-      b.appendChild(em);
-      listEl.appendChild(b);
-      shown++;
+      fila("pais", i, c.n, fmtArea(c.a));
+      mostrados++;
     }
-    if (!shown) {
+
+    // Las divisiones solo aparecen al buscar: son 4.315 y ahogarían la lista.
+    var divs = 0;
+    if (q) {
+      for (var i = 0; i < ND && mostrados < MAX_RESULTADOS; i++) {
+        var d = divisiones[i];
+        if (normalize(d.n).indexOf(q) === -1 &&
+            normalize(d.en || "").indexOf(q) === -1 &&
+            normalize(d.id || "").indexOf(q) === -1) continue;
+        if (!divs) {
+          var h = document.createElement("h3");
+          h.textContent = "Divisiones";
+          listEl.appendChild(h);
+        }
+        fila("div", i, d.n, paises[d.pa].n);
+        mostrados++;
+        divs++;
+      }
+    }
+
+    if (!mostrados) {
       var p = document.createElement("p");
       p.textContent = "Sin resultados para “" + filter + "”.";
       listEl.appendChild(p);
     }
+    marcarLista();
+  }
+
+  function desdeBoton(b) {
+    return { tipo: b.dataset.tipo, i: Number(b.dataset.i) };
   }
 
   listEl.addEventListener("click", function (e) {
     var b = e.target.closest("button");
-    if (b) select(Number(b.dataset.i));
+    if (b) seleccionar(desdeBoton(b));
   });
 
   searchEl.addEventListener("input", function () { renderList(searchEl.value); });
   searchEl.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
       var first = listEl.querySelector("button");
-      if (first) select(Number(first.dataset.i));
+      if (first) seleccionar(desdeBoton(first));
     }
   });
 
@@ -1380,6 +1595,13 @@ body {
   toggle("t-spin", opts.spin, function (v) { opts.spin = v; });
   toggle("t-night", opts.night, function (v) { opts.night = v; });
   toggle("t-grid", opts.grid, function (v) { opts.grid = v; });
+  toggle("t-divs", opts.divs, function (v) {
+    opts.divs = v;
+    // Sin divisiones a la vista, la selección pasa al país que la contiene.
+    if (!v && sel.tipo === "div") seleccionar({ tipo: "pais", i: divisiones[sel.i].pa });
+    if (!v && hover.tipo === "div") hover = { tipo: null, i: -1 };
+    uploadPalette(SCENES[opts.scene]);
+  });
   var styleBtn = toggle("t-style", opts.scene === "carta", function (v) {
     opts.scene = v ? "carta" : "noche";
     uploadPalette(SCENES[opts.scene]);
@@ -1412,8 +1634,15 @@ body {
   // Etiquetas sobre el globo                                          //
   // ---------------------------------------------------------------- //
 
-  var byArea = countries.map(function (c, i) { return i; })
-    .sort(function (a, b) { return countries[b].a - countries[a].a; });
+  function porArea(lista) {
+    var orden = [];
+    for (var i = 0; i < lista.length; i++) orden.push(i);
+    orden.sort(function (a, b) { return lista[b].a - lista[a].a; });
+    return orden;
+  }
+
+  var ordenPaises = porArea(paises);
+  var ordenDivs = porArea(divisiones);
 
   var accentRGB = [0.94, 0.65, 0.29];
 
@@ -1422,8 +1651,8 @@ body {
     if (/^#[0-9a-f]{6}$/i.test(v)) accentRGB = hexToRgb(v);
   }
 
-  // Los rotulos del globo comparten pantalla con los paneles: estos entran en
-  // la deteccion de solapes como una caja mas, asi ninguno queda medio tapado.
+  // Los rótulos del globo comparten pantalla con los paneles: estos entran en
+  // la detección de solapes como una caja más, así ninguno queda medio tapado.
   var chromeEls = [
     document.querySelector(".masthead"), document.getElementById("readout"),
     panel, card, document.querySelector(".controls")
@@ -1433,9 +1662,12 @@ body {
     var out = [];
     for (var i = 0; i < chromeEls.length; i++) {
       var el = chromeEls[i];
-      if (!el || el.hidden || !el.offsetParent) continue;
+      // offsetParent es null en los elementos fijos: la caja real es la prueba
+      if (!el || el.hidden) continue;
       var r = el.getBoundingClientRect();
-      if (r.width && r.height) out.push([r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]);
+      if (r.width > 0 && r.height > 0) {
+        out.push([r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]);
+      }
     }
     return out;
   }
@@ -1444,11 +1676,16 @@ body {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
+    // De cerca interesan las divisiones; de lejos, los países.
+    var porDivs = opts.divs && view.dist < 2.1;
+    var lista = porDivs ? divisiones : paises;
+    var orden = porDivs ? ordenDivs : ordenPaises;
+    var tipo = porDivs ? "div" : "pais";
     var aspect = W / H;
     var t = Math.tan(FOV / 2);
     var boxes = chromeBoxes();
-    var limit = view.dist < 2.0 ? 16 : view.dist < 3.2 ? 12 : 9;
-    var minArea = view.dist * view.dist * 62000;
+    var limit = view.dist < 2.0 ? 18 : view.dist < 3.2 ? 12 : 9;
+    var minArea = view.dist * view.dist * (porDivs ? 4200 : 62000);
     var drawn = 0;
     var p = [0, 0, 0];
 
@@ -1457,13 +1694,13 @@ body {
     ctx.textBaseline = "middle";
     ctx.lineJoin = "round";
 
-    for (var k = 0; k < byArea.length && drawn < limit; k++) {
-      var i = byArea[k];
-      var c = countries[i];
-      var force = (i === selected || i === hover);
-      if (!force && c.a < minArea) continue;
+    for (var k = 0; k < orden.length && drawn < limit; k++) {
+      var i = orden[k];
+      var rec = lista[i];
+      var force = (sel.tipo === tipo && sel.i === i) || (hover.tipo === tipo && hover.i === i);
+      if (!force && rec.a < minArea) continue;
 
-      unit(p, c.c[0] * DEG, c.c[1] * DEG);
+      unit(p, rec.c[0] * DEG, rec.c[1] * DEG);
       rotateModel(p, mRot, p[0], p[1], p[2]);
       // El punto queda de este lado del horizonte cuando p.z > 1/dist.
       var horizon = 1 / view.dist;
@@ -1477,7 +1714,7 @@ body {
       var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
       if (sx < 40 || sx > W - 40 || sy < 26 || sy > H - 26) continue;
 
-      var text = c.n;
+      var text = rec.n;
       var w = ctx.measureText(text).width;
       var box = [sx - w / 2 - 4, sy - 16, sx + w / 2 + 4, sy - 2];
       var clash = false;
@@ -1489,12 +1726,11 @@ body {
       boxes.push(box);
       drawn++;
 
-      var accent = force;
       ctx.globalAlpha = force ? 1 : Math.min(1, 0.35 + facing * 1.5);
       ctx.strokeStyle = scene.halo;
       ctx.lineWidth = 3;
       ctx.strokeText(text, sx, sy - 9);
-      ctx.fillStyle = accent
+      ctx.fillStyle = force
         ? "rgb(" + accentRGB.map(function (v) { return Math.round(v * 255); }).join(",") + ")"
         : scene.label;
       ctx.fillText(text, sx, sy - 9);
@@ -1640,21 +1876,24 @@ body {
     disableAll();
     bindAttrib(progLand, "aPos", bufPos, 3);
     bindAttrib(progLand, "aIdx", bufOwner, 1);
+    bindAttrib(progLand, "aPais", bufPais, 1);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufFill);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, palTex);
     gl.uniform1i(progLand.u.uPal, 0);
-    gl.uniform1f(progLand.u.uCount, N);
+    gl.uniform2f(progLand.u.uPalSize, palW, palH);
     gl.uniformMatrix4fv(progLand.u.uVP, false, mVP);
     gl.uniformMatrix3fv(progLand.u.uRot, false, mRot);
     gl.uniform1f(progLand.u.uR, 1.0016);
     gl.uniform3fv(progLand.u.uLight, lightWorld);
     gl.uniform1f(progLand.u.uNight, night);
     gl.uniform1f(progLand.u.uShade, shade);
-    gl.uniform1f(progLand.u.uHover, hover);
-    gl.uniform1f(progLand.u.uSel, selected);
     gl.uniform3fv(progLand.u.uAccent, accentRGB);
-    gl.drawElements(gl.TRIANGLES, fillIdx.length, gl.UNSIGNED_INT, 0);
+    gl.uniform1f(progLand.u.uHover, marcaDiv(hover));
+    gl.uniform1f(progLand.u.uSel, marcaDiv(sel));
+    gl.uniform1f(progLand.u.uHovPais, marcaPais(hover));
+    gl.uniform1f(progLand.u.uSelPais, marcaPais(sel));
+    gl.drawElements(gl.TRIANGLES, nFill, gl.UNSIGNED_INT, 0);
     gl.enable(gl.CULL_FACE);
 
     // --- retícula y fronteras ---
@@ -1670,21 +1909,37 @@ body {
       disableAll();
       bindAttrib(progLine, "aPos", grid.pos, 3);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, grid.idx);
-      gl.uniform1f(progLine.u.uR, 1.0045);
+      gl.uniform1f(progLine.u.uR, 1.0060);
       gl.uniform4fv(progLine.u.uColor, scene.grid);
       gl.drawElements(gl.LINES, grid.count, gl.UNSIGNED_INT, 0);
     }
 
-    disableAll();
-    bindAttrib(progLine, "aPos", bufPos, 3);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufLine);
-    gl.uniform1f(progLine.u.uR, 1.0032);
-    gl.uniform4fv(progLine.u.uColor, scene.border);
-    gl.drawElements(gl.LINES, lineIdx.length, gl.UNSIGNED_INT, 0);
+    // Los contornos de cada división van finos y por debajo de las fronteras
+    // de país, que son las que deben leerse primero.
+    if (opts.divs) {
+      disableAll();
+      bindAttrib(progLine, "aPos", bufPos, 3);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufLine);
+      gl.uniform1f(progLine.u.uR, 1.0030);
+      gl.uniform4fv(progLine.u.uColor, scene.divs);
+      gl.drawElements(gl.LINES, nLine, gl.UNSIGNED_INT, 0);
+    }
 
-    if (selected >= 0) {
-      var d = decoded[selected];
-      gl.uniform1f(progLine.u.uR, 1.0055);
+    if (nFront) {
+      disableAll();
+      bindAttrib(progLine, "aPos", bufFrontPos, 3);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufFrontIdx);
+      gl.uniform1f(progLine.u.uR, 1.0042);
+      gl.uniform4fv(progLine.u.uColor, scene.border);
+      gl.drawElements(gl.LINES, nFront, gl.UNSIGNED_INT, 0);
+    }
+
+    if (sel.tipo === "div") {
+      var d = decoded[sel.i];
+      disableAll();
+      bindAttrib(progLine, "aPos", bufPos, 3);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufLine);
+      gl.uniform1f(progLine.u.uR, 1.0056);
       gl.uniform4f(progLine.u.uColor, accentRGB[0], accentRGB[1], accentRGB[2], 1.0);
       gl.drawElements(gl.LINES, d.lCount, gl.UNSIGNED_INT, d.lStart * 4);
     }
@@ -1722,6 +1977,9 @@ body {
   // Arranque                                                          //
   // ---------------------------------------------------------------- //
 
+  var sub = document.getElementById("sub");
+  sub.textContent = fmtNum(NP) + " países · " + fmtNum(ND) + " divisiones";
+
   readAccent();
   uploadPalette(SCENES[opts.scene]);
   resize();
@@ -1736,11 +1994,14 @@ body {
 
   // Superficie mínima para pruebas automáticas y para empotrar el globo.
   window.atlas = {
-    countries: countries,
+    paises: paises,
+    divisiones: divisiones,
     view: view,
     opts: opts,
-    select: select,
     flyTo: flyTo,
+    seleccionar: seleccionar,
+    select: function (i) { seleccionar(i >= 0 ? { tipo: "pais", i: i } : null); },
+    selectDiv: function (i) { seleccionar(i >= 0 ? { tipo: "div", i: i } : null); },
     setView: function (lon, lat, dist) {      // sin animación, para pruebas
       flight = null;
       view.yaw = -lon * DEG;
@@ -1752,11 +2013,13 @@ body {
       rotation(mRot, view.yaw, view.pitch);
     },
     pickAt: function (px, py) { return pickLonLat(px, py); },
-    countryAt: countryAt,
+    divisionEn: divisionEn,
+    regionEn: regionEn,
     setScene: function (name) {
       if (!SCENES[name]) return;
       opts.scene = name;
       styleBtn.setAttribute("aria-pressed", String(name === "carta"));
+      readAccent();
       uploadPalette(SCENES[name]);
     }
   };
