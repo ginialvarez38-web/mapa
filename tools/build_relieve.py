@@ -23,6 +23,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from geometria import SCALE, b64_i16, densify_open, pack_polygons, point_in_rings, quantize
+from nombres_rios import NOMBRES_RIOS
 from topologia import _dp, simplificar
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -88,6 +89,35 @@ PUNTOS = {
     "plain":          "Llanura",
     "pole":           "Polo",
 }
+
+
+def corrige_paraguay(nom, pts):
+    """Separa el rio Paraguay del Parana.
+
+    Natural Earth rotula "Parana" todo el eje, desde el Pantanal hasta el
+    estuario, de modo que el Paraguay —uno de los grandes rios de America del
+    Sur— no aparece por ninguna parte. La geometria si esta: lo que falta es
+    el corte en la confluencia, junto a Corrientes (unos 27,3 S / 58,6 O).
+    Aguas arriba de ese punto y al oeste, el cauce es el Paraguay.
+    """
+    if nom != "Paraná":
+        return [(nom, pts)]
+
+    def es_paraguay(q):
+        return q[1] > -27.3 and q[0] < -56.0
+
+    trozos = []
+    actual = [pts[0]]
+    marca = es_paraguay(pts[0])
+    for q in pts[1:]:
+        m = es_paraguay(q)
+        actual.append(q)
+        if m != marca:
+            trozos.append(("Paraguay" if marca else "Paraná", actual))
+            actual = [q]
+            marca = m
+    trozos.append(("Paraguay" if marca else "Paraná", actual))
+    return [(n, t) for n, t in trozos if len(t) >= 2]
 
 
 def campo(props, clave):
@@ -312,17 +342,25 @@ def main():
             continue
         trozos = [g["coordinates"]] if g["type"] == "LineString" else g["coordinates"]
         rank = int(campo(f["properties"], "scalerank") or 8)
-        nom = nombre(f["properties"]) or ""
+        crudo = (campo(f["properties"], "name") or
+                 campo(f["properties"], "name_en") or "").strip()
+        # La capa de rios no tiene name_es y algunos nombres llegan con los
+        # caracteres no ASCII comidos; la tabla arregla las dos cosas.
+        nom = NOMBRES_RIOS.get(crudo, crudo)
         for tr in trozos:
             if len(tr) < 2:
                 continue
             crudos += len(tr)
-            pts = [(float(x), float(y)) for x, y in tr]
-            # Un rio secundario no necesita el mismo detalle que el Amazonas:
-            # la tolerancia crece con el rango, que es su orden de importancia.
-            tol = 0.004 * (1.0 + rank * 0.35)
-            idx = _dp(pts, tol * tol)
-            lineas.append((nom, rank, [pts[i] for i in idx]))
+            todos = [(float(x), float(y)) for x, y in tr]
+            for nom2, pts in corrige_paraguay(nom, todos):
+                if len(pts) < 2:
+                    continue
+                # Un rio secundario no necesita el mismo detalle que el
+                # Amazonas: la tolerancia crece con el rango, que es su orden
+                # de importancia.
+                tol = 0.004 * (1.0 + rank * 0.35)
+                idx = _dp(pts, tol * tol)
+                lineas.append((nom2, rank, [pts[i] for i in idx]))
 
     # Ordenados por importancia: el cliente dibuja solo el prefijo que toca
     # segun el zoom, sin tener que filtrar tramo a tramo.
@@ -353,11 +391,11 @@ def main():
     print("rios: %d tramos  %d -> %d puntos  cortes=%s"
           % (len(tramos), crudos, len(verts) // 2, cortes))
 
-    # los rios con nombre entran como puntos: buscables y rotulables
+    # Todos los rios con nombre entran como puntos: asi son buscables aunque
+    # su rotulo solo aparezca al acercarse. El rango viaja con ellos.
     for nom, (pt, largo, rank) in nombres_rio.items():
-        if rank <= 6:
-            puntos.append({"n": nom, "ty": "Río", "cl": "rio",
-                           "c": [round(pt[0], 3), round(pt[1], 3)], "e": 0})
+        puntos.append({"n": nom, "ty": "Río", "cl": "rio", "rk": rank,
+                       "c": [round(pt[0], 3), round(pt[1], 3)], "e": 0})
 
     # --- cumbres y otros puntos --------------------------------------------
     for fichero in ("10m_geography_regions_elevation_points.geojson",
@@ -380,7 +418,15 @@ def main():
                 "e": int(elev) if elev else 0,
             })
 
-    puntos.sort(key=lambda p: (-p.get("e", 0), p["n"]))
+    def peso(p):
+        # las cumbres por altitud; los rios por su rango; el resto, en medio
+        if p.get("e"):
+            return p["e"]
+        if p.get("cl") == "rio":
+            return 6000 - p.get("rk", 8) * 550
+        return 1500
+
+    puntos.sort(key=lambda p: (-peso(p), p["n"]))
     areas.sort(key=lambda a: -a["a"])
 
     # Cumbre más alta de cada área: se comprueba con el polígono, no con su

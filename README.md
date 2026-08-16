@@ -26,9 +26,10 @@ index.html      → abre esto en el navegador
   «himalaya», «aconcagua» o «sahara».
 - **Relieve**: el botón `Relieve` apaga los colores políticos y pinta la
   geografía física — 225 cordilleras, 72 mesetas, 58 desiertos, llanuras,
-  cuencas, humedales, 289 masas de hielo y 1.270 lagos, con 351 ríos con
-  nombre y **632 cumbres rotuladas con su altitud** (Everest 8.848 m,
-  Aconcagua 6.959 m…).
+  cuencas, humedales, 289 masas de hielo y 1.270 lagos, con **1.057 ríos con
+  nombre en español** y **632 cumbres rotuladas con su altitud** (Everest
+  8.848 m, Aconcagua 6.959 m…). Cada río aparece a su altura: los grandes de
+  lejos, los afluentes solo cuando ya estás encima.
 - **Todo se puede pinchar**: con el relieve encendido, pinchar el globo
   selecciona el accidente natural que haya bajo el cursor —gana el más
   concreto, un lago antes que la cuenca que lo contiene— y su ficha da el
@@ -84,6 +85,7 @@ python3 tools/bundle.py          # plantilla + datos      → index.html
 | `tools/topologia.py` | Simplificación que respeta las fronteras compartidas. |
 | `tools/geometria.py` | De polígonos lon/lat a triángulos sobre la esfera. |
 | `tools/nombres_es.py` | Nombres de países en español. |
+| `tools/nombres_rios.py` | Nombres de ríos en español y arreglos del origen. |
 | `tools/bundle.py` | Inyecta los datos en la plantilla. |
 
 ## Decisiones técnicas
@@ -165,7 +167,17 @@ geometría de la vista, así que en corto el punto agarrado se queda bajo el
 cursor. La esfera del océano subió a 256×128 caras: a esa altura sus facetas
 se notaban en el horizonte.
 
-**9. Lo físico sobre lo político.** El relieve no sustituye al mapa, se
+**9. Los ríos, uno por uno.** La capa de ríos de Natural Earth **no trae campo
+`name_es`**: sus 1.367 nombres están en forma local o inglesa, y unos cuantos
+llegan con los caracteres no ASCII comidos —«Rhne» por Ródano, «Gta lv» por
+Göta älv, «Ro Grande de Santiago», «Pnuco», «Kiz?lirmak»—. `nombres_rios.py`
+arregla las dos cosas con una tabla de 300 entradas; los ríos cuyo nombre es
+igual en español (Congo, Paraná, Orinoco, Volga…) no aparecen en ella. Hay
+además una corrección de trazado: Natural Earth rotula «Paraná» todo el eje
+desde el Pantanal hasta el estuario, así que **el río Paraguay no existía en el
+mapa**; se separa por la confluencia, junto a Corrientes.
+
+**10. Lo físico sobre lo político.** El relieve no sustituye al mapa, se
 superpone: al encenderlo, los colores políticos se apagan hacia un verde
 neutro (un `mix` en el sombreador, no otra geometría) y encima se dibujan las
 áreas físicas translúcidas, los lagos opacos, los ríos y las cumbres. Los
@@ -202,6 +214,10 @@ que caben, y codificados en base64: 4.314 divisiones (280.000 vértices,
   Baikal y los Andes se obtiene en cada caso el accidente correcto con su
   cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
   Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
+- **Ríos**: de una lista de 125 grandes ríos del mundo, los 125 están en el
+  mapa y con el nombre en español. Ningún nombre queda con caracteres rotos.
+  Los 1.057 ríos con nombre son buscables, aunque su rótulo solo aparezca al
+  acercarse.
 - Superficies contrastadas con las reales: España 506.716 km² (505.990),
   Italia 301.173 (301.340), Reino Unido 242.553 (242.495), Brasil 8.519.258
   (8.515.767), Japón 375.652 (377.975). Francia suma 636.524 km² porque
@@ -219,6 +235,13 @@ que caben, y codificados en base64: 4.314 divisiones (280.000 vértices,
 - Países sin divisiones y nombres de país:
   [`johan/world.geo.json`](https://github.com/johan/world.geo.json), derivado
   de Natural Earth 1:110 M, dominio público (`data/LICENSE-countries-geo-json`).
+
+**Sobre los ríos**: la capa de Natural Earth a 1:10 M contiene los ríos
+principales del mundo —1.455 trazados, 1.057 con nombre—, no todos los cursos
+de agua del planeta. Faltan cauces secundarios; comprobando una lista de 125
+grandes ríos, el único ausente del conjunto de datos era el Murrumbidgee
+australiano. Un inventario realmente completo (HydroRIVERS, con 8,5 millones de
+tramos) ocupa cerca de un gigabyte y no cabe en un archivo HTML.
 
 El nivel administrativo 1 no tiene la misma granularidad en todo el mundo: son
 las 51 provincias de España, los 50 estados de Estados Unidos, los 27 estados

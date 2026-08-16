@@ -1875,59 +1875,63 @@ body {
 
   var MAX_RESULTADOS = 240;
 
+  // Al buscar manda la relevancia, no la categoría: si escribes «nilo» lo
+  // primero debe ser el Nilo, no el municipio de Danilovgrad.
+  function puntua(nom, q) {
+    var n = normalize(nom);
+    if (n === q) return 0;
+    if (n.indexOf(q) === 0) return 1;
+    if (n.indexOf(" " + q) >= 0) return 2;      // empieza una palabra
+    if (n.indexOf(q) >= 0) return 3;
+    return -1;
+  }
+
   function renderList(filter) {
     var q = normalize(filter || "");
     listEl.textContent = "";
-    var mostrados = 0;
 
-    for (var i = 0; i < NP && mostrados < MAX_RESULTADOS; i++) {
-      var c = paises[i];
-      if (q && normalize(c.n).indexOf(q) === -1 &&
-          normalize(c.en || "").indexOf(q) === -1 &&
-          normalize(c.id).indexOf(q) === -1) continue;
-      fila("pais", i, c.n, fmtArea(c.a));
-      mostrados++;
-    }
-
-    // Las divisiones solo aparecen al buscar: son 4.315 y ahogarían la lista.
-    var divs = 0;
-    if (q) {
-      for (var i = 0; i < ND && mostrados < MAX_RESULTADOS; i++) {
-        var d = divisiones[i];
-        if (normalize(d.n).indexOf(q) === -1 &&
-            normalize(d.en || "").indexOf(q) === -1 &&
-            normalize(d.id || "").indexOf(q) === -1) continue;
-        if (!divs) {
-          var h = document.createElement("h3");
-          h.textContent = "Divisiones";
-          listEl.appendChild(h);
-        }
-        fila("div", i, d.n, paises[d.pa].n);
-        mostrados++;
-        divs++;
+    if (!q) {                                   // sin búsqueda, el índice de países
+      for (var i = 0; i < NP && i < MAX_RESULTADOS; i++) {
+        fila("pais", i, paises[i].n, fmtArea(paises[i].a));
       }
+      marcarLista();
+      return;
     }
 
-    // Relieve: cordilleras, desiertos, cumbres... también al buscar.
-    if (q && relieve && opts.relieve) {
-      var fis = 0;
-      for (var i = 0; i < relieve.areas.length && mostrados < MAX_RESULTADOS; i++) {
+    var res = [];
+    function mira(tipo, i, nom, alias, sub, desempate) {
+      var p = puntua(nom, q);
+      if (p < 0 && alias) {
+        var pa = puntua(alias, q);
+        if (pa >= 0) p = pa + 0.5;              // el nombre en otro idioma, después
+      }
+      if (p < 0) return;
+      res.push({ tipo: tipo, i: i, n: nom, sub: sub, s: p + desempate });
+    }
+
+    for (var i = 0; i < NP; i++) {
+      mira("pais", i, paises[i].n, paises[i].en || paises[i].id, fmtArea(paises[i].a), 0);
+    }
+    for (var i = 0; i < ND; i++) {
+      var d = divisiones[i];
+      mira("div", i, d.n, d.en || d.id, paises[d.pa].n, 0.2);
+    }
+    if (relieve && opts.relieve) {
+      for (var i = 0; i < relieve.areas.length; i++) {
         var a = relieve.areas[i];
-        if (normalize(a.n).indexOf(q) === -1) continue;
-        if (!fis) { var h2 = document.createElement("h3"); h2.textContent = "Relieve"; listEl.appendChild(h2); }
-        fila("area", i, a.n, a.ty);
-        mostrados++; fis++;
+        mira("area", i, a.n, null, a.ty, 0.1);
       }
-      for (var i = 0; i < relieve.puntos.length && mostrados < MAX_RESULTADOS; i++) {
+      for (var i = 0; i < relieve.puntos.length; i++) {
         var pt = relieve.puntos[i];
-        if (normalize(pt.n).indexOf(q) === -1) continue;
-        if (!fis) { var h3 = document.createElement("h3"); h3.textContent = "Relieve"; listEl.appendChild(h3); }
-        fila("punto", i, pt.n, pt.e ? fmtNum(pt.e) + " m" : pt.ty);
-        mostrados++; fis++;
+        mira("punto", i, pt.n, null, pt.e ? fmtNum(pt.e) + " m" : pt.ty, 0.1);
       }
     }
 
-    if (!mostrados) {
+    res.sort(function (a, b) { return a.s - b.s || a.n.localeCompare(b.n, "es"); });
+    for (var k = 0; k < res.length && k < MAX_RESULTADOS; k++) {
+      fila(res[k].tipo, res[k].i, res[k].n, res[k].sub);
+    }
+    if (!res.length) {
       var p = document.createElement("p");
       p.textContent = "Sin resultados para “" + filter + "”.";
       listEl.appendChild(p);
@@ -2128,7 +2132,11 @@ body {
       var esMonte = pt.cl === "cumbre";
       if (esMonte) {
         if (pt.e < monte) continue;
-      } else if (view.dist > (pt.cl === "rio" ? 2.0 : 2.3)) continue;
+      } else if (pt.cl === "rio") {
+        // Cada río aparece a su altura: los grandes de lejos, los afluentes
+        // solo cuando ya estás encima.
+        if (view.dist > 3.4 - (pt.rk || 8) * 0.28) continue;
+      } else if (view.dist > 2.3) continue;
       var texto = esMonte && pt.e ? pt.n + " " + fmtNum(pt.e) + " m" : pt.n;
       coloca(pt, texto, esMonte ? "monte" : "punto", "punto", i);
     }
