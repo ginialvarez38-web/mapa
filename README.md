@@ -28,7 +28,17 @@ index.html      → abre esto en el navegador
   geografía física — 225 cordilleras, 72 mesetas, 58 desiertos, llanuras,
   cuencas, humedales, 289 masas de hielo y 334 lagos, con los ríos y **632
   cumbres rotuladas con su altitud** (Everest 8.848 m, Aconcagua 6.959 m…).
-  Cada cumbre lleva el triángulo cartográfico y se puede pinchar.
+- **Todo se puede pinchar**: con el relieve encendido, pinchar el globo
+  selecciona el accidente natural que haya bajo el cursor —gana el más
+  concreto, un lago antes que la cuenca que lo contiene— y su ficha da el
+  tipo, la superficie y **la cumbre más alta que contiene**: Himalaya →
+  Everest, Andes → Aconcagua, Alpes → Mont Blanc. Si no hay ninguno, se
+  selecciona la división de debajo; con el relieve apagado, manda siempre lo
+  administrativo.
+- **Relieve en 3D**: el botón `3D` levanta el terreno sobre la esfera, con
+  sombreado de laderas iluminado desde el noroeste. Las fronteras, los ríos y
+  las divisiones suben con él, así que una frontera trepa por la cordillera en
+  vez de atravesarla.
 - **Modo día/noche**: ilumina el globo con la posición real del Sol calculada
   para el instante actual, con su terminador y el halo atmosférico encendido
   solo en el limbo iluminado.
@@ -64,7 +74,7 @@ python3 tools/bundle.py          # plantilla + datos      → index.html
 | --- | --- |
 | `src/globo.template.html` | La aplicación: estilos, interfaz y el motor WebGL. |
 | `tools/build_mundo.py` | Divisiones, países y fronteras a partir del GeoJSON. |
-| `tools/build_relieve.py` | Cordilleras, desiertos, cumbres, ríos, lagos y hielo. |
+| `tools/build_relieve.py` | Cordilleras, desiertos, cumbres, ríos, lagos, hielo y la rejilla de alturas. |
 | `tools/topologia.py` | Simplificación que respeta las fronteras compartidas. |
 | `tools/geometria.py` | De polígonos lon/lat a triángulos sobre la esfera. |
 | `tools/nombres_es.py` | Nombres de países en español. |
@@ -126,7 +136,20 @@ volviendo por el otro lado: el polígono vuelve a ser simple y además cubre el
 polo. Ese tramo se marca como no dibujable para que no aparezca una línea
 artificial sobre el hielo.
 
-**7. Lo físico sobre lo político.** El relieve no sustituye al mapa, se
+**7. Un relieve honesto sin modelo de elevación.** No hay ningún DEM a mano, y
+inventarse la altura del terreno sería justo eso: inventársela. Lo que sí es
+real son los polígonos de las cordilleras y las 632 cumbres con su altitud
+medida. De ahí sale una rejilla de 0,5° donde cada área se levanta a **algo más
+de la mitad de la altura de la cumbre más alta que contiene** —comprobada
+contra el polígono, no contra su caja: con la caja, la cuenca del Amazonas
+heredaba la altura de los Andes— se afila hacia los bordes con dos pasadas de
+media, y las cumbres se clavan encima con su altitud exacta. El resultado es un
+**relieve esquemático, exagerado 16 veces**, no un modelo del terreno; la
+interfaz lo dice y el botón `3D` lo apaga. El sombreado de laderas se calcula
+del gradiente de esa rejilla, una vez por vértice al cargar, así que cambiar la
+exageración es mover un uniforme.
+
+**8. Lo físico sobre lo político.** El relieve no sustituye al mapa, se
 superpone: al encenderlo, los colores políticos se apagan hacia un verde
 neutro (un `mix` en el sombreador, no otra geometría) y encima se dibujan las
 áreas físicas translúcidas, los lagos opacos, los ríos y las cumbres. Los
@@ -159,6 +182,10 @@ que caben, y codificados en base64: 4.314 divisiones (280.000 vértices,
 - Pinchando en el centro de la pantalla sobre el punto representativo de cada
   división, **4.307 de 4.314** devuelven la división correcta; las 7 restantes
   son franjas de menos de un kilómetro de ancho.
+- Pinchando sobre el Himalaya, el Sahara, la cuenca del Amazonas, el Gobi, el
+  Baikal y los Andes se obtiene en cada caso el accidente correcto con su
+  cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
+  Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
 - Superficies contrastadas con las reales: España 506.716 km² (505.990),
   Italia 301.173 (301.340), Reino Unido 242.553 (242.495), Brasil 8.519.258
   (8.515.767), Japón 375.652 (377.975). Francia suma 636.524 km² porque

@@ -542,6 +542,7 @@ body {
   <button class="btn" id="t-night" aria-pressed="false">Día/Noche</button>
   <button class="btn" id="t-divs" aria-pressed="true">Divisiones</button>
   <button class="btn" id="t-relieve" aria-pressed="true">Relieve</button>
+  <button class="btn" id="t-3d" aria-pressed="true" title="Relieve esquemático, exagerado 16 veces: se levanta a partir de las cordilleras y las cumbres reales, no es un modelo de elevación">3D</button>
   <button class="btn" id="t-grid" aria-pressed="false">Retícula</button>
   <button class="btn" id="t-style" aria-pressed="false">Carta</button>
   <span class="sep" aria-hidden="true"></span>
@@ -669,6 +670,110 @@ body {
   for (var i = 0; i < NP; i++) paises[i].hijos = [];
   for (var i = 0; i < ND; i++) paises[divisiones[i].pa].hijos.push(i);
 
+  // ---------------------------------------------------------------- //
+  // Geografía física: áreas, ríos y puntos con nombre                 //
+  // ---------------------------------------------------------------- //
+
+  var relieve = null;
+  (function () {
+    var el = document.getElementById("relieve-data");
+    if (!el || !el.textContent) return;
+    try { relieve = JSON.parse(el.textContent); } catch (e) { return; }
+    if (!relieve.areas || !relieve.areas.length) { relieve = null; return; }
+
+    // La rejilla de alturas se lee primero: de ella dependen las alturas por
+    // vértice de todas las demás capas.
+    var al = relieve.alturas;
+    if (al && al.v) {
+      relieve.hv = b64Bytes(al.v);
+      relieve.hw = al.w;
+      relieve.hh = al.h;
+      relieve.hpaso = al.paso / 6371000.0;      // metros -> radios terrestres
+    }
+
+    var areas = relieve.areas;
+    var n = areas.length;
+    var totalV = 0, totalT = 0;
+    var dec = new Array(n);
+
+    for (var i = 0; i < n; i++) {
+      var rec = areas[i];
+      var vb = b64Bytes(rec.v);
+      var lonlat = new Int16Array(vb.buffer, vb.byteOffset, vb.byteLength >> 1);
+      var tb = b64Bytes(rec.t);
+      var tris = rec.i32
+        ? new Uint32Array(tb.buffer, tb.byteOffset, tb.byteLength >> 2)
+        : new Uint16Array(tb.buffer, tb.byteOffset, tb.byteLength >> 1);
+      dec[i] = { lonlat: lonlat, tris: tris, nv: lonlat.length >> 1,
+                 rings: rec.r, vStart: totalV, tStart: totalT };
+      totalV += dec[i].nv;
+      totalT += tris.length;
+    }
+
+    var pos = new Float32Array(totalV * 3);
+    var idx = new Float32Array(totalV);
+    var alt = new Float32Array(totalV);
+    var som = new Float32Array(totalV);
+    var fill = new Uint32Array(totalT);
+    // Los lagos van al final para poder dibujarlos opacos sobre el resto.
+    var corte = 0;
+
+    for (var i = 0; i < n; i++) {
+      var d = dec[i], ll = d.lonlat, base = d.vStart;
+      for (var k = 0; k < d.nv; k++) {
+        var lon = ll[k * 2] / SCALE * DEG;
+        var lat = ll[k * 2 + 1] / SCALE * DEG;
+        var cl = Math.cos(lat);
+        var o = (base + k) * 3;
+        pos[o] = cl * Math.sin(lon);
+        pos[o + 1] = Math.sin(lat);
+        pos[o + 2] = cl * Math.cos(lon);
+        idx[base + k] = i;
+      }
+      alturasDe(ll, d.nv, alt, base, som);
+      for (var k = 0; k < d.tris.length; k++) fill[d.tStart + k] = d.tris[k] + base;
+      if (areas[i].cl !== "lago") corte = d.tStart + d.tris.length;
+    }
+
+    relieve.dec = dec;
+    relieve.pos = pos;
+    relieve.idx = idx;
+    relieve.alt = alt;
+    relieve.som = som;
+    relieve.fill = fill;
+    relieve.corte = corte;
+
+    // Ríos: polilíneas con su rango de importancia.
+    var r = relieve.rios;
+    if (r && r.v) {
+      var rb = b64Bytes(r.v);
+      var rll = new Int16Array(rb.buffer, rb.byteOffset, rb.byteLength >> 1);
+      var m = rll.length >> 1;
+      var rpos = new Float32Array(m * 3);
+      var ralt = new Float32Array(m);
+      alturasDe(rll, m, ralt, 0);
+      for (var k = 0; k < m; k++) {
+        var lon = rll[k * 2] / SCALE * DEG;
+        var lat = rll[k * 2 + 1] / SCALE * DEG;
+        var cl = Math.cos(lat);
+        rpos[k * 3] = cl * Math.sin(lon);
+        rpos[k * 3 + 1] = Math.sin(lat);
+        rpos[k * 3 + 2] = cl * Math.cos(lon);
+      }
+      var total = 0;
+      for (var t = 0; t < r.s.length; t += 2) total += (r.s[t + 1] - 1) * 2;
+      var ridx = new Uint32Array(total);
+      var w = 0;
+      for (var t = 0; t < r.s.length; t += 2) {
+        var start = r.s[t], count = r.s[t + 1];
+        for (var k = 0; k < count - 1; k++) { ridx[w++] = start + k; ridx[w++] = start + k + 1; }
+      }
+      relieve.rioPos = rpos;
+      relieve.rioAlt = ralt;
+      relieve.rioIdx = ridx;
+    }
+  })();
+
   // Toda la geometría vive en un solo juego de búferes: posiciones, índice de
   // división e índice de país por vértice.
   var decoded = new Array(ND);
@@ -698,6 +803,8 @@ body {
   var positions = new Float32Array(totalV * 3);
   var owner = new Float32Array(totalV);
   var ownerPais = new Float32Array(totalV);
+  var alturas = new Float32Array(totalV);
+  var sombras = new Float32Array(totalV);
   var fillIdx = new Uint32Array(totalT);
   var lineIdx = new Uint32Array(totalL);
 
@@ -714,6 +821,7 @@ body {
       owner[base + k] = i;
       ownerPais[base + k] = ip;
     }
+    alturasDe(ll, d.nv, alturas, base, sombras);
     for (var k = 0; k < d.tris.length; k++) fillIdx[d.tStart + k] = d.tris[k] + base;
     var w = d.lStart;
     for (var r = 0; r < d.rings.length; r += 4) {
@@ -729,7 +837,7 @@ body {
   }
 
   // Fronteras de país: polilíneas ya clasificadas en el generador de datos.
-  var frontPos = null, frontIdx = null;
+  var frontPos = null, frontIdx = null, frontAlt = null;
   (function () {
     var f = mundo.fronteras;
     if (!f || !f.v) return;
@@ -758,91 +866,83 @@ body {
     }
   })();
 
-  // ---------------------------------------------------------------- //
-  // Geografía física: áreas, ríos y puntos con nombre                 //
-  // ---------------------------------------------------------------- //
-
-  var relieve = null;
-  (function () {
-    var el = document.getElementById("relieve-data");
-    if (!el || !el.textContent) return;
-    try { relieve = JSON.parse(el.textContent); } catch (e) { return; }
-    if (!relieve.areas || !relieve.areas.length) { relieve = null; return; }
-
+  // Índice espacial de las áreas físicas, para poder pincharlas en el globo.
+  function indiceAreas() {
+    if (!relieve) return;
+    var celdasR = new Array(GX * GY);
     var areas = relieve.areas;
-    var n = areas.length;
-    var totalV = 0, totalT = 0;
-    var dec = new Array(n);
-
-    for (var i = 0; i < n; i++) {
-      var rec = areas[i];
-      var vb = b64Bytes(rec.v);
-      var lonlat = new Int16Array(vb.buffer, vb.byteOffset, vb.byteLength >> 1);
-      var tb = b64Bytes(rec.t);
-      var tris = rec.i32
-        ? new Uint32Array(tb.buffer, tb.byteOffset, tb.byteLength >> 2)
-        : new Uint16Array(tb.buffer, tb.byteOffset, tb.byteLength >> 1);
-      dec[i] = { lonlat: lonlat, tris: tris, nv: lonlat.length >> 1,
-                 rings: rec.r, vStart: totalV, tStart: totalT };
-      totalV += dec[i].nv;
-      totalT += tris.length;
-    }
-
-    var pos = new Float32Array(totalV * 3);
-    var idx = new Float32Array(totalV);
-    var fill = new Uint32Array(totalT);
-    // Los lagos van al final para poder dibujarlos opacos sobre el resto.
-    var corte = 0;
-
-    for (var i = 0; i < n; i++) {
-      var d = dec[i], ll = d.lonlat, base = d.vStart;
-      for (var k = 0; k < d.nv; k++) {
-        var lon = ll[k * 2] / SCALE * DEG;
-        var lat = ll[k * 2 + 1] / SCALE * DEG;
-        var cl = Math.cos(lat);
-        var o = (base + k) * 3;
-        pos[o] = cl * Math.sin(lon);
-        pos[o + 1] = Math.sin(lat);
-        pos[o + 2] = cl * Math.cos(lon);
-        idx[base + k] = i;
+    for (var i = 0; i < areas.length; i++) {
+      var b = areas[i].b;
+      var x0 = Math.max(0, Math.floor((b[0] + 180) / CELDA));
+      var x1 = Math.min(GX - 1, Math.floor((b[2] + 180) / CELDA));
+      var y0 = Math.max(0, Math.floor((b[1] + 90) / CELDA));
+      var y1 = Math.min(GY - 1, Math.floor((b[3] + 90) / CELDA));
+      for (var y = y0; y <= y1; y++) {
+        for (var x = x0; x <= x1; x++) {
+          var k = y * GX + x;
+          (celdasR[k] || (celdasR[k] = [])).push(i);
+        }
       }
-      for (var k = 0; k < d.tris.length; k++) fill[d.tStart + k] = d.tris[k] + base;
-      if (areas[i].cl !== "lago") corte = d.tStart + d.tris.length;
     }
-
-    relieve.dec = dec;
-    relieve.pos = pos;
-    relieve.idx = idx;
-    relieve.fill = fill;
-    relieve.corte = corte;
-
-    // Ríos: polilíneas con su rango de importancia.
-    var r = relieve.rios;
-    if (r && r.v) {
-      var rb = b64Bytes(r.v);
-      var rll = new Int16Array(rb.buffer, rb.byteOffset, rb.byteLength >> 1);
-      var m = rll.length >> 1;
-      var rpos = new Float32Array(m * 3);
-      for (var k = 0; k < m; k++) {
-        var lon = rll[k * 2] / SCALE * DEG;
-        var lat = rll[k * 2 + 1] / SCALE * DEG;
-        var cl = Math.cos(lat);
-        rpos[k * 3] = cl * Math.sin(lon);
-        rpos[k * 3 + 1] = Math.sin(lat);
-        rpos[k * 3 + 2] = cl * Math.cos(lon);
+    // de menor a mayor: así gana el accidente más concreto, un lago antes que
+    // la cuenca que lo contiene
+    for (var k = 0; k < celdasR.length; k++) {
+      if (celdasR[k]) {
+        celdasR[k].sort(function (a, b) { return areas[a].a - areas[b].a; });
       }
-      var total = 0;
-      for (var t = 0; t < r.s.length; t += 2) total += (r.s[t + 1] - 1) * 2;
-      var ridx = new Uint32Array(total);
-      var w = 0;
-      for (var t = 0; t < r.s.length; t += 2) {
-        var start = r.s[t], count = r.s[t + 1];
-        for (var k = 0; k < count - 1; k++) { ridx[w++] = start + k; ridx[w++] = start + k + 1; }
-      }
-      relieve.rioPos = rpos;
-      relieve.rioIdx = ridx;
     }
-  })();
+    relieve.celdas = celdasR;
+  }
+
+  // Altura del terreno en radios, interpolada de la rejilla. Devuelve 0 si no
+  // hay datos, de modo que todo lo demás sigue funcionando sin relieve.
+  function alturaR(lon, lat) {
+    if (!relieve || !relieve.hv) return 0;
+    var w = relieve.hw, h = relieve.hh;
+    var fx = (lon + 180) / 360 * w - 0.5;
+    var fy = (lat + 90) / 180 * h - 0.5;
+    var x0 = Math.floor(fx), y0 = Math.floor(fy);
+    var tx = fx - x0, ty = fy - y0;
+    var x1 = ((x0 + 1) % w + w) % w;
+    x0 = ((x0 % w) + w) % w;
+    if (y0 < 0) { y0 = 0; ty = 0; }
+    var y1 = y0 + 1 >= h ? h - 1 : y0 + 1;
+    if (y0 >= h) y0 = h - 1;
+    var v = relieve.hv;
+    var a = v[y0 * w + x0], b = v[y0 * w + x1];
+    var c = v[y1 * w + x0], d = v[y1 * w + x1];
+    var top = a + (b - a) * tx, bot = c + (d - c) * tx;
+    return (top + (bot - top) * ty) * relieve.hpaso;
+  }
+
+  // Sombreado de laderas: la pendiente del terreno iluminada desde el noroeste,
+  // como en cualquier mapa físico. Es lo que hace que las montañas se lean
+  // incluso mirando el globo de frente, sin depender del relieve en 3D.
+  function sombraEn(lon, lat) {
+    if (!relieve || !relieve.hv) return 1;
+    var d = 0.5;                                   // el paso de la rejilla
+    var hx = (alturaR(lon + d, lat) - alturaR(lon - d, lat)) * 6371000.0;
+    var hy = (alturaR(lon, lat + d) - alturaR(lon, lat - d)) * 6371000.0;
+    // distancia real entre muestras, en metros
+    var mx = 2 * d * 111320.0 * Math.max(0.15, Math.cos(lat * DEG));
+    var my = 2 * d * 111320.0;
+    var nx = -hx / mx, ny = -hy / my;
+    var inv = 1 / Math.sqrt(nx * nx + ny * ny + 1);
+    // luz desde el noroeste, a 45°
+    var dot = (nx * -0.5 + ny * 0.5 + 0.7071) * inv;
+    return 0.62 + 0.62 * Math.max(0, dot);
+  }
+
+  // Altura por vértice para un búfer de posiciones ya en coordenadas lon/lat
+  // cuantizadas. Se calcula una vez al cargar; luego solo cambia el factor de
+  // exageración, que es un uniforme.
+  function alturasDe(lonlat, n, salida, offset, sombras) {
+    for (var k = 0; k < n; k++) {
+      var lon = lonlat[k * 2] / SCALE, lat = lonlat[k * 2 + 1] / SCALE;
+      salida[offset + k] = alturaR(lon, lat);
+      if (sombras) sombras[offset + k] = sombraEn(lon, lat);
+    }
+  }
 
   // Rejilla de 6° para no probar 4.315 divisiones en cada movimiento del ratón.
   var CELDA = 6, GX = 60, GY = 30;
@@ -910,29 +1010,34 @@ body {
     return p;
   }
 
+  // aH es la altura del terreno en radios; sin búfer asociado vale 0, de modo
+  // que el océano y el halo usan el mismo vértice sin desplazarse.
   var VS_GLOBE = [
     "precision highp float;",
-    "attribute vec3 aPos;",
-    "uniform mat4 uVP; uniform mat3 uRot; uniform float uR;",
+    "attribute vec3 aPos; attribute float aH;",
+    "uniform mat4 uVP; uniform mat3 uRot; uniform float uR, uExag;",
     "varying vec3 vN;",
-    "void main(){ vN = uRot * aPos; gl_Position = uVP * vec4(vN * uR, 1.0); }"
+    "void main(){ vN = uRot * aPos;",
+    "  gl_Position = uVP * vec4(vN * (uR + aH * uExag), 1.0); }"
   ].join("\n");
 
   // Relleno de países: color por índice desde una textura-paleta.
   var progLand = program([
     "precision highp float;",
     "attribute vec3 aPos; attribute float aIdx; attribute float aPais;",
-    "uniform mat4 uVP; uniform mat3 uRot; uniform float uR;",
-    "varying vec3 vN; varying float vIdx; varying float vPais;",
+    "attribute float aH; attribute float aSom;",
+    "uniform mat4 uVP; uniform mat3 uRot; uniform float uR, uExag;",
+    "varying vec3 vN; varying float vIdx; varying float vPais; varying float vSom;",
     "void main(){ vN = uRot * aPos; vIdx = aIdx; vPais = aPais;",
-    "  gl_Position = uVP * vec4(vN * uR, 1.0); }"
+    "  vSom = aSom > 0.0 ? aSom : 1.0;",
+    "  gl_Position = uVP * vec4(vN * (uR + aH * uExag), 1.0); }"
   ].join("\n"), [
     "precision highp float;",
-    "varying vec3 vN; varying float vIdx; varying float vPais;",
+    "varying vec3 vN; varying float vIdx; varying float vPais; varying float vSom;",
     "uniform sampler2D uPal; uniform vec2 uPalSize;",
     "uniform vec3 uLight; uniform float uNight; uniform float uShade;",
     "uniform float uHover, uSel, uHovPais, uSelPais; uniform vec3 uAccent;",
-    "uniform float uAlpha, uFisico; uniform vec3 uTierra;",
+    "uniform float uAlpha, uFisico, uRealce; uniform vec3 uTierra;",
     "void main(){",
     "  vec2 uv = vec2(mod(vIdx, uPalSize.x) + 0.5, floor(vIdx / uPalSize.x) + 0.5) / uPalSize;",
     "  vec3 base = mix(texture2D(uPal, uv).rgb, uTierra, uFisico);",
@@ -941,6 +1046,7 @@ body {
     "  float raw = mix(0.64 + 0.36 * max(dot(n, uLight), 0.0), 0.24 + 0.76 * day, uNight);",
     "  float lit = 1.0 - uShade * (1.0 - raw);",
     "  vec3 col = base * lit;",
+    "  col *= mix(1.0, vSom, uRealce);",                 // sombreado de laderas
     "  bool sel = abs(vIdx - uSel) < 0.5 || abs(vPais - uSelPais) < 0.5;",
     "  bool hov = abs(vIdx - uHover) < 0.5 || abs(vPais - uHovPais) < 0.5;",
     "  if (sel) col = mix(col, uAccent, 0.62);",
@@ -1032,27 +1138,34 @@ body {
   var bufPos = buffer(gl.ARRAY_BUFFER, positions);
   var bufOwner = buffer(gl.ARRAY_BUFFER, owner);
   var bufPais = buffer(gl.ARRAY_BUFFER, ownerPais);
+  var bufAlt = buffer(gl.ARRAY_BUFFER, alturas);
+  var bufSom = buffer(gl.ARRAY_BUFFER, sombras);
   var bufFill = buffer(gl.ELEMENT_ARRAY_BUFFER, fillIdx);
   var bufLine = buffer(gl.ELEMENT_ARRAY_BUFFER, lineIdx);
   var bufFrontPos = frontPos ? buffer(gl.ARRAY_BUFFER, frontPos) : null;
+  var bufFrontAlt = frontAlt ? buffer(gl.ARRAY_BUFFER, frontAlt) : null;
   var bufFrontIdx = frontIdx ? buffer(gl.ELEMENT_ARRAY_BUFFER, frontIdx) : null;
   var nFill = fillIdx.length, nLine = lineIdx.length;
 
   if (relieve) {
     relieve.bufPos = buffer(gl.ARRAY_BUFFER, relieve.pos);
     relieve.bufIdx = buffer(gl.ARRAY_BUFFER, relieve.idx);
+    relieve.bufAlt = buffer(gl.ARRAY_BUFFER, relieve.alt);
+    relieve.bufSom = buffer(gl.ARRAY_BUFFER, relieve.som);
     relieve.bufFill = buffer(gl.ELEMENT_ARRAY_BUFFER, relieve.fill);
     relieve.nFill = relieve.fill.length;
-    relieve.pos = relieve.idx = relieve.fill = null;
+    relieve.pos = relieve.idx = relieve.alt = relieve.som = relieve.fill = null;
     if (relieve.rioPos) {
       relieve.bufRioPos = buffer(gl.ARRAY_BUFFER, relieve.rioPos);
+      relieve.bufRioAlt = buffer(gl.ARRAY_BUFFER, relieve.rioAlt);
       relieve.bufRioIdx = buffer(gl.ELEMENT_ARRAY_BUFFER, relieve.rioIdx);
       relieve.nRio = relieve.rioIdx.length;
-      relieve.rioPos = relieve.rioIdx = null;
+      relieve.rioPos = relieve.rioAlt = relieve.rioIdx = null;
     }
   }
   var nFront = frontIdx ? frontIdx.length : 0;
-  positions = owner = ownerPais = fillIdx = lineIdx = frontPos = frontIdx = null;
+  positions = owner = ownerPais = alturas = sombras = null;
+  fillIdx = lineIdx = frontPos = frontIdx = frontAlt = null;
 
   // Esfera del océano.
   var sphere = (function (segLon, segLat) {
@@ -1269,6 +1382,7 @@ body {
 
   var reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  var exag = 0, EXAG = 16;      // veces la altura real, para que se lea
   var view = {
     yaw: 20 * DEG,        // centrado sobre el Atlántico: se ven tres continentes
     pitch: 18 * DEG,
@@ -1284,6 +1398,7 @@ body {
     grid: false,
     divs: true,
     relieve: true,
+    tresd: true,
     scene: matchMedia("(prefers-color-scheme: dark)").matches ||
            document.documentElement.getAttribute("data-theme") === "dark" ? "noche" : "carta"
   };
@@ -1378,7 +1493,6 @@ body {
     return -1;
   }
 
-  // Con las divisiones a la vista se señala la división; si no, el país.
   // Las marcas del relieve son pequeñas: se buscan en pantalla, no en la esfera.
   function marcaCerca(px, py) {
     var mejor = null, d2 = 20 * 20;
@@ -1391,7 +1505,47 @@ body {
     return mejor ? { tipo: mejor.tipo, i: mejor.i } : null;
   }
 
+  function dentroDeArea(i, lon, lat) {
+    var rec = relieve.areas[i], b = rec.b;
+    if (lon < b[0] || lon > b[2] || lat < b[1] || lat > b[3]) return false;
+    var d = relieve.dec[i], ll = d.lonlat, rings = rec.r;
+    var x = lon * SCALE, y = lat * SCALE;
+    var inside = false;
+    for (var k = 0; k < rings.length; k += 4) {
+      var start = rings[k], n = rings[k + 3];
+      for (var a = 0, j = n - 1; a < n; j = a++) {
+        var ai = (start + a) * 2, ji = (start + j) * 2;
+        var yi = ll[ai + 1], yj = ll[ji + 1];
+        if ((yi > y) !== (yj > y)) {
+          var xi = ll[ai], xj = ll[ji];
+          if (x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+        }
+      }
+    }
+    return inside;
+  }
+
+  function areaEn(lon, lat) {
+    if (!relieve || !relieve.celdas) return -1;
+    var gx = Math.floor((lon + 180) / CELDA);
+    var gy = Math.floor((lat + 90) / CELDA);
+    if (gx < 0) gx = 0; else if (gx >= GX) gx = GX - 1;
+    if (gy < 0) gy = 0; else if (gy >= GY) gy = GY - 1;
+    var lista = relieve.celdas[gy * GX + gx];
+    if (!lista) return -1;
+    for (var k = 0; k < lista.length; k++) {
+      if (dentroDeArea(lista[k], lon, lat)) return lista[k];
+    }
+    return -1;
+  }
+
+  // Con el relieve encendido manda la geografía física: se señala el accidente
+  // natural y, si no hay ninguno, la división administrativa de debajo.
   function regionEn(lon, lat) {
+    if (opts.relieve && relieve) {
+      var a = areaEn(lon, lat);
+      if (a >= 0) return { tipo: "area", i: a };
+    }
     var i = divisionEn(lon, lat);
     if (i < 0) return null;
     return opts.divs ? { tipo: "div", i: i } : { tipo: "pais", i: divisiones[i].pa };
@@ -1617,9 +1771,18 @@ body {
     if (!esPunto) elArea.textContent = "≈ " + fmtNum(rec.a) + " km²";
     elDivs.hidden = elDivsLab.hidden = !esPais;
     if (esPais) elDivs.textContent = fmtNum(rec.nd) + (rec.nd === 1 ? " división" : " divisiones");
-    var conAlt = esPunto && rec.e > 0;
-    elAlt.hidden = elAltLab.hidden = !conAlt;
-    if (conAlt) elAlt.textContent = fmtNum(rec.e) + " m";
+    // Una cumbre da su altitud; un área, la de la cumbre más alta que contiene.
+    if (esPunto && rec.e > 0) {
+      elAltLab.textContent = "Altitud";
+      elAlt.textContent = fmtNum(rec.e) + " m";
+      elAlt.hidden = elAltLab.hidden = false;
+    } else if (sel.tipo === "area" && rec.cima) {
+      elAltLab.textContent = "Cumbre";
+      elAlt.textContent = rec.cima[0] + " · " + fmtNum(rec.cima[1]) + " m";
+      elAlt.hidden = elAltLab.hidden = false;
+    } else {
+      elAlt.hidden = elAltLab.hidden = true;
+    }
     elCenter.textContent = fmtLatLon(rec.c[1], rec.c[0]);
     elAnti.textContent = fmtLatLon(-rec.c[1], antipoda(rec.c[0]));
     updateSolar();
@@ -1793,7 +1956,9 @@ body {
     if (!v && (sel.tipo === "area" || sel.tipo === "punto")) seleccionar(null);
     renderList(searchEl.value);
   });
+  var tresdBtn = toggle("t-3d", opts.tresd, function (v) { opts.tresd = v; });
   if (!relieve) relBtn.hidden = true;
+  if (!relieve || !relieve.hv) tresdBtn.hidden = true;
   toggle("t-divs", opts.divs, function (v) {
     opts.divs = v;
     // Sin divisiones a la vista, la selección pasa al país que la contiene.
@@ -2118,6 +2283,10 @@ body {
     // El terminador solo se lee con sombreado completo, aunque la carta sea plana.
     var shade = opts.night ? 1 : scene.shade;
     var verRelieve = opts.relieve && !!relieve;
+    // El paso a 3D se hace suave: el terreno crece en vez de saltar.
+    var meta = (opts.tresd && relieve && relieve.hv) ? EXAG : 0;
+    exag += (meta - exag) * Math.min(1, dt / 220);
+    if (Math.abs(meta - exag) < 0.02) exag = meta;
 
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -2155,6 +2324,7 @@ body {
     gl.uniform3fv(progOcean.u.uLight, lightWorld);
     gl.uniform3fv(progOcean.u.uCam, camPos);
     gl.uniform1f(progOcean.u.uNight, night);
+    gl.uniform1f(progOcean.u.uExag, 0.0);
     gl.uniform1f(progOcean.u.uShade, shade);
     gl.uniform1f(progOcean.u.uRim, scene.rim);
     gl.drawElements(gl.TRIANGLES, sphere.count, gl.UNSIGNED_INT, 0);
@@ -2166,6 +2336,8 @@ body {
     bindAttrib(progLand, "aPos", bufPos, 3);
     bindAttrib(progLand, "aIdx", bufOwner, 1);
     bindAttrib(progLand, "aPais", bufPais, 1);
+    bindAttrib(progLand, "aH", bufAlt, 1);
+    bindAttrib(progLand, "aSom", bufSom, 1);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufFill);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, palTex);
@@ -2175,6 +2347,8 @@ body {
     gl.uniformMatrix3fv(progLand.u.uRot, false, mRot);
     gl.uniform1f(progLand.u.uR, 1.0016);
     gl.uniform1f(progLand.u.uAlpha, 1.0);
+    gl.uniform1f(progLand.u.uExag, exag);
+    gl.uniform1f(progLand.u.uRealce, opts.relieve ? 1.0 : 0.0);
     gl.uniform1f(progLand.u.uFisico, verRelieve ? 0.68 : 0.0);
     gl.uniform3fv(progLand.u.uTierra, hexToRgb(scene.tierra));
     gl.uniform3fv(progLand.u.uLight, lightWorld);
@@ -2195,6 +2369,8 @@ body {
       bindAttrib(progLand, "aPos", relieve.bufPos, 3);
       bindAttrib(progLand, "aIdx", relieve.bufIdx, 1);
       bindAttrib(progLand, "aPais", relieve.bufIdx, 1);
+      bindAttrib(progLand, "aH", relieve.bufAlt, 1);
+      bindAttrib(progLand, "aSom", relieve.bufSom, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, relieve.bufFill);
       gl.bindTexture(gl.TEXTURE_2D, palRel.tex);
       gl.uniform2f(progLand.u.uPalSize, palRel.w, palRel.h);
@@ -2208,6 +2384,8 @@ body {
       gl.uniform1f(progLand.u.uAlpha, 0.82);
       gl.drawElements(gl.TRIANGLES, relieve.corte, gl.UNSIGNED_INT, 0);
       gl.uniform1f(progLand.u.uAlpha, 1.0);
+    gl.uniform1f(progLand.u.uExag, exag);
+    gl.uniform1f(progLand.u.uRealce, opts.relieve ? 1.0 : 0.0);
       gl.uniform1f(progLand.u.uR, 1.0034);
       gl.drawElements(gl.TRIANGLES, relieve.nFill - relieve.corte,
                       gl.UNSIGNED_INT, relieve.corte * 4);
@@ -2223,6 +2401,7 @@ body {
     gl.uniformMatrix3fv(progLine.u.uRot, false, mRot);
     gl.uniform3fv(progLine.u.uLight, lightWorld);
     gl.uniform1f(progLine.u.uNight, night);
+    gl.uniform1f(progLine.u.uExag, exag);
 
     if (opts.grid) {
       disableAll();
@@ -2236,6 +2415,7 @@ body {
     if (verRelieve && relieve.nRio) {
       disableAll();
       bindAttrib(progLine, "aPos", relieve.bufRioPos, 3);
+      bindAttrib(progLine, "aH", relieve.bufRioAlt, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, relieve.bufRioIdx);
       gl.uniform1f(progLine.u.uR, 1.0042);
       gl.uniform4fv(progLine.u.uColor, scene.rio);
@@ -2247,6 +2427,7 @@ body {
     if (opts.divs) {
       disableAll();
       bindAttrib(progLine, "aPos", bufPos, 3);
+      bindAttrib(progLine, "aH", bufAlt, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufLine);
       gl.uniform1f(progLine.u.uR, 1.0050);
       gl.uniform4fv(progLine.u.uColor, scene.divs);
@@ -2256,6 +2437,7 @@ body {
     if (nFront) {
       disableAll();
       bindAttrib(progLine, "aPos", bufFrontPos, 3);
+      bindAttrib(progLine, "aH", bufFrontAlt, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufFrontIdx);
       gl.uniform1f(progLine.u.uR, 1.0060);
       gl.uniform4fv(progLine.u.uColor, scene.border);
@@ -2266,6 +2448,7 @@ body {
       var d = decoded[sel.i];
       disableAll();
       bindAttrib(progLine, "aPos", bufPos, 3);
+      bindAttrib(progLine, "aH", bufAlt, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufLine);
       gl.uniform1f(progLine.u.uR, 1.0076);
       gl.uniform4f(progLine.u.uColor, accentRGB[0], accentRGB[1], accentRGB[2], 1.0);
@@ -2288,6 +2471,7 @@ body {
     gl.uniform3fv(progAtmo.u.uLight, lightWorld);
     gl.uniform1f(progAtmo.u.uK, scene.atmoK);
     gl.uniform1f(progAtmo.u.uNight, night);
+    gl.uniform1f(progAtmo.u.uExag, 0.0);
     gl.drawElements(gl.TRIANGLES, sphere.count, gl.UNSIGNED_INT, 0);
     gl.cullFace(gl.BACK);
     gl.depthMask(true);
@@ -2304,6 +2488,8 @@ body {
   // ---------------------------------------------------------------- //
   // Arranque                                                          //
   // ---------------------------------------------------------------- //
+
+  indiceAreas();
 
   var sub = document.getElementById("sub");
   sub.textContent = fmtNum(NP) + " países · " + fmtNum(ND) + " divisiones" +
@@ -2347,6 +2533,7 @@ body {
     },
     pickAt: function (px, py) { return pickLonLat(px, py); },
     divisionEn: divisionEn,
+    areaEn: areaEn,
     regionEn: regionEn,
     setScene: function (name) {
       if (!SCENES[name]) return;

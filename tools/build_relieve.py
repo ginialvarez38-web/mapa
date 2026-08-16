@@ -22,7 +22,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from geometria import SCALE, b64_i16, densify_open, pack_polygons, quantize
+from geometria import SCALE, b64_i16, densify_open, pack_polygons, point_in_rings, quantize
 from topologia import simplificar
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +32,20 @@ OUT = os.path.join(DATA, "relieve.json")
 
 REJILLA = 120.0
 MINIMA = 200.0       # km2: por debajo de eso un area no se ve en el globo
+
+# Rejilla del relieve esquematico: 0,5 grados (~55 km) codificada en int8 a
+# pasos de 80 m, lo que llega hasta 10.160 m.
+CELDA = 0.5
+GW = int(360 / CELDA)
+GH = int(180 / CELDA)
+PASO = 80.0
+
+# Altura por defecto de cada clase, en metros, cuando no hay ninguna cumbre
+# dentro del area. Son ordenes de magnitud, no medidas.
+ALTURA = {
+    "mtn": 2200, "meseta": 1400, "desierto": 400, "llanura": 150,
+    "cuenca": 250, "humedal": 40, "tundra": 150, "hielo": 1600, "lago": 0,
+}
 
 # Clases de Natural Earth -> clase de dibujo + nombre en espanol.
 AREAS = {
@@ -149,12 +163,99 @@ def empaqueta_areas(entradas, tol, fraccion):
         if not packed or packed["a"] < MINIMA:
             continue
         salida.append({
+            "_anillos": [r for poly in polys for r in poly],
             "n": nom, "cl": clase, "ty": tipo,
             "v": packed["v"], "t": packed["t"], "r": packed["r"],
             "b": packed["b"], "c": packed["c"], "a": packed["a"],
             "i32": packed.get("i32", 0),
         })
     return salida, sum(len(r) for r in anillos), sum(len(r) for r in simples if r)
+
+
+def rasteriza(areas, puntos):
+    """Rejilla de alturas a partir de las areas y las cumbres reales.
+
+    No es un modelo de elevacion: es un relieve esquematico. Cada cordillera
+    se levanta hasta la cumbre mas alta que contiene —dato real de Natural
+    Earth— y se afila hacia sus bordes, para que no salga una meseta con
+    acantilados. Las cumbres anaden su propio pico encima.
+    """
+    alto = [0.0] * (GW * GH)
+
+    def celdas_de(anillo):
+        """Relleno por barrido de un anillo, en coordenadas de rejilla."""
+        pts = [((x + 180.0) / CELDA, (y + 90.0) / CELDA) for x, y in anillo]
+        ys = [p[1] for p in pts]
+        y0 = max(0, int(min(ys)))
+        y1 = min(GH - 1, int(max(ys)) + 1)
+        n = len(pts)
+        for gy in range(y0, y1 + 1):
+            yc = gy + 0.5
+            cortes = []
+            for i in range(n):
+                x1, ya = pts[i]
+                x2, yb = pts[(i + 1) % n]
+                if (ya > yc) != (yb > yc):
+                    cortes.append(x1 + (yc - ya) * (x2 - x1) / (yb - ya))
+            cortes.sort()
+            for k in range(0, len(cortes) - 1, 2):
+                gx0 = max(0, int(cortes[k]))
+                gx1 = min(GW - 1, int(cortes[k + 1]) + 1)
+                for gx in range(gx0, gx1 + 1):
+                    yield gy * GW + gx
+
+    # 1. cada area, a la altura de su base
+    for a in areas:
+        if a["cl"] == "lago":
+            continue
+        # La cumbre marca el techo, no el suelo: la base de una cordillera esta
+        # bastante mas abajo que su pico, que se anade despues encima.
+        h = a["cima"][1] * 0.55 if a.get("cima") else ALTURA.get(a["cl"], 300)
+        for anillo in a["_anillos"]:
+            for c in celdas_de(anillo):
+                if alto[c] < h:
+                    alto[c] = h
+
+    # 2. afilado hacia los bordes: dos pasadas de media con los vecinos
+    for _ in range(2):
+        prev = list(alto)
+        for gy in range(GH):
+            fila = gy * GW
+            for gx in range(GW):
+                i = fila + gx
+                s_ = prev[i] * 2.0
+                w = 2.0
+                for dy in (-1, 0, 1):
+                    yy = gy + dy
+                    if yy < 0 or yy >= GH:
+                        continue
+                    for dx in (-1, 0, 1):
+                        xx = (gx + dx) % GW
+                        s_ += prev[yy * GW + xx]
+                        w += 1.0
+                alto[i] = s_ / w
+
+    # 3. las cumbres, encima de todo
+    cumbres = [(p["c"][0], p["c"][1], p.get("e", 0)) for p in puntos if p.get("e", 0) > 0]
+    for lon, lat, e in cumbres:
+        gx = int((lon + 180.0) / CELDA) % GW
+        gy = min(GH - 1, max(0, int((lat + 90.0) / CELDA)))
+        for dy in (-1, 0, 1):
+            yy = gy + dy
+            if yy < 0 or yy >= GH:
+                continue
+            for dx in (-1, 0, 1):
+                xx = (gx + dx) % GW
+                v = e if (dx == 0 and dy == 0) else e * 0.72
+                i = yy * GW + xx
+                if alto[i] < v:
+                    alto[i] = v
+
+    datos = bytearray(GW * GH)
+    for i, v in enumerate(alto):
+        q = int(round(v / PASO))
+        datos[i] = max(0, min(255, q))
+    return datos
 
 
 def main():
@@ -254,13 +355,41 @@ def main():
     puntos.sort(key=lambda p: (-p.get("e", 0), p["n"]))
     areas.sort(key=lambda a: -a["a"])
 
-    salida = {"scale": SCALE, "areas": areas, "rios": rios, "puntos": puntos}
+    # Cumbre más alta de cada área: se comprueba con el polígono, no con su
+    # caja. Con la caja, la cuenca del Amazonas heredaba la altura de los Andes.
+    cumbres = [p for p in puntos if p.get("e", 0) > 0]
+    for a in areas:
+        if a["cl"] == "lago":
+            continue
+        b = a["b"]
+        mejor = None
+        for p in cumbres:
+            lon, lat = p["c"]
+            if not (b[0] <= lon <= b[2] and b[1] <= lat <= b[3]):
+                continue
+            if mejor and p["e"] <= mejor["e"]:
+                continue
+            if point_in_rings(a["_anillos"], lon, lat):
+                mejor = p
+        if mejor:
+            a["cima"] = [mejor["n"], mejor["e"]]
+
+    import base64
+    rejilla = rasteriza(areas, puntos)
+    for a in areas:
+        a.pop("_anillos", None)
+
+    salida = {"scale": SCALE, "areas": areas, "rios": rios, "puntos": puntos,
+              "alturas": {"w": GW, "h": GH, "paso": PASO,
+                          "v": base64.b64encode(bytes(rejilla)).decode("ascii")}}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(salida, fh, separators=(",", ":"), ensure_ascii=False)
 
     from collections import Counter
     print("puntos: %d  %s" % (len(puntos), dict(Counter(p["ty"] for p in puntos).most_common(6))))
     print("areas por clase: %s" % dict(Counter(a["cl"] for a in areas)))
+    picos = sum(1 for v in rejilla if v > 25)
+    print("rejilla de alturas: %dx%d  celdas sobre 2.000 m: %d" % (GW, GH, picos))
     print("salida: %.0f KB" % (os.path.getsize(OUT) / 1024.0))
     return 0
 
