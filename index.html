@@ -285,94 +285,35 @@ body {
 
 /* --- campaña ------------------------------------------------------ */
 
+/* Una tira con lo justo. El juego se lleva tocando el mapa, así que no hay
+   panel de órdenes que tape el terreno. */
 .guerra {
   position: fixed;
-  top: 78px; right: 22px;
+  top: 76px; right: 22px;
   z-index: 4;
-  width: 232px;
-  padding: 10px 12px 11px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 7px 12px;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--panel);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   box-shadow: var(--shadow);
-  font-family: var(--font-ui);
+  font-family: var(--font-data);
   font-size: 12px;
 }
 .guerra[hidden] { display: none; }
-.guerra.plegado .lead,
-.guerra.plegado #g-cuerpo { display: none; }
-
-.g-cab { display: flex; align-items: center; gap: 10px; }
-.g-cab > b { font-size: 12px; font-weight: 600; letter-spacing: .04em; }
-.g-mini { display: flex; align-items: baseline; gap: 4px; margin-left: auto; }
-.g-mini span {
-  font-family: var(--font-data);
-  font-size: 8px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
+.guerra > div { display: flex; flex-direction: column; gap: 2px; }
+.guerra span {
+  font-size: 8.5px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase;
 }
-.g-mini b { font-family: var(--font-data); font-size: 11.5px; font-weight: 600; }
-.g-plegar {
-  margin-left: 2px; padding: 0 3px;
-  border: 0; background: none; color: var(--muted);
-  font-size: 11px; line-height: 1; cursor: pointer;
-}
-.g-plegar:hover { color: var(--ink); }
-
-.guerra .lead { margin: 7px 0 0; font-size: 11px; line-height: 1.4; color: var(--ink-soft); }
-.guerra .lead[hidden] { display: none; }
-
-.g-bandos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
-.g-bando { padding: 6px 7px; border-radius: 3px; background: rgba(128,150,175,.13); }
-.g-bando.yo { box-shadow: inset 2px 0 0 #C0392B; }
-.g-bando.el { box-shadow: inset 2px 0 0 #5B8DB8; }
-.g-bando span {
-  display: block;
-  font-family: var(--font-data);
-  font-size: 8px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
-}
-.g-bando b {
-  display: block; margin-top: 1px;
-  font-size: 12px; font-weight: 600; line-height: 1.2;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.g-bando em {
-  display: block; margin-top: 2px;
-  font-family: var(--font-data); font-size: 9.5px; font-style: normal; color: var(--ink-soft);
-}
-
-.g-orden { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }
-.g-orden[hidden] { display: none; }
-.g-ruta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
-.g-ruta b { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.g-ruta b:last-child { text-align: right; color: var(--ink-soft); }
-.g-ruta i { font-style: normal; color: var(--muted); }
-
-.guerra .duelo {
-  display: flex; align-items: baseline; justify-content: space-between;
-  margin: 5px 0 3px;
-  font-family: var(--font-data);
-}
-.guerra .duelo b { font-size: 14px; font-weight: 600; }
-.guerra .duelo .yo { color: #E06A5A; }
-.guerra .duelo .el { color: #7FB3E0; }
-.guerra .duelo em { font-size: 9.5px; font-style: normal; color: var(--muted); letter-spacing: .08em; }
-
-.guerra input[type=range] { width: 100%; margin: 0; accent-color: #C0392B; }
-.guerra .fila { display: flex; align-items: center; gap: 7px; margin-top: 7px; }
-.guerra .fila .btn { flex: 1; justify-content: center; text-align: center; font-size: 11px; padding: 5px 8px; }
-.g-envio-n { font-family: var(--font-data); font-size: 11px; color: var(--ink-soft); }
-.guerra .btn.primario { border-color: #C0392B; background: rgba(192,57,43,.22); }
-.guerra .btn.primario:hover:not([disabled]) { background: rgba(192,57,43,.38); }
-.guerra .btn[disabled] { opacity: .42; cursor: default; }
-.guerra .veredicto {
-  margin: 9px 0 0; padding: 8px 9px;
-  border-radius: 3px;
-  background: rgba(192,57,43,.16);
-  font-size: 11.5px; line-height: 1.4;
-}
+.guerra b { font-weight: 600; letter-spacing: .01em; }
+.guerra .btn { padding: 4px 9px; font-size: 10.5px; }
 @media (max-width: 900px) {
-  .guerra { top: auto; bottom: 104px; right: 12px; width: 214px; }
+  .guerra { top: auto; bottom: 104px; right: 12px; left: 12px; justify-content: space-between; }
+}
 }
 }
 
@@ -609,58 +550,12 @@ body {
   <div><span>Sol sobre</span><b id="ro-sun">—</b></div>
 </div>
 
-<section class="guerra" id="guerra" hidden aria-live="polite">
-  <div class="g-cab">
-    <b>Campaña</b>
-    <div class="g-mini"><span>Turno</span><b id="g-turno">1</b></div>
-    <div class="g-mini"><span>Asaltos</span><b id="g-acciones">1/1</b></div>
-    <button class="g-plegar" id="g-plegar" type="button" aria-pressed="false"
-            aria-label="Plegar el panel">&#9652;</button>
-  </div>
-
-  <p class="lead" id="g-lead">Pincha en el mapa la división con la que empiezas.</p>
-
-  <div id="g-cuerpo" hidden>
-    <div class="g-bandos">
-      <div class="g-bando yo">
-        <span>Eres</span>
-        <b id="g-yo-pais">—</b>
-        <em><i id="g-yo-divs">—</i> divisiones · <i id="g-yo-tropas">—</i></em>
-      </div>
-      <div class="g-bando el">
-        <span>Atacas a</span>
-        <b id="g-obj-pais">—</b>
-        <em>le quedan <i id="g-obj-divs">—</i></em>
-      </div>
-    </div>
-
-    <div class="g-orden" id="g-orden" hidden>
-      <div class="g-ruta">
-        <b id="g-origen">—</b>
-        <i id="g-flecha">&#8594;</i>
-        <b id="g-destino">—</b>
-      </div>
-      <div class="duelo">
-        <b class="yo" id="g-fuerza">—</b>
-        <em id="g-odds">—</em>
-        <b class="el" id="g-rival">—</b>
-      </div>
-      <input type="range" id="g-envio" min="0" max="100" value="80"
-             aria-label="Tropas que envías">
-      <div class="fila">
-        <button class="btn primario" id="g-atacar" type="button">Atacar</button>
-        <span class="g-envio-n" id="g-envio-n">—</span>
-      </div>
-    </div>
-
-    <div class="veredicto" id="g-veredicto" hidden>—</div>
-
-    <div class="fila">
-      <button class="btn" id="g-turno-fin" type="button">Terminar turno</button>
-      <button class="btn" id="g-salir" type="button">Salir</button>
-    </div>
-  </div>
-</section>
+<div class="guerra" id="guerra" hidden aria-live="polite">
+  <div><span>Frente</span><b id="ro-frente">—</b></div>
+  <div><span>Tropas</span><b id="ro-tropas">—</b></div>
+  <div><span>Atacas a</span><b id="ro-contra">—</b></div>
+  <button class="btn" id="g-salir" type="button">Terminar</button>
+</div>
 
 <nav class="panel" id="panel" aria-label="Índice de países">
   <div class="panel-head">
@@ -1324,7 +1219,7 @@ body {
     "precision highp float;",
     "varying vec3 vN; varying vec3 vGeo; varying float vIdx; varying float vPais; varying float vSom;",
     "uniform sampler2D uPal; uniform vec2 uPalSize;",
-    "uniform sampler2D uMapa; uniform float uGuerra;",
+    "uniform sampler2D uMapa; uniform float uGuerra; uniform vec2 uMapaSize;",
     "uniform vec3 uMio, uBolsa, uCerco;",
     "uniform vec3 uLight; uniform float uNight; uniform float uShade;",
     "uniform float uHover, uSel, uHovPais, uSelPais; uniform vec3 uAccent;",
@@ -1341,14 +1236,26 @@ body {
     // La ocupación no sigue las fronteras: se lee celda a celda de un mapa
     // aparte, y por eso el frente puede quedar donde quiera —con salientes,
     // con bolsas y con ciudades rodeadas—.
+    // La conquista se pinta ENCIMA del mapa político de siempre, translúcida,
+    // para que el color de cada país siga leyéndose por debajo. Y el borde de
+    // lo ocupado va marcado: es la línea del frente, que es lo que se mira.
     "  if (uGuerra > 0.5) {",
     "    vec3 g = normalize(vGeo);",
     "    vec2 uv = vec2(atan(g.x, g.z) * 0.15915494 + 0.5,",
     "                   asin(clamp(g.y, -1.0, 1.0)) * 0.31830989 + 0.5);",
     "    float est = texture2D(uMapa, uv).a;",
-    "    if (est > 0.9) col = mix(col, uMio, 0.88);",              // 255: tuyo
-    "    else if (est > 0.6) col = mix(col, uBolsa, 0.80);",       // 180: embolsado
-    "    else if (est > 0.35) col = mix(col, uCerco, 0.72);",      // 120: cercado
+    "    if (est > 0.9) {",
+    "      col = mix(col, uMio, 0.42);",
+    "      vec2 px = 1.0 / uMapaSize;",
+    "      float borde = 0.0;",
+    "      borde += step(texture2D(uMapa, uv + vec2(px.x, 0.0)).a, 0.9);",
+    "      borde += step(texture2D(uMapa, uv - vec2(px.x, 0.0)).a, 0.9);",
+    "      borde += step(texture2D(uMapa, uv + vec2(0.0, px.y)).a, 0.9);",
+    "      borde += step(texture2D(uMapa, uv - vec2(0.0, px.y)).a, 0.9);",
+    "      if (borde > 0.5) col = mix(col, uMio * 0.55 + 0.45, 0.85);",
+    "    }",
+    "    else if (est > 0.6) col = mix(col, uBolsa, 0.55);",       // 180: embolsado
+    "    else if (est > 0.35) col = mix(col, uCerco, 0.55);",      // 120: cercado
     "  }",
     "  bool sel = abs(vIdx - uSel) < 0.5 || abs(vPais - uSelPais) < 0.5;",
     "  bool hov = abs(vIdx - uHover) < 0.5 || abs(vPais - uHovPais) < 0.5;",
@@ -1610,15 +1517,11 @@ body {
   function uploadPalette(scene) {
     for (var i = 0; i < ND; i++) {
       var ip = divisiones[i].pa;
-      // En campaña el relleno político se apaga a un azul neutro: quien pinta
-      // el imperio es el mapa de celdas, que va por encima y no sigue las
-      // fronteras.
-      var rgb = juego ? hexToRgb(COLOR_LIBRE) : colorPais(scene, ip);
+      var rgb = colorPais(scene, ip);
       // Con las divisiones a la vista, cada una toma el tono de su país en un
       // matiz distinto; sin ellas, todo el país va de un color. En campaña el
       // matiz separa una división conquistada de la de al lado.
-      var k = opts.divs ? (juego ? 0.94 + 0.10 * (((i * 37) % 5) / 4)
-                                 : 0.88 + 0.20 * (((i * 37) % 5) / 4)) : 1;
+      var k = opts.divs ? 0.88 + 0.20 * (((i * 37) % 5) / 4) : 1;
       palData[i * 4] = Math.min(255, rgb[0] * 255 * k);
       palData[i * 4 + 1] = Math.min(255, rgb[1] * 255 * k);
       palData[i * 4 + 2] = Math.min(255, rgb[2] * 255 * k);
@@ -2686,25 +2589,23 @@ body {
       sitiada: new Uint8Array(NCEL),
       inicio: celdaInicio,
       pais: celdaDiv[celdaInicio] !== MAR ? divisiones[celdaDiv[celdaInicio]].pa : -1,
-      turno: 1, acciones: 1, tropas: 0,
-      mias: 0, tierra: 0, tomadas: 0, bajasPropias: 0, bajasEnemigas: 0,
-      objetivo: -1, fin: null, reclutas: 0, bolsasVivas: 0, sitios: 0,
-      frontera: null, registro: []
+      tropas: 0, mias: 0, tierra: 0, bajasPropias: 0, bajasEnemigas: 0,
+      objetivo: -1, esfuerzo: celdaInicio, fin: null,
+      bolsasVivas: 0, sitios: 0, renta: 0,
+      frontera: null, frenteSet: null, ultimoCerco: 0
     };
     for (var c = 0; c < NCEL; c++) if (juego.est[c]) juego.tierra++;
 
-    // Se empieza con la división entera del punto elegido: un solo cuadro de
-    // 28 km no da para lanzar nada.
+    // Se empieza con la división entera del punto elegido: un cuadro de 28 km
+    // no da para lanzar nada.
     var d0 = celdaDiv[celdaInicio];
-    var semilla = [];
-    for (var c = 0; c < NCEL; c++) if (celdaDiv[c] === d0) semilla.push(c);
-    if (!semilla.length) semilla.push(celdaInicio);
-    for (var k = 0; k < semilla.length; k++) tomaCelda(semilla[k]);
+    for (var c = 0; c < NCEL; c++) if (celdaDiv[c] === d0) tomaCelda(c);
+    if (!juego.mias) tomaCelda(celdaInicio);
     juego.tropas = Math.round(ejercitoDiv(d0));
-    juego.tomadas = 0;
 
     recalculaFrontera();
-    uploadPalette(SCENES[opts.scene]);
+    calculaRenta();
+    subeMapa();
     return juego;
   }
 
@@ -2714,27 +2615,42 @@ body {
     juego.bolsa[c] = 0;
     juego.sitiada[c] = 0;
     juego.mias++;
-    juego.tomadas++;
     mapaBuf[c] = 255;
     ensucia(c);
     return true;
   }
 
-  // La frontera: mis celdas que tocan territorio libre. Es de donde salen las
-  // ofensivas y se mantiene al día en vez de recorrer el mapa entero.
+  // La frontera se mantiene al día en vez de rehacerse: en tiempo real no se
+  // puede repasar el millón de celdas en cada empujón.
   function recalculaFrontera() {
-    var f = [];
+    var set = new Set();
     var v = new Int32Array(4);
     for (var c = 0; c < NCEL; c++) {
       if (juego.est[c] !== 2) continue;
       var n = vecinas(c, v);
-      for (var k = 0; k < n; k++) {
-        if (juego.est[v[k]] === 1) { f.push(c); break; }
-      }
+      for (var k = 0; k < n; k++) if (juego.est[v[k]] === 1) { set.add(c); break; }
     }
-    juego.frontera = f;
-    return f;
+    juego.frenteSet = set;
+    juego.frontera = Array.from(set);
+    return juego.frontera;
   }
+
+  function actualizaFrentePor(c) {
+    var v = new Int32Array(4);
+    var n = vecinas(c, v);
+    var toca = false;
+    for (var k = 0; k < n; k++) if (juego.est[v[k]] === 1) { toca = true; break; }
+    if (toca) juego.frenteSet.add(c); else juego.frenteSet.delete(c);
+    for (var k = 0; k < n; k++) {
+      var w = v[k];
+      if (juego.est[w] !== 2) continue;
+      var m = vecinas(w, v2);
+      var sigue = false;
+      for (var j = 0; j < m; j++) if (juego.est[v2[j]] === 1) { sigue = true; break; }
+      if (sigue) juego.frenteSet.add(w); else juego.frenteSet.delete(w);
+    }
+  }
+  var v2 = new Int32Array(4);
 
   // Distancia en celdas entre dos, contando la vuelta al mundo.
   function distCel(a, b) {
@@ -2744,102 +2660,119 @@ body {
     return Math.hypot(dx, ay - by);
   }
 
-  // --- la ofensiva ---------------------------------------------------------
+  // Lo que rinde el territorio ocupado, por segundo.
+  function calculaRenta() {
+    var r = 0;
+    for (var c = 0; c < NCEL; c++) {
+      if (juego.est[c] !== 2) continue;
+      r += 0.9;
+      if (juego.ciudad[c] >= 0) r += Math.sqrt(ciudades[juego.ciudad[c]].pop) / 30;
+    }
+    juego.renta = r;
+    return r;
+  }
+
+  // --- el avance del frente, continuo --------------------------------------
   //
-  // Se empuja desde toda la frontera hacia el objetivo, tomando primero lo que
-  // queda de camino y lo que menos resiste. De ahí salen solas las formas de
-  // una invasión: la punta avanza por donde el terreno cede, las plazas fuertes
-  // se quedan atrás rodeadas y las líneas dejan de ser rectas.
-  function ofensiva(destino, tropas) {
-    if (!juego || juego.fin || juego.acciones <= 0) return null;
-    if (juego.est[destino] !== 1) return null;
-    tropas = Math.min(Math.floor(tropas), Math.floor(juego.tropas));
-    if (tropas < 40) return null;
+  // No hay turnos ni botón de ataque: mientras haya un objetivo señalado y
+  // tropas, el frente muerde terreno cada pocas décimas. Se toma primero lo que
+  // queda de camino hacia donde has señalado y lo que menos resiste, y lo que
+  // no se puede pagar se deja atrás. De esa sola regla salen los salientes, las
+  // ciudades rodeadas y las bolsas.
+  function empujaFrente(presupuesto) {
+    if (!juego || juego.fin || juego.objetivo < 0) return 0;
+    var destino = juego.objetivo;
+    if (juego.est[destino] === 2) { juego.objetivo = -1; return 0; }
+    if (!juego.frontera || !juego.frontera.length) return 0;
+
+    // El frente avanza como una línea, no como una aguja. Se coge el tramo de
+    // frontera más cercano a donde has señalado y se empuja cada celda suya un
+    // paso; donde el terreno resiste, ese punto se queda atrás y el resto sigue
+    // —de ahí los salientes— y lo que se queda encerrado acaba embolsado.
+    var frente = juego.frontera.slice();
+    frente.sort(function (a, b) { return distCel(a, destino) - distCel(b, destino); });
+    var ancho = Math.max(3, Math.min(90, Math.round(Math.sqrt(juego.mias) * 1.6)));
+    var tramo = frente.slice(0, Math.min(frente.length, ancho));
 
     var v = new Int32Array(4);
-    var enCola = new Uint8Array(NCEL);
-    var monton = [];                       // [prioridad, celda]
+    var impulso = Math.min(presupuesto, juego.tropas);
+    var tomadas = 0, bajas = 0;
 
-    function empuja(c) {
-      if (juego.est[c] !== 1 || enCola[c]) return;
-      enCola[c] = 1;
-      var pri = distCel(c, destino) * 2.2 + juego.def[c] / 900;
-      var i = monton.length;
-      monton.push([pri, c]);
-      while (i > 0) {                      // montón binario, a mano
-        var p = (i - 1) >> 1;
-        if (monton[p][0] <= monton[i][0]) break;
-        var t = monton[p]; monton[p] = monton[i]; monton[i] = t;
-        i = p;
-      }
-    }
-
-    function saca() {
-      if (!monton.length) return -1;
-      var top = monton[0], ult = monton.pop();
-      if (monton.length) {
-        monton[0] = ult;
-        var i = 0;
-        for (;;) {
-          var a = i * 2 + 1, b = a + 1, m = i;
-          if (a < monton.length && monton[a][0] < monton[m][0]) m = a;
-          if (b < monton.length && monton[b][0] < monton[m][0]) m = b;
-          if (m === i) break;
-          var t = monton[m]; monton[m] = monton[i]; monton[i] = t;
-          i = m;
+    for (var vuelta = 0; vuelta < 3 && impulso > 0; vuelta++) {
+      var algo = false;
+      for (var k = 0; k < tramo.length && impulso > 0; k++) {
+        var origen = tramo[k];
+        if (juego.est[origen] !== 2) continue;
+        // De los vecinos libres, el que más acerca al objetivo y menos resiste.
+        var n = vecinas(origen, v);
+        var mejor = -1, mejorPri = Infinity;
+        for (var j = 0; j < n; j++) {
+          var w = v[j];
+          if (juego.est[w] !== 1) continue;
+          var pri = distCel(w, destino) * 1.4 + juego.def[w] / 260;
+          if (pri < mejorPri) { mejorPri = pri; mejor = w; }
         }
+        if (mejor < 0) continue;
+        var coste = juego.def[mejor] * COSTE_CELDA;
+        if (coste > impulso) continue;         // ahí no se puede: se queda atrás
+        impulso -= coste;
+        bajas += coste * 0.55;
+        juego.bajasEnemigas += juego.def[mejor];
+        tomaCelda(mejor);
+        actualizaFrentePor(mejor);
+        tramo[k] = mejor;                      // la línea avanza a esa celda
+        tomadas++;
+        algo = true;
+        if (mejor === destino) { juego.objetivo = -1; impulso = 0; break; }
       }
-      return top[1];
+      if (!algo) break;
     }
 
-    // Arranca por las celdas libres que ya tocan mi territorio.
-    for (var k = 0; k < juego.frontera.length; k++) {
-      var n = vecinas(juego.frontera[k], v);
-      for (var j = 0; j < n; j++) if (juego.est[v[j]] === 1) empuja(v[j]);
+    if (tomadas) {
+      juego.tropas -= bajas;
+      if (juego.tropas < 0) juego.tropas = 0;
+      juego.bajasPropias += bajas;
+      juego.frontera = Array.from(juego.frenteSet);
+      subeMapa();
     }
-    if (!monton.length) return null;
+    return tomadas;
+  }
 
-    var impulso = tropas, tomadas = 0, bajas = 0, ajenas = 0, llego = false;
-    var saltadas = 0;
-    while (impulso > 0) {
-      var c = saca();
-      if (c < 0) break;
-      var coste = juego.def[c] * COSTE_CELDA;
-      if (coste > impulso) {
-        // Lo que queda no da para esta celda; si tampoco daría para ninguna
-        // otra, se acabó el empuje.
-        // Lo que no se puede pagar se deja atrás: así la punta rodea las
-        // plazas fuertes en vez de estrellarse contra ellas, y son ésas las
-        // que acaban cercadas.
-        if (juego.def[c] * COSTE_CELDA > tropas) break;
-        if (++saltadas > 400 || !monton.length) break;
-        continue;
+  // El latido de la campaña: recluta, empuja y de vez en cuando revisa cercos.
+  function pulsoCampana(dt, now) {
+    if (!juego || juego.fin) return;
+    juego.tropas += juego.renta * dt / 1000;
+    if (juego.objetivo >= 0) {
+      // Un mordisco por latido, proporcional al ejército: de lejos se ve
+      // avanzar la mancha; de cerca, celda a celda.
+      empujaFrente(Math.max(60, juego.tropas * 0.06));
+    }
+    if (now - juego.ultimoCerco > 1800) {
+      juego.ultimoCerco = now;
+      calculaRenta();
+      revisaCercos();
+      rindeBolsas();
+      subeMapa();
+      compruebaFin();
+      pintaGuerra();
+      renderList(searchEl.value);
+    }
+  }
+
+  // Las bolsas se van rindiendo y las plazas sitiadas se apagan.
+  function rindeBolsas() {
+    var caen = [];
+    for (var c = 0; c < NCEL; c++) {
+      if (juego.est[c] !== 1) continue;
+      if (juego.bolsa[c]) {
+        juego.def[c] *= 0.55;
+        if (--juego.bolsa[c] === 0) caen.push(c);
+      } else if (juego.sitiada[c]) {
+        juego.def[c] *= 0.7;
       }
-      impulso -= coste;
-      bajas += coste * 0.55;
-      ajenas += juego.def[c];
-      tomaCelda(c);
-      tomadas++;
-      if (c === destino) llego = true;
-      var n2 = vecinas(c, v);
-      for (var j = 0; j < n2; j++) if (juego.est[v[j]] === 1) empuja(v[j]);
     }
-
-    juego.acciones--;
-    juego.tropas -= Math.round(bajas);
-    if (juego.tropas < 0) juego.tropas = 0;
-    juego.bajasPropias += Math.round(bajas);
-    juego.bajasEnemigas += Math.round(ajenas);
-    recalculaFrontera();
-    var partes = revisaCercos();
-    var r = { celdas: tomadas, bajas: Math.round(bajas), ajenas: Math.round(ajenas),
-              llego: llego, destino: destino, bolsas: partes.bolsas, sitios: partes.sitios };
-    juego.registro.unshift(r);
-    if (juego.registro.length > 30) juego.registro.pop();
-    juego.asalto = { avance: 0, hasta: performance.now() + 520, destino: destino };
-    subeMapa();
-    compruebaFin();
-    return r;
+    for (var k = 0; k < caen.length; k++) { tomaCelda(caen[k]); actualizaFrentePor(caen[k]); }
+    if (caen.length) juego.frontera = Array.from(juego.frenteSet);
   }
 
   // --- cercos y bolsas -----------------------------------------------------
@@ -2927,62 +2860,15 @@ body {
     return { bolsas: bolsas, sitios: sitios };
   }
 
-  // --- turno ---------------------------------------------------------------
-  function accionesPorTurno() {
-    return juego ? 1 + Math.floor(juego.mias / 900) : 1;
-  }
-
-  function terminaTurno() {
-    if (!juego || juego.fin) return;
-    juego.turno++;
-
-    // Reclutas: lo que da el territorio ocupado, contando sus ciudades.
-    var reclutas = 0;
-    for (var c = 0; c < NCEL; c++) {
-      if (juego.est[c] !== 2) continue;
-      reclutas += RENTA_CELDA;
-      if (juego.ciudad[c] >= 0) reclutas += Math.sqrt(ciudades[juego.ciudad[c]].pop) / 6;
-    }
-    juego.reclutas = Math.round(reclutas);
-    juego.tropas += reclutas;
-
-    // Las bolsas se van rindiendo, y las plazas sitiadas se debilitan.
-    var caen = [];
-    for (var c = 0; c < NCEL; c++) {
-      if (juego.est[c] !== 1) continue;
-      if (juego.bolsa[c]) {
-        juego.bolsa[c]--;
-        juego.def[c] *= 0.6;
-        if (!juego.bolsa[c]) caen.push(c);
-      } else if (juego.sitiada[c]) {
-        juego.def[c] *= 0.72;
-      } else {
-        // El mundo libre se rearma, hasta donde le da su población.
-        var d = celdaDiv[c];
-        if (d !== MAR) juego.def[c] *= 1.006;
-      }
-    }
-    for (var k = 0; k < caen.length; k++) tomaCelda(caen[k]);
-    if (caen.length) recalculaFrontera();
-
-    juego.acciones = accionesPorTurno();
-    revisaCercos();
-    subeMapa();
-    compruebaFin();
-  }
-
   function compruebaFin() {
     if (!juego || juego.fin) return;
-    if (juego.mias >= juego.tierra) { juego.fin = "victoria"; return; }
-    if (juego.mias / juego.tierra >= 0.92 && !juego.frontera.length) juego.fin = "victoria";
+    if (juego.mias >= juego.tierra) juego.fin = "victoria";
   }
 
   function finCampana() {
     juego = null;
     eligiendo = false;
-    vistaDeGuerra(false);
     if (guerraBtn) guerraBtn.setAttribute("aria-pressed", "false");
-    uploadPalette(SCENES[opts.scene]);
     pintaGuerra();
     renderList(searchEl.value);
   }
@@ -2990,7 +2876,7 @@ body {
   // Lo primero que hay al otro lado del frente, para saber contra quién estás
   // aunque no hayas marcado objetivo.
   function primeroEnfrente() {
-    if (!juego || !juego.frontera) return -1;
+    if (!juego || !juego.frontera || !juego.frontera.length) return -1;
     var v = new Int32Array(4);
     for (var k = 0; k < juego.frontera.length; k++) {
       var n = vecinas(juego.frontera[k], v);
@@ -2999,7 +2885,6 @@ body {
     return -1;
   }
 
-  // Qué país y qué provincia hay en una celda, para el panel.
   function dondeEsta(c) {
     if (c < 0 || !celdaDiv) return null;
     var d = celdaDiv[c];
@@ -3007,133 +2892,90 @@ body {
     return { div: d, pais: divisiones[d].pa };
   }
 
-  // Cuántas celdas de un país quedan libres.
-  function restanDe(ip) {
-    var libres = 0, total = 0;
+  // Países que ya tocas, con cuánto llevas tomado de cada uno.
+  function paisesEnContacto() {
+    var mio = {}, total = {};
     for (var c = 0; c < NCEL; c++) {
       var d = celdaDiv[c];
-      if (d === MAR || divisiones[d].pa !== ip) continue;
-      total++;
-      if (juego.est[c] === 1) libres++;
+      if (d === MAR) continue;
+      var ip = divisiones[d].pa;
+      total[ip] = (total[ip] || 0) + 1;
+      if (juego.est[c] === 2) mio[ip] = (mio[ip] || 0) + 1;
     }
-    return [libres, total];
+    var out = [];
+    for (var ip in mio) {
+      var i = +ip;
+      out.push([i, fmtNum(mio[i]) + " de " + fmtNum(total[i]) + " celdas", mio[i] / total[i]]);
+    }
+    // Delante lo que está en disputa; lo ya tomado entero, al final.
+    out.sort(function (a, b) {
+      var ka = a[2] >= 1 ? 1 : 0, kb = b[2] >= 1 ? 1 : 0;
+      return ka - kb || b[2] - a[2];
+    });
+    return out;
   }
 
-  // --- panel ---------------------------------------------------------------
+  // --- la tira de estado ---------------------------------------------------
 
   var eligiendo = false;
   var gEl = document.getElementById("guerra");
-  var gLead = document.getElementById("g-lead");
-  var gYoPais = document.getElementById("g-yo-pais");
-  var gYoDivs = document.getElementById("g-yo-divs");
-  var gYoTropas = document.getElementById("g-yo-tropas");
-  var gObjPais = document.getElementById("g-obj-pais");
-  var gObjDivs = document.getElementById("g-obj-divs");
-  var gTurno = document.getElementById("g-turno");
-  var gAcciones = document.getElementById("g-acciones");
-  var gCuerpo = document.getElementById("g-cuerpo");
-  var gOrden = document.getElementById("g-orden");
-  var gOrigen = document.getElementById("g-origen");
-  var gDestino = document.getElementById("g-destino");
-  var gFlecha = document.getElementById("g-flecha");
-  var gFuerza = document.getElementById("g-fuerza");
-  var gRival = document.getElementById("g-rival");
-  var gOdds = document.getElementById("g-odds");
-  var gEnvio = document.getElementById("g-envio");
-  var gEnvioN = document.getElementById("g-envio-n");
-  var gAtacar = document.getElementById("g-atacar");
-  var gTurnoFin = document.getElementById("g-turno-fin");
+  var roFrente = document.getElementById("ro-frente");
+  var roTropas = document.getElementById("ro-tropas");
+  var roContra = document.getElementById("ro-contra");
   var gSalir = document.getElementById("g-salir");
-  var gPlegar = document.getElementById("g-plegar");
-  var gVeredicto = document.getElementById("g-veredicto");
-
-  function envioActual() {
-    if (!juego) return 0;
-    return Math.floor(juego.tropas * (Number(gEnvio.value) / 100));
-  }
-
-  // Cuántas celdas se llevaría por delante ese empuje: no es una probabilidad
-  // inventada, es la misma cuenta que hace la ofensiva.
-  function alcanceEstimado(destino, tropas) {
-    if (!juego || juego.est[destino] !== 1) return 0;
-    var coste = juego.def[destino] * COSTE_CELDA;
-    return Math.max(0, Math.floor(tropas / Math.max(1, coste)));
-  }
 
   function pintaGuerra() {
     if (!juego && !eligiendo) { gEl.hidden = true; return; }
     gEl.hidden = false;
     if (!juego) {
-      gLead.hidden = false;
-      gLead.textContent = "Pincha en el mapa el sitio por donde empiezas.";
-      gCuerpo.hidden = true;
+      roFrente.textContent = "elige";
+      roTropas.textContent = "—";
+      roContra.textContent = "toca dónde empezar";
       return;
     }
-    gCuerpo.hidden = false;
-
-    gYoPais.textContent = juego.pais >= 0 ? paises[juego.pais].n : "—";
-    gYoDivs.textContent = fmtNum(juego.mias) + " / " + fmtNum(juego.tierra);
-    gYoTropas.textContent = fmtNum(Math.round(juego.tropas));
-    gTurno.textContent = fmtNum(juego.turno);
-    gAcciones.textContent = fmtNum(juego.acciones) + "/" + fmtNum(accionesPorTurno());
-
-    var d = juego.objetivo;
-    // Sin un objetivo marcado, «atacas a» sigue diciendo contra quién estás:
-    // el país de lo primero que hay al otro lado del frente.
-    var donde = d >= 0 ? dondeEsta(d) : dondeEsta(primeroEnfrente());
-    if (donde) {
-      var q = restanDe(donde.pais);
-      gObjPais.textContent = paises[donde.pais].n;
-      gObjDivs.textContent = fmtNum(q[0]) + " / " + fmtNum(q[1]);
-    } else {
-      gObjPais.textContent = "—";
-      gObjDivs.textContent = "—";
-    }
-
-    var valido = d >= 0 && juego.est[d] === 1;
-    gOrden.hidden = !valido;
-    if (valido) {
-      var tropas = envioActual();
-      gOrigen.textContent = "Ofensiva";
-      gDestino.textContent = donde ? divisiones[donde.div].n : "—";
-      gFlecha.textContent = "→";
-      gFuerza.textContent = fmtNum(tropas);
-      gRival.textContent = fmtNum(Math.round(juego.def[d])) + "/celda";
-      gOdds.textContent = "≈" + fmtNum(alcanceEstimado(d, tropas)) + " celdas";
-      gEnvioN.textContent = fmtNum(tropas);
-      gAtacar.textContent = juego.acciones <= 0 ? "Sin ofensivas" : "Atacar";
-      gAtacar.disabled = tropas < 40 || juego.acciones <= 0;
-    }
-
-    gLead.hidden = !!juego.fin;
-    gLead.textContent = juego.acciones <= 0
-      ? "Se acabaron las ofensivas del turno."
-      : juego.bolsasVivas
-        ? fmtNum(juego.bolsasVivas) + " celdas embolsadas se están rindiendo."
-        : "Toca en el mapa hacia dónde empujar el frente.";
-
-    gTurnoFin.hidden = !!juego.fin;
-    gVeredicto.hidden = !juego.fin;
-    if (juego.fin) {
-      gVeredicto.textContent = "El mundo es tuyo: " + fmtNum(juego.mias) +
-        " celdas en " + fmtNum(juego.turno) + " turnos y " +
-        fmtNum(juego.bajasPropias) + " bajas.";
-    }
+    roFrente.textContent = fmtNum(juego.mias) + " celdas";
+    roTropas.textContent = fmtNum(Math.round(juego.tropas)) +
+      (juego.renta ? " (+" + fmtNum(Math.round(juego.renta)) + "/s)" : "");
+    var donde = dondeEsta(juego.objetivo >= 0 ? juego.objetivo : primeroEnfrente());
+    var extra = juego.bolsasVivas ? " · " + fmtNum(juego.bolsasVivas) + " embolsadas"
+              : juego.sitios ? " · " + fmtNum(juego.sitios) + " sitiadas" : "";
+    roContra.textContent = juego.fin === "victoria" ? "el mundo es tuyo"
+                         : donde ? paises[donde.pais].n + extra
+                         : "sin frente";
   }
 
-  // Un toque en el mapa marca hacia dónde va la siguiente ofensiva.
+  // Un toque en el mapa es la orden, y no hay nada más que tocar:
+  //   · terreno ajeno → hacia ahí empuja el frente
+  //   · terreno tuyo  → ahí se pone el peso del ataque
   function tocaCelda(c) {
     if (!juego || juego.fin || c < 0) return false;
+    if (juego.est[c] === 2) {
+      juego.esfuerzo = c;
+      pintaGuerra();
+      return true;
+    }
     if (juego.est[c] !== 1) return false;
     juego.objetivo = c;
+    juego.esfuerzo = cercanaMia(c);
     pintaGuerra();
     return true;
   }
 
+  // La parte de mi frente más cercana a lo que acabo de señalar.
+  function cercanaMia(c) {
+    if (!juego.frontera || !juego.frontera.length) return juego.esfuerzo;
+    var mejor = juego.frontera[0], min = Infinity;
+    for (var k = 0; k < juego.frontera.length; k++) {
+      var d = distCel(juego.frontera[k], c);
+      if (d < min) { min = d; mejor = juego.frontera[k]; }
+    }
+    return mejor;
+  }
+
   function empiezaEn(c) {
-    if (c < 0 || celdaDiv && celdaDiv[c] === MAR) return;
+    if (c < 0) return;
+    if (!rasterizaMundo || rasterizaMundo()[c] === MAR) return;
     eligiendo = false;
-    vistaDeGuerra(true);
     nuevaCampana(c);
     seleccionar(null);
     flyTo(lonDeCelda(c), latDeCelda(c), clampDist(1.25));
@@ -3141,45 +2983,7 @@ body {
     renderList(searchEl.value);
   }
 
-  // La campaña necesita el mapa político limpio: con el relieve encendido el
-  // mundo entero es marrón y no se distingue el frente.
-  var vistaPrevia = null;
-  function vistaDeGuerra(entrar) {
-    if (entrar) {
-      if (vistaPrevia) return;
-      vistaPrevia = { relieve: opts.relieve, ciudades: opts.ciudades, divs: opts.divs };
-      opts.relieve = false; opts.ciudades = true; opts.divs = true;
-    } else {
-      if (!vistaPrevia) return;
-      opts.relieve = vistaPrevia.relieve;
-      opts.ciudades = vistaPrevia.ciudades;
-      opts.divs = vistaPrevia.divs;
-      vistaPrevia = null;
-    }
-    relBtn.setAttribute("aria-pressed", String(opts.relieve));
-    ciuBtn.setAttribute("aria-pressed", String(opts.ciudades));
-    divsBtn.setAttribute("aria-pressed", String(opts.divs));
-  }
-
-  gEnvio.addEventListener("input", pintaGuerra);
-  gAtacar.addEventListener("click", function () {
-    if (!juego || juego.objetivo < 0) return;
-    ofensiva(juego.objetivo, envioActual());
-    if (juego.est[juego.objetivo] !== 1) juego.objetivo = -1;
-    pintaGuerra();
-    renderList(searchEl.value);
-  });
-  gTurnoFin.addEventListener("click", function () {
-    terminaTurno();
-    pintaGuerra();
-    renderList(searchEl.value);
-  });
   gSalir.addEventListener("click", finCampana);
-  gPlegar.addEventListener("click", function () {
-    var plegado = gEl.classList.toggle("plegado");
-    gPlegar.setAttribute("aria-pressed", String(plegado));
-    gPlegar.textContent = plegado ? "▾" : "▴";
-  });
 
   // ---------------------------------------------------------------- //
   // Controles                                                         //
@@ -3441,9 +3245,10 @@ body {
     if (juego.objetivo >= 0 && juego.est[juego.objetivo] === 1) {
       var d = celdaEnPantalla(juego.objetivo, aspect, t, p);
       if (d) {
-        var pulso = juego.asalto ? juego.asalto.avance : 0;
+        // La diana late mientras el frente avanza hacia ella.
+        var pulso = (Math.sin(performance.now() / 260) + 1) * 0.5;
         ctx.beginPath();
-        ctx.arc(d[0], d[1], 13 - pulso * 5, 0, Math.PI * 2);
+        ctx.arc(d[0], d[1], 12 + pulso * 4, 0, Math.PI * 2);
         ctx.strokeStyle = "rgba(224,106,90,.95)";
         ctx.lineWidth = 2;
         ctx.setLineDash([4, 3]);
@@ -3709,12 +3514,8 @@ body {
     if (canvas.clientWidth !== W || canvas.clientHeight !== H) resize();
     if (!W || !H) return;
 
-    // El cerco cerrándose sobre el objetivo dura poco más de medio segundo.
-    if (juego && juego.asalto) {
-      var falta = juego.asalto.hasta - now;
-      juego.asalto.avance = Math.max(0, Math.min(1, 1 - falta / 620));
-      if (falta <= 0) juego.asalto = null;
-    }
+    // La campaña corre sola: no hay turnos que pasar ni botón que pulsar.
+    if (juego && !juego.fin) pulsoCampana(dt, now);
 
     // --- movimiento ---
     if (flight) {
@@ -3832,7 +3633,8 @@ body {
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, mapaTex);
       gl.uniform1i(progLand.u.uMapa, 1);
-      gl.uniform3f(progLand.u.uMio, 0.78, 0.20, 0.14);
+      gl.uniform2f(progLand.u.uMapaSize, GW, GH);
+      gl.uniform3f(progLand.u.uMio, 0.86, 0.16, 0.10);
       gl.uniform3f(progLand.u.uBolsa, 0.86, 0.62, 0.16);
       gl.uniform3f(progLand.u.uCerco, 0.90, 0.83, 0.42);
       gl.activeTexture(gl.TEXTURE0);
@@ -4070,12 +3872,11 @@ body {
     },
     empiezaEn: empiezaEn,
     tocaCelda: tocaCelda,
-    ofensiva: function (c, n) {
-      var r = ofensiva(c, n); pintaGuerra(); renderList(searchEl.value); return r;
+    empuja: function (n) {
+      var r = empujaFrente(n); pintaGuerra(); renderList(searchEl.value); return r;
     },
-    finTurno: function () { terminaTurno(); pintaGuerra(); renderList(searchEl.value); },
+    pulso: function (dt, now) { pulsoCampana(dt, now); },
     revisaCercos: function () { return revisaCercos(); },
-    finTurno: function () { terminaTurno(); pintaGuerra(); },
     selectCiudad: function (i) { seleccionar(i >= 0 ? { tipo: "ciudad", i: i } : null); },
     divisionEn: divisionEn,
     areaEn: areaEn,

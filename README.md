@@ -18,18 +18,20 @@ index.html      → abre esto en el navegador
 - **Dos niveles**: el botón `Divisiones` alterna entre el mapa por provincias y
   el mapa por países. El nivel activo manda también al señalar: al pinchar se
   selecciona la división o el país, según lo que esté a la vista.
-- **Campaña**: el botón `Campaña` convierte el globo en una invasión que se
-  libra **celda a celda** sobre una rejilla de cuarto de grado —342.730 cuadros
-  de tierra de unos 28 km—, no por países ni por provincias. Por eso el frente
-  queda donde lo dejan los combates: **líneas irregulares, salientes** por donde
-  el terreno cede, **ciudades rodeadas** que aguantan dentro de tu territorio y
-  **bolsas** de tropas cortadas de los suyos, que se van rindiendo. Se juega
-  tocando el mapa: señalas hacia dónde empujar y la ofensiva avanza sola,
-  tomando primero lo que menos resiste y dejando atrás las plazas fuertes. Nada
-  es inventado: la guarnición de cada celda sale del ejército de su división
+- **Campaña**: el botón `Campaña` lanza una invasión que se libra **celda a
+  celda** sobre una rejilla de cuarto de grado —342.730 cuadros de tierra de
+  unos 28 km—, **sobre el mapa político de siempre**: los colores de cada país,
+  el relieve y las ciudades siguen ahí, y lo ocupado se pinta translúcido
+  encima, con la línea del frente marcada. No hay turnos, ni botón de ataque, ni
+  panel de órdenes: **se juega tocando el mapa**. Tocas terreno ajeno y el
+  frente empuja hacia allí solo; tocas terreno tuyo y ahí se pone el peso del
+  ataque. Como avanza en línea y no en punta, salen **salientes** por donde el
+  terreno cede, **ciudades rodeadas** que aguantan dentro de tu territorio y
+  **bolsas** cortadas del grueso enemigo, que se rinden solas. Nada es
+  inventado: la guarnición de cada celda sale del ejército de su división
   —población de sus ciudades y superficie— repartido entre las celdas que
   ocupa, la resistencia de la altura real del terreno, y las plazas fuertes de
-  las 7.358 ciudades del mapa. El panel es pequeño a propósito y se pliega.
+  las 7.358 ciudades del mapa.
 - **Capitales y ciudades**: 7.358 poblaciones con su nombre en español, de
   las que **265 son capitales** —redondel con anillo, como en cualquier atlas—
   y 2.324, capitales de provincia. Van por importancia: desde el espacio solo
@@ -176,6 +178,23 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3g. Que se vea sobre el mapa de siempre, y sin panel.** Las dos primeras
+versiones jugables fallaban en lo mismo: para jugar había que cambiar el mapa
+—apagar el relieve, las ciudades y el color de los países— y había que hablar
+con un panel de botones. Ahora la ocupación se pinta **encima** del mapa
+político, translúcida y con el borde marcado, leyendo la textura de celdas
+dentro del sombreador de tierra; y las órdenes son toques en el mapa, sin
+turnos ni botones, con una tira de estado que sólo dice cuántas celdas llevas,
+cuántas tropas tienes y contra quién estás.
+
+Que el avance parezca una invasión costó tres intentos. Empujando siempre hacia
+lo más cercano al objetivo, el frente salía como **un hilo de una celda de
+ancho**. Premiar las celdas con más lados propios lo ensanchó un poco, pero no
+bastaba: una celda al lado del hilo tiene el mismo apoyo que la de delante.
+Lo que funciona es no empujar una punta sino **una línea**: se coge el tramo de
+frontera más cercano a donde has señalado y se empuja cada celda suya un paso;
+donde el terreno resiste, ese punto se queda atrás y el resto sigue.
 
 **3f. Tomar el terreno por celdas.** Conquistar provincias enteras seguía sin
 parecerse a una invasión: el mapa cambiaba de color a saltos y el frente era
@@ -360,6 +379,8 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   camino. Entrar, elegir el punto de partida tocando el mapa, señalar objetivo,
   lanzar la ofensiva, terminar turno, plegar el panel y salir funcionan con el
   dedo, y salir deja el mapa como estaba.
+- La campaña no toca los ajustes del mapa: el relieve, las divisiones y las
+  ciudades siguen como estuvieran, y al terminar no queda nada encendido.
 - **Toque**: un toque con hasta 16 px de temblor selecciona; un arrastre de 40
   no. Antes se sumaba el recorrido entero del dedo y cinco eventos de un píxel
   ya contaban como arrastre, así que en una pantalla táctil no había forma de
