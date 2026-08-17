@@ -18,17 +18,18 @@ index.html      → abre esto en el navegador
 - **Dos niveles**: el botón `Divisiones` alterna entre el mapa por provincias y
   el mapa por países. El nivel activo manda también al señalar: al pinchar se
   selecciona la división o el país, según lo que esté a la vista.
-- **Campaña**: el botón `Campaña` convierte el globo en un juego de conquista
-  **división a división** —las 4.322, no los 249 países—, de modo que el frente
-  se ve avanzar provincia a provincia. Se juega tocando el mapa: una división
-  tuya pasa a ser el origen, otra tuya recibe las tropas que le mandes, y una
-  ajena es el objetivo del asalto. Nada del juego es inventado: **quién limita
-  con quién** sale de los arcos de frontera, el **ejército** de cada división de
-  la población de sus ciudades y su superficie, la **ventaja defensiva** de la
-  altura real de su terreno y los **desembarcos**, de la distancia entre costas
-  de verdad. Cada división levanta a los suyos y se los queda, así que mover
-  tropas al frente es la mitad del juego. El panel es pequeño a propósito y se
-  pliega: dice de qué país eres, a cuál estás atacando y cuánto le queda.
+- **Campaña**: el botón `Campaña` convierte el globo en una invasión que se
+  libra **celda a celda** sobre una rejilla de cuarto de grado —342.730 cuadros
+  de tierra de unos 28 km—, no por países ni por provincias. Por eso el frente
+  queda donde lo dejan los combates: **líneas irregulares, salientes** por donde
+  el terreno cede, **ciudades rodeadas** que aguantan dentro de tu territorio y
+  **bolsas** de tropas cortadas de los suyos, que se van rindiendo. Se juega
+  tocando el mapa: señalas hacia dónde empujar y la ofensiva avanza sola,
+  tomando primero lo que menos resiste y dejando atrás las plazas fuertes. Nada
+  es inventado: la guarnición de cada celda sale del ejército de su división
+  —población de sus ciudades y superficie— repartido entre las celdas que
+  ocupa, la resistencia de la altura real del terreno, y las plazas fuertes de
+  las 7.358 ciudades del mapa. El panel es pequeño a propósito y se pliega.
 - **Capitales y ciudades**: 7.358 poblaciones con su nombre en español, de
   las que **265 son capitales** —redondel con anillo, como en cualquier atlas—
   y 2.324, capitales de provincia. Van por importancia: desde el espacio solo
@@ -175,6 +176,36 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3f. Tomar el terreno por celdas.** Conquistar provincias enteras seguía sin
+parecerse a una invasión: el mapa cambiaba de color a saltos y el frente era
+siempre el contorno de una provincia. La campaña se libra ahora sobre una
+rejilla de 1.440 × 720 —cuarto de grado— con 342.730 celdas de tierra.
+
+Rasterizar 4.322 polígonos a esa rejilla con el punto-en-polígono que ya usa el
+mapa serían cien millones de pruebas, así que va por **barrido de líneas**, que
+recorre cada arista una vez. Lo que hay que cuidar son las aristas que cruzan el
+antimeridiano: en la rejilla saltan de un extremo al otro y llenarían la fila
+entera de basura, de modo que se parten en el borde. Contrastada contra las
+superficies reales, la rejilla da 642 mil km² para Francia (637 mil), 508 mil
+para España (507 mil) y 7,72 millones para Australia (7,77).
+
+La ocupación **no se pinta con la geometría**: va en una textura de un téxel por
+celda que el sombreador de tierra lee a partir de la posición del fragmento. Por
+eso el frente puede cortar una provincia por la mitad. Sólo se sube la banda de
+filas que ha cambiado, porque volver a subir el megabyte entero en cada ofensiva
+se notaría.
+
+La ofensiva empuja desde toda la frontera hacia donde señalas, tomando primero
+lo que queda de camino y lo que menos resiste; lo que no puede pagar lo deja
+atrás. De esa sola regla salen las tres cosas: la punta avanza formando
+salientes, las ciudades caras se quedan rodeadas, y el territorio que queda
+separado del grueso enemigo forma bolsas. Las bolsas se sacan por componentes
+conexas —la mayor es el grueso enemigo, las demás que tocan mi territorio están
+embolsadas—, con un tope de tamaño: sin él, en cuanto el imperio partía Eurasia
+en dos, medio continente contaba como embolsado y se rendía solo. Y una plaza
+sólo está sitiada si la rodeo yo: sin esa condición, cualquier ciudad isleña
+—que no tiene vecinos por tierra— salía sitiada desde el primer turno.
 
 **3e. Conquistar por divisiones.** La primera campaña se jugaba por países, y
 mirándola no se veía avanzar nada: un país entero cambiaba de color de golpe.
@@ -323,10 +354,16 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   Baikal y los Andes se obtiene en cada caso el accidente correcto con su
   cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
   Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
-- **Campaña**: una partida jugada de principio a fin por un bot termina en
-  victoria con las **4.322 divisiones** conquistadas en 132 turnos y 4.353
-  asaltos, de los que fracasan 32. Moverse, atacar, terminar turno y salir
-  dejan el mapa como estaba. La costa se clasifica bien en los 30 países
+- **Campaña**: la rejilla de celdas reproduce las superficies reales con un
+  error del 1% en los países comprobados. Una partida automática desde Viena
+  pasa de 37 a 142.154 celdas en 265 turnos, formando bolsas y cercos por el
+  camino. Entrar, elegir el punto de partida tocando el mapa, señalar objetivo,
+  lanzar la ofensiva, terminar turno, plegar el panel y salir funcionan con el
+  dedo, y salir deja el mapa como estaba.
+- **Toque**: un toque con hasta 16 px de temblor selecciona; un arrastre de 40
+  no. Antes se sumaba el recorrido entero del dedo y cinco eventos de un píxel
+  ya contaban como arrastre, así que en una pantalla táctil no había forma de
+  tocar nada. La costa se clasifica bien en los 30 países
   comprobados, y las travesías dan 86 km entre Japón y Corea, 122 entre el
   Reino Unido y Francia y 154 entre Cuba y Estados Unidos.
 - **Ciudades**: pinchando encima de 40 puntos de ciudad dibujados, 39
