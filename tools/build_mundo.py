@@ -26,6 +26,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from geometria import (SCALE, b64_i16, b64_u16, b64_u32, densify_open,
                        pack_polygons, quantize)
+from banderas import bandera_de
 from nombres_es import ALIAS_NE, NOMBRES, PAISES_NE
 from topologia import cuantizar, simplificar
 
@@ -371,6 +372,11 @@ def main():
 
     for ip, pa in enumerate(paises):
         pa["lim"] = sorted(limites.get(ip, ()), key=lambda j: paises[j]["n"])
+        # La bandera, descrita con franjas y un emblema: a 16 px es lo que se
+        # distingue, y 249 imagenes no caben en un archivo que se abre solo.
+        bd = bandera_de(pa["id"])
+        if bd:
+            pa["bd"] = bd
 
     # Ningun pais deberia quedarse sin contorno; si pasa, es que su geometria no
     # llego a la salida y hay que mirar por que antes de publicar.
@@ -446,6 +452,8 @@ def main():
     print("vertices: %d  triangulos: %d" % (total_v, total_t))
     print("fronteras: %d tramos (%d de costa, %d terrestres) / %d puntos"
           % (len(tramos), n_costa, len(tramos) - n_costa, len(verts) // 2))
+    print("con bandera: %d de %d paises"
+          % (sum(1 for pa in paises if pa.get("bd")), len(paises)))
     print("con vecinos declarados: %d paises"
           % sum(1 for pa in paises if pa["lim"]))
     print("salida: %.0f KB" % (os.path.getsize(OUT) / 1024.0))

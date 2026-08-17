@@ -31,7 +31,9 @@ index.html      → abre esto en el navegador
   inventado: la guarnición de cada celda sale del ejército de su división
   —población de sus ciudades y superficie— repartido entre las celdas que
   ocupa, la resistencia de la altura real del terreno, y las plazas fuertes de
-  las 7.358 ciudades del mapa.
+  las 7.358 ciudades del mapa. Cada división a la vista lleva **la bandera de
+  quien la tiene**: la del invasor donde ya manda y la del defensor donde
+  todavía resiste, de modo que se lee de un vistazo quién tiene qué.
 - **Capitales y ciudades**: 7.358 poblaciones con su nombre en español, de
   las que **265 son capitales** —redondel con anillo, como en cualquier atlas—
   y 2.324, capitales de provincia. Van por importancia: desde el espacio solo
@@ -119,6 +121,7 @@ python3 tools/bundle.py          # plantilla + datos      → index.html
 | `tools/geometria.py` | De polígonos lon/lat a triángulos sobre la esfera. |
 | `tools/nombres_es.py` | Nombres de países en español. |
 | `tools/nombres_rios.py` | Nombres de ríos en español y arreglos del origen. |
+| `tools/banderas.py` | Las banderas, descritas con franjas y un emblema. |
 | `tools/bundle.py` | Inyecta los datos en la plantilla. |
 
 ## Decisiones técnicas
@@ -178,6 +181,16 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3h. 249 banderas sin una sola imagen.** La política de seguridad del visor no
+deja pedir nada a otro servidor, así que las banderas en PNG no eran una opción:
+pesarían más que el mapa entero. Cada una se describe con unas pocas franjas y
+un emblema —`tools/banderas.py`— y se dibuja en el lienzo: 158 de franjas, 38
+verticales, 28 con enseña británica, 13 de aspa, 8 de cruz nórdica y 4 de cruz
+centrada. Es lo que se distingue en un rectángulo de 18 × 12, que es el tamaño
+al que se ven. Los escudos, las águilas y los cedros se resuelven con una marca
+del color correcto en el sitio correcto: a ese tamaño un escudo es una mancha.
+Son esquemáticas a propósito, no reproducciones exactas.
 
 **3g. Que se vea sobre el mapa de siempre, y sin panel.** Las dos primeras
 versiones jugables fallaban en lo mismo: para jugar había que cambiar el mapa
@@ -379,6 +392,7 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   camino. Entrar, elegir el punto de partida tocando el mapa, señalar objetivo,
   lanzar la ofensiva, terminar turno, plegar el panel y salir funcionan con el
   dedo, y salir deja el mapa como estaba.
+- **Banderas**: los 249 países tienen una, y las 249 se dibujan sin fallar.
 - La campaña no toca los ajustes del mapa: el relieve, las divisiones y las
   ciudades siguen como estuvieran, y al terminar no queda nada encendido.
 - **Toque**: un toque con hasta 16 px de temblor selecciona; un arrastre de 40

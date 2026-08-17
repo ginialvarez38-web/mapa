@@ -3206,6 +3206,152 @@ body {
     ctx.restore();
   }
 
+  // --- banderas ------------------------------------------------------------
+  //
+  // Una bandera por división: la del invasor sobre lo que ya ocupa y la del
+  // defensor sobre lo que aún resiste. No hay ni una imagen: cada bandera está
+  // descrita con franjas y un emblema —lo único que se distingue en 18 x 12— y
+  // se dibuja aquí. Traer 249 PNG pesaría más que el mapa entero, y la política
+  // de seguridad del visor no deja pedirlos fuera.
+
+  function dibujaBandera(x, y, w, h, bd) {
+    if (!bd) return;
+    var t = bd.t || "h";
+    var c = bd.c || ["#8E9AA8"];
+    var x0 = x - w / 2, y0 = y - h / 2;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x0, y0, w, h);
+    ctx.clip();
+
+    if (t === "v" || t === "h") {
+      var pesos = bd.w || null, total = 0;
+      for (var i = 0; i < c.length; i++) total += pesos ? pesos[i] : 1;
+      var acum = 0;
+      for (var i = 0; i < c.length; i++) {
+        var parte = (pesos ? pesos[i] : 1) / total;
+        ctx.fillStyle = c[i];
+        if (t === "h") ctx.fillRect(x0, y0 + acum * h, w, parte * h + 0.6);
+        else ctx.fillRect(x0 + acum * w, y0, parte * w + 0.6, h);
+        acum += parte;
+      }
+    } else if (t === "n") {                    // cruz nórdica, desplazada al asta
+      ctx.fillStyle = c[0];
+      ctx.fillRect(x0, y0, w, h);
+      var gx = x0 + w * 0.36, gy = y0 + h * 0.5;
+      ctx.fillStyle = bd.x || "#FFFFFF";
+      ctx.fillRect(x0, gy - h * 0.16, w, h * 0.32);
+      ctx.fillRect(gx - w * 0.10, y0, w * 0.20, h);
+      if (bd.x2) {
+        ctx.fillStyle = bd.x2;
+        ctx.fillRect(x0, gy - h * 0.07, w, h * 0.14);
+        ctx.fillRect(gx - w * 0.045, y0, w * 0.09, h);
+      }
+    } else if (t === "x") {                    // cruz centrada
+      ctx.fillStyle = c[0];
+      ctx.fillRect(x0, y0, w, h);
+      ctx.fillStyle = bd.cx || "#FFFFFF";
+      ctx.fillRect(x0, y + -h * 0.14, w, h * 0.28);
+      ctx.fillRect(x - w * 0.11, y0, w * 0.22, h);
+    } else if (t === "s") {                    // aspa: dos triángulos
+      ctx.fillStyle = c[0];
+      ctx.fillRect(x0, y0, w, h);
+      ctx.fillStyle = c[1] || c[0];
+      ctx.beginPath();
+      ctx.moveTo(x0, y0 + h); ctx.lineTo(x0 + w, y0 + h); ctx.lineTo(x0 + w, y0);
+      ctx.closePath();
+      ctx.fill();
+    } else if (t === "uj") {                   // enseña británica, aproximada
+      ctx.fillStyle = c && c[0] ? c[0] : "#00247D";
+      ctx.fillRect(x0, y0, w, h);
+      var cw = t === "uj" && bd.c ? w * 0.5 : w, ch = bd.c ? h * 0.5 : h;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, y0, cw, ch);
+      ctx.clip();
+      ctx.fillStyle = "#00247D";
+      ctx.fillRect(x0, y0, cw, ch);
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = Math.max(1, h * 0.14);
+      ctx.beginPath();
+      ctx.moveTo(x0, y0); ctx.lineTo(x0 + cw, y0 + ch);
+      ctx.moveTo(x0 + cw, y0); ctx.lineTo(x0, y0 + ch);
+      ctx.stroke();
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = Math.max(1.5, h * 0.26);
+      ctx.beginPath();
+      ctx.moveTo(x0, y0 + ch / 2); ctx.lineTo(x0 + cw, y0 + ch / 2);
+      ctx.moveTo(x0 + cw / 2, y0); ctx.lineTo(x0 + cw / 2, y0 + ch);
+      ctx.stroke();
+      ctx.strokeStyle = "#CF142B";
+      ctx.lineWidth = Math.max(1, h * 0.13);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (bd.ct) {                               // cantón
+      ctx.fillStyle = bd.ct[0];
+      ctx.fillRect(x0, y0, w * 0.42, h * 0.55);
+    }
+    if (bd.tri) {                              // triángulo en el asta
+      ctx.fillStyle = bd.tri[0];
+      ctx.beginPath();
+      ctx.moveTo(x0, y0); ctx.lineTo(x0 + w * 0.42, y0 + h / 2); ctx.lineTo(x0, y0 + h);
+      ctx.closePath();
+      ctx.fill();
+    }
+    if (bd.d) {                                // disco
+      ctx.fillStyle = bd.d[0];
+      ctx.beginPath();
+      ctx.arc(x0 + w * bd.d[1], y0 + h * bd.d[2], h * bd.d[3], 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (bd.d2) {                               // segundo disco
+      ctx.fillStyle = bd.d2[0];
+      ctx.beginPath();
+      ctx.arc(x0 + w * bd.d2[1], y0 + h * bd.d2[2], h * bd.d2[3], 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (bd.sm) {                               // marca arriba en el asta
+      ctx.fillStyle = bd.sm[0];
+      ctx.beginPath();
+      ctx.arc(x0 + w * 0.20, y0 + h * 0.30, h * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x0 + w * 0.34, y0 + h * 0.18, h * 0.06, 0, Math.PI * 2);
+      ctx.arc(x0 + w * 0.38, y0 + h * 0.34, h * 0.06, 0, Math.PI * 2);
+      ctx.arc(x0 + w * 0.34, y0 + h * 0.50, h * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (bd.cr) {                               // media luna y estrella
+      ctx.fillStyle = bd.cr;
+      ctx.beginPath();
+      ctx.arc(x0 + w * 0.42, y, h * 0.30, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath();
+      ctx.arc(x0 + w * 0.48, y, h * 0.24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = bd.cr;
+      ctx.beginPath();
+      ctx.arc(x0 + w * 0.66, y, h * 0.11, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (bd.em) {                               // escudo, reducido a una marca
+      ctx.fillStyle = bd.em[0];
+      ctx.beginPath();
+      ctx.arc(x, y, h * 0.17, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = "rgba(0,0,0,.55)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x0 + 0.5, y0 + 0.5, w - 1, h - 1);
+  }
+
   // --- capa de campaña: el frente, el objetivo y los cercos ----------------
 
   // Proyecta una celda a pantalla, o null si cae del otro lado del globo.
@@ -3226,6 +3372,60 @@ body {
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+
+    // Una bandera por división a la vista: la del invasor donde ya manda y la
+    // del defensor donde aún resiste. Es la lectura de un mapa de guerra —quién
+    // tiene qué— sin tener que mirar la leyenda.
+    if (view.dist < 2.4) {
+      var miPais = juego.pais >= 0 ? paises[juego.pais] : null;
+      var puestas = 0, tope = view.dist < 1.3 ? 46 : 30;
+      var w = view.dist < 1.2 ? 20 : 16, h = w * 0.66;
+      for (var i = 0; i < ND && puestas < tope; i++) {
+        var b = divisiones[i].b;
+        // sólo lo que cae dentro del recorte visible, a ojo por su marco
+        var cc = divisiones[i].c;
+        var q2 = celdaEnPantalla(celdaDe(cc[0], cc[1]), aspect, t, p);
+        if (!q2) continue;
+        var sx = q2[0], sy = q2[1];
+        if (sx < 30 || sx > W - 30 || sy < 26 || sy > H - 26) continue;
+
+        // ¿de quién es esta división? De quien tenga más celdas suyas.
+        var mias = 0, libres = 0;
+        var x0 = Math.max(0, Math.floor((b[0] + 180) / 360 * GW));
+        var x1 = Math.min(GW - 1, Math.ceil((b[2] + 180) / 360 * GW));
+        var y0 = Math.max(0, Math.floor((b[1] + 90) / 180 * GH));
+        var y1 = Math.min(GH - 1, Math.ceil((b[3] + 90) / 180 * GH));
+        var paso = Math.max(1, Math.floor((x1 - x0 + 1) * (y1 - y0 + 1) / 400));
+        var n = 0;
+        for (var yy = y0; yy <= y1; yy++) {
+          for (var xx = x0; xx <= x1; xx += paso) {
+            var cc2 = yy * GW + xx;
+            if (celdaDiv[cc2] !== i) continue;
+            n++;
+            if (juego.est[cc2] === 2) mias++; else libres++;
+          }
+        }
+        if (!n) continue;
+        var invasor = mias > libres;
+        var bd = invasor ? (miPais && miPais.bd) : paises[divisiones[i].pa].bd;
+        if (!bd) continue;
+
+        var caja = [sx - w / 2 - 3, sy - h / 2 - 3, sx + w / 2 + 3, sy + h / 2 + 3];
+        var choca = false;
+        for (var k2 = 0; k2 < boxes.length; k2++) {
+          var ob = boxes[k2];
+          if (caja[0] < ob[2] && caja[2] > ob[0] && caja[1] < ob[3] && caja[3] > ob[1]) {
+            choca = true; break;
+          }
+        }
+        if (choca) continue;
+        boxes.push(caja);
+        ctx.globalAlpha = invasor ? 1 : 0.9;
+        dibujaBandera(sx, sy, w, h, bd);
+        ctx.globalAlpha = 1;
+        puestas++;
+      }
+    }
 
     // La cifra grande: el ejército con el que empujas, sobre tu territorio.
     var q = celdaEnPantalla(juego.inicio, aspect, t, p);
@@ -3866,6 +4066,9 @@ body {
     capitalDe: capitalDe,
     decoded: decoded,
     juego: function () { return juego; },
+    dibujaBandera: function (g, x, y, w, h, bd) {
+      var viejo = ctx; ctx = g; dibujaBandera(x, y, w, h, bd); ctx = viejo;
+    },
     rejilla: function () {
       return { GW: GW, GH: GH, div: rasterizaMundo(), celdaDe: celdaDe,
                lon: lonDeCelda, lat: latDeCelda };
