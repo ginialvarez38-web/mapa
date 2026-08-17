@@ -19,11 +19,13 @@ es frontera de pais.
 """
 
 import json
+import math
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from geometria import SCALE, b64_i16, densify_open, pack_polygons, quantize
+from geometria import (SCALE, b64_i16, b64_u16, densify_open, pack_polygons,
+                       quantize)
 from nombres_es import ALIAS_NE, NOMBRES, PAISES_NE
 from topologia import cuantizar, simplificar
 
@@ -62,6 +64,21 @@ def limpia_tipo(props):
         return t
     t = (props.get("type") or props.get("type_en") or "").strip()
     return TIPOS.get(t, t)
+
+
+RADIO = 6371.0       # km
+
+
+def largo_km(linea):
+    """Longitud de una polilinea lon/lat sobre la esfera."""
+    total = 0.0
+    for i in range(len(linea) - 1):
+        x1, y1 = linea[i]
+        x2, y2 = linea[i + 1]
+        dx = math.radians(x2 - x1) * math.cos(math.radians((y1 + y2) / 2.0))
+        dy = math.radians(y2 - y1)
+        total += math.hypot(dx, dy)
+    return total * RADIO
 
 
 def nombre_pais(admin, a3, nombres_en):
@@ -111,16 +128,23 @@ def main():
     # --- 2. clasificar cada arco -------------------------------------------
     # Frontera de pais = el arco separa dos paises, o no hay nada al otro lado
     # (costa). Lo demas es frontera interna entre divisiones.
+    # La clave de pais es la misma que usa id_pais, para poder traducir despues
+    # cada arco al indice del pais al que pertenece.
     paises_por_arco = {}
     usos_por_arco = {}
     for idx, (fi, _, _) in enumerate(plano):
-        a3 = geo["features"][fi]["properties"].get("adm0_a3") or ""
+        p = geo["features"][fi]["properties"]
+        clave_pais = (p.get("adm0_a3") or "") or (p.get("admin") or "").strip()
         for clave in usos[idx]:
-            paises_por_arco.setdefault(clave, set()).add(a3)
+            paises_por_arco.setdefault(clave, set()).add(clave_pais)
             usos_por_arco[clave] = usos_por_arco.get(clave, 0) + 1
 
     def es_frontera(clave):
         return len(paises_por_arco.get(clave, ())) >= 2 or usos_por_arco.get(clave, 0) <= 1
+
+    def es_terrestre(clave):
+        """Frontera con otro pais al otro lado; lo demas es costa o contorno."""
+        return len(paises_por_arco.get(clave, ())) >= 2
 
     # --- 3. registro de paises ---------------------------------------------
     paises = []
@@ -144,6 +168,8 @@ def main():
     divisiones = []
     total_v = total_t = 0
     saltadas = 0
+    geounits = set()      # gu_a3 de lo ya dibujado, para no repetir territorios
+    menudas = {}          # pais -> trozos por debajo del minimo, por si se queda sin nada
 
     for fi, f in enumerate(geo["features"]):
         grupos = porfeat.get(fi)
@@ -163,13 +189,16 @@ def main():
             saltadas += 1
             continue
 
+        a3 = p.get("adm0_a3") or ""
+        admin = (p.get("admin") or "").strip()
+
         packed = pack_polygons(polys)
         if not packed or packed["a"] < MINIMA:
             saltadas += 1
+            if packed:
+                menudas.setdefault(a3 or admin, (admin, a3, []))[2].extend(polys)
             continue
 
-        a3 = p.get("adm0_a3") or ""
-        admin = (p.get("admin") or "").strip()
         ip = id_pais(admin, a3)
 
         divisiones.append({
@@ -184,6 +213,34 @@ def main():
         })
         total_v += packed["nv"]
         total_t += packed["nt"]
+        geounits.add((p.get("gu_a3") or "").strip())
+
+    # --- 4b. paises que se quedaron sin ninguna division --------------------
+    # Monaco, Gibraltar, Anguila o Nauru estan repartidos en distritos de pocos
+    # km2: todos caen por debajo del minimo y el pais entero desaparecia del
+    # mapa aunque su costa siguiera dibujandose. Aqui vuelven enteros, en una
+    # sola pieza y sin pasar por el minimo.
+    rescatados = []
+    for clave, (admin, a3, polys) in sorted(menudas.items()):
+        if clave in indice_pais or not polys:
+            continue
+        packed = pack_polygons(polys)
+        if not packed:
+            continue
+        ip = id_pais(admin, a3)
+        nombre = paises[ip]["n"]
+        divisiones.append({
+            "n": nombre, "en": admin, "ty": "País", "pa": ip, "id": a3 or "—",
+            "v": packed["v"], "t": packed["t"], "r": packed["r"],
+            "b": packed["b"], "c": packed["c"], "a": packed["a"],
+            "i32": packed.get("i32", 0),
+        })
+        total_v += packed["nv"]
+        total_t += packed["nt"]
+        rescatados.append(nombre)
+    if rescatados:
+        print("paises recuperados enteros (divisiones bajo el minimo): %s"
+              % ", ".join(rescatados))
 
     # --- 5. paises sin divisiones -------------------------------------------
     # Natural Earth cubre 236 paises; los que faltan entran como una division
@@ -198,6 +255,11 @@ def main():
         en = f["properties"].get("name") or ""
         a3_110 = (f.get("id") or "").replace("-99", "").replace("CS-KM", "XKX")
         if NOMBRES.get(en, en) in cubiertos or A3_EQ.get(a3_110, a3_110) in cubiertos_a3:
+            continue
+        # Natural Earth cuelga algunos territorios de su metropoli (la Guayana
+        # Francesa figura como Francia). Sin mirar el gu_a3 se dibujarian dos
+        # veces, con la costa y la frontera duplicadas encima.
+        if a3_110 in geounits:
             continue
         g = f.get("geometry")
         if not g:
@@ -228,10 +290,10 @@ def main():
         })
         total_v += packed["nv"]
         total_t += packed["nt"]
-        sueltos.append((NOMBRES.get(en, en), polys))
+        sueltos.append((NOMBRES.get(en, en), polys, ip))
     if sueltos:
         print("paises sin divisiones anadidos enteros: %s"
-              % ", ".join(n for n, _ in sueltos))
+              % ", ".join(n for n, _, _ in sueltos))
 
     # --- 6. agregados por pais ----------------------------------------------
     for d in divisiones:
@@ -250,8 +312,38 @@ def main():
         pa["b"] = [round(x, 3) for x in pa["b"]]
 
     # --- 7. fronteras de pais como polilineas -------------------------------
+    # Cada tramo lleva su clase —terrestre o costa— y los paises que separa, de
+    # modo que el globo pueda pintarlos distinto, resaltar el contorno de un
+    # pais entero y decir con quien limita.
     verts = []
-    tramos = []
+    tramos = []            # (inicio, puntos, clase, paisA, paisB)
+    limites = {}           # pais -> vecinos
+    largos = {}            # pais -> [km de costa, km de frontera terrestre]
+
+    def ips_de(clave):
+        salida = []
+        for cp in sorted(paises_por_arco.get(clave, ())):
+            ip = indice_pais.get(cp)
+            if ip is not None and ip not in salida:
+                salida.append(ip)
+        return salida
+
+    def anota(densa, clase, ips):
+        km = largo_km(densa)
+        for ip in ips:
+            par = largos.setdefault(ip, [0.0, 0.0])
+            par[clase] += km
+        if clase == 1:
+            for a in ips:
+                for b in ips:
+                    if a != b:
+                        limites.setdefault(a, set()).add(b)
+        tramos.append((len(verts) // 2, len(densa), clase,
+                       ips[0] if ips else -1, ips[1] if len(ips) > 1 else -1))
+        for lon, lat in densa:
+            verts.append(quantize(lon, -32767, 32767))
+            verts.append(quantize(lat, -32767, 32767))
+
     for clave, linea in arcos.items():
         if not es_frontera(clave) or len(linea) < 2:
             continue
@@ -261,22 +353,35 @@ def main():
         densa = densify_open(pts)
         if len(densa) < 2:
             continue
-        tramos.append((len(verts) // 2, len(densa)))
-        for lon, lat in densa:
-            verts.append(quantize(lon, -32767, 32767))
-            verts.append(quantize(lat, -32767, 32767))
+        anota(densa, 1 if es_terrestre(clave) else 0, ips_de(clave))
 
-    # los paises anadidos enteros aportan toda su costa
-    for _, polys in sueltos:
+    # los paises anadidos enteros aportan todo su contorno
+    for _, polys, ip in sueltos:
         for poly in polys:
             for ring in poly:
                 densa = densify_open(list(ring) + [ring[0]])
-                tramos.append((len(verts) // 2, len(densa)))
-                for lon, lat in densa:
-                    verts.append(quantize(lon, -32767, 32767))
-                    verts.append(quantize(lat, -32767, 32767))
+                if len(densa) >= 2:
+                    anota(densa, 0, [ip])
 
-    fronteras = {"v": b64_i16(verts), "s": [x for t in tramos for x in t]}
+    # los tramos van agrupados por clase: primero las costas, luego las
+    # fronteras terrestres, que se dibujan encima en otro color.
+    tramos.sort(key=lambda t: t[2])
+    n_costa = sum(1 for t in tramos if t[2] == 0)
+
+    for ip, pa in enumerate(paises):
+        pa["lim"] = sorted(limites.get(ip, ()), key=lambda j: paises[j]["n"])
+
+    # Ningun pais deberia quedarse sin contorno; si pasa, es que su geometria no
+    # llego a la salida y hay que mirar por que antes de publicar.
+    sin_frontera = [pa["n"] for ip, pa in enumerate(paises) if ip not in largos]
+    if sin_frontera:
+        print("AVISO paises sin contorno: %s" % ", ".join(sin_frontera))
+    huerfanos = sum(1 for t in tramos if t[3] < 0)
+    if huerfanos:
+        print("AVISO tramos sin pais: %d" % huerfanos)
+
+    fronteras = {"v": b64_i16(verts), "s": [x for t in tramos for x in t[:2]],
+                 "nc": n_costa}
 
     divisiones.sort(key=lambda d: (paises[d["pa"]]["n"], d["n"]))
     orden = sorted(range(len(paises)), key=lambda i: paises[i]["n"])
@@ -284,6 +389,11 @@ def main():
     for d in divisiones:
         d["pa"] = remap[d["pa"]]
     paises = [paises[i] for i in orden]
+    for pa in paises:
+        pa["lim"] = sorted((remap[j] for j in pa["lim"]))
+    # el pais de cada tramo, ya con los indices definitivos (65535 = ninguno)
+    fronteras["p"] = b64_u16([remap[x] if x >= 0 else 65535
+                              for t in tramos for x in t[3:5]])
 
     salida = {"scale": SCALE, "divisiones": divisiones, "paises": paises,
               "fronteras": fronteras}
@@ -292,8 +402,11 @@ def main():
 
     print("divisiones: %d (descartadas %d)  paises: %d" %
           (len(divisiones), saltadas, len(paises)))
-    print("vertices: %d  triangulos: %d  fronteras: %d tramos / %d puntos"
-          % (total_v, total_t, len(tramos), len(verts) // 2))
+    print("vertices: %d  triangulos: %d" % (total_v, total_t))
+    print("fronteras: %d tramos (%d de costa, %d terrestres) / %d puntos"
+          % (len(tramos), n_costa, len(tramos) - n_costa, len(verts) // 2))
+    print("con vecinos declarados: %d paises"
+          % sum(1 for pa in paises if pa["lim"]))
     print("salida: %.0f KB" % (os.path.getsize(OUT) / 1024.0))
     return 0
 

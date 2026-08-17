@@ -297,6 +297,7 @@ body {
   font-size: 12.5px;
   cursor: pointer;
 }
+.card .pais[hidden] { display: none; }
 .card .pais:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .card .pais:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -524,6 +525,7 @@ body {
   <dl class="facts">
     <dt>Superficie</dt><dd id="c-area">—</dd>
     <dt id="c-divs-lab">Divisiones</dt><dd id="c-divs">—</dd>
+    <dt id="c-lim-lab">Limita con</dt><dd id="c-lim">—</dd>
     <dt id="c-alt-lab">Altitud</dt><dd id="c-alt">—</dd>
     <dt>Centro</dt><dd id="c-center">—</dd>
     <dt>Antípoda</dt><dd id="c-anti">—</dd>
@@ -540,6 +542,7 @@ body {
   <button class="btn panel-toggle" id="t-panel" aria-pressed="false">Índice</button>
   <button class="btn" id="t-spin" aria-pressed="true">Rotar</button>
   <button class="btn" id="t-night" aria-pressed="false">Día/Noche</button>
+  <button class="btn" id="t-front" aria-pressed="true" title="Límites entre países; la costa se dibuja siempre">Fronteras</button>
   <button class="btn" id="t-divs" aria-pressed="true">Divisiones</button>
   <button class="btn" id="t-relieve" aria-pressed="true">Relieve</button>
   <button class="btn" id="t-3d" aria-pressed="true" title="Relieve esquemático, exagerado 16 veces: se levanta a partir de las cordilleras y las cumbres reales, no es un modelo de elevación">3D</button>
@@ -560,7 +563,9 @@ body {
 
 <p class="sr-only">
   Mapa del mundo en tres dimensiones. El globo se dibuja con WebGL a partir de las
-  fronteras reales de 180 países; el índice lateral permite localizar y centrar cada uno.
+  fronteras y las divisiones administrativas reales de todos los países; el índice
+  lateral permite localizar y centrar cada uno, y la ficha de cada país dice con
+  quién limita.
 </p>
 
 <script id="mundo-data" type="application/json">__MUNDO_DATA__</script>
@@ -582,6 +587,7 @@ body {
       ocean:  [0.055, 0.145, 0.255],
       ocean2: [0.012, 0.035, 0.075],
       border: [0.016, 0.043, 0.075, 0.85],
+      frontera: [0.98, 0.90, 0.72, 0.62],
       divs:   [0.80, 0.86, 0.94, 0.17],
       grid:   [0.62, 0.72, 0.85, 0.16],
       atmo:   [0.32, 0.56, 0.92],
@@ -604,6 +610,7 @@ body {
       ocean:  [0.659, 0.769, 0.839],
       ocean2: [0.478, 0.639, 0.741],
       border: [0.055, 0.110, 0.170, 0.92],
+      frontera: [0.36, 0.18, 0.10, 0.80],
       divs:   [0.24, 0.32, 0.40, 0.26],
       grid:   [0.09, 0.18, 0.27, 0.22],
       atmo:   [0.42, 0.55, 0.66],
@@ -845,7 +852,11 @@ body {
   }
 
   // Fronteras de país: polilíneas ya clasificadas en el generador de datos.
+  // Vienen ordenadas por clase —primero las costas, luego los límites
+  // terrestres— y cada tramo sabe a qué países separa, para poder pintarlos
+  // distinto y para resaltar el contorno completo del país seleccionado.
   var frontPos = null, frontIdx = null, frontAlt = null;
+  var front = { s: null, pais: null, nCosta: 0, nTramos: 0 };
   (function () {
     var f = mundo.fronteras;
     if (!f || !f.v) return;
@@ -853,6 +864,8 @@ body {
     var ll = new Int16Array(fb.buffer, fb.byteOffset, fb.byteLength >> 1);
     var n = ll.length >> 1;
     frontPos = new Float32Array(n * 3);
+    frontAlt = new Float32Array(n);
+    alturasDe(ll, n, frontAlt, 0);
     for (var k = 0; k < n; k++) {
       var lon = ll[k * 2] / SCALE * DEG;
       var lat = ll[k * 2 + 1] / SCALE * DEG;
@@ -871,8 +884,34 @@ body {
         frontIdx[w++] = start + k;
         frontIdx[w++] = start + k + 1;
       }
+      // el corte entre costa y frontera terrestre, en índices ya dibujables
+      if ((t >> 1) + 1 === (f.nc || 0)) front.nCosta = w;
+    }
+    front.s = f.s;
+    front.nTramos = f.s.length >> 1;
+    if (f.nc === 0) front.nCosta = 0;
+    if (f.p) {
+      var pb = b64Bytes(f.p);
+      front.pais = new Uint16Array(pb.buffer, pb.byteOffset, pb.byteLength >> 1);
     }
   })();
+
+  // Tramos de frontera de cada país, para dibujar su contorno al seleccionarlo.
+  var tramosPais = null;
+  function tramosDe(ip) {
+    if (!front.pais) return null;
+    if (!tramosPais) {
+      tramosPais = [];
+      for (var k = 0; k < front.nTramos; k++) {
+        for (var j = 0; j < 2; j++) {
+          var q = front.pais[k * 2 + j];
+          if (q === 65535) continue;
+          (tramosPais[q] || (tramosPais[q] = [])).push(k);
+        }
+      }
+    }
+    return tramosPais[ip] || null;
+  }
 
   // Índice espacial de las áreas físicas, para poder pincharlas en el globo.
   function indiceAreas() {
@@ -1172,6 +1211,27 @@ body {
     }
   }
   var nFront = frontIdx ? frontIdx.length : 0;
+
+  // Búfer de un solo uso para el contorno del país seleccionado.
+  var bufSelFront = bufFrontPos ? gl.createBuffer() : null;
+  var nSelFront = 0;
+  function contornoPais(ip) {
+    nSelFront = 0;
+    var lista = ip >= 0 ? tramosDe(ip) : null;
+    if (!lista || !bufSelFront) return;
+    var total = 0, k;
+    for (k = 0; k < lista.length; k++) total += (front.s[lista[k] * 2 + 1] - 1) * 2;
+    var idx = new Uint32Array(total);
+    var w = 0;
+    for (k = 0; k < lista.length; k++) {
+      var start = front.s[lista[k] * 2], count = front.s[lista[k] * 2 + 1];
+      for (var j = 0; j < count - 1; j++) { idx[w++] = start + j; idx[w++] = start + j + 1; }
+    }
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufSelFront);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.DYNAMIC_DRAW);
+    nSelFront = w;
+  }
+
   positions = owner = ownerPais = alturas = sombras = null;
   fillIdx = lineIdx = frontPos = frontIdx = frontAlt = null;
 
@@ -1404,6 +1464,7 @@ body {
     spin: !reduceMotion,
     night: false,
     grid: false,
+    front: true,
     divs: true,
     relieve: true,
     tresd: true,
@@ -1736,6 +1797,8 @@ body {
   var elArea = document.getElementById("c-area");
   var elDivs = document.getElementById("c-divs");
   var elDivsLab = document.getElementById("c-divs-lab");
+  var elLim = document.getElementById("c-lim");
+  var elLimLab = document.getElementById("c-lim-lab");
   var elAlt = document.getElementById("c-alt");
   var elAltLab = document.getElementById("c-alt-lab");
   var elCenter = document.getElementById("c-center");
@@ -1773,7 +1836,7 @@ body {
     sel = r || { tipo: null, i: -1 };
     marcarLista();
     var rec = registro(sel);
-    if (!rec) { card.hidden = true; return; }
+    if (!rec) { card.hidden = true; contornoPais(-1); return; }
 
     var esDiv = sel.tipo === "div";
     var esPais = sel.tipo === "pais";
@@ -1792,6 +1855,16 @@ body {
     if (!esPunto) elArea.textContent = "≈ " + fmtNum(rec.a) + " km²";
     elDivs.hidden = elDivsLab.hidden = !esPais;
     if (esPais) elDivs.textContent = fmtNum(rec.nd) + (rec.nd === 1 ? " división" : " divisiones");
+    // Con quién comparte frontera terrestre: sale de los mismos arcos que se
+    // dibujan, así que la lista y las líneas no pueden contradecirse.
+    var vecinos = esPais ? (rec.lim || []) : null;
+    elLim.hidden = elLimLab.hidden = !esPais;
+    if (esPais) {
+      elLim.textContent = vecinos.length
+        ? vecinos.map(function (j) { return paises[j].n; }).join(", ")
+        : "ningún país (solo costa)";
+    }
+    contornoPais(esPais ? sel.i : esDiv ? rec.pa : -1);
     // Una cumbre da su altitud; un área, la de la cumbre más alta que contiene.
     if (esPunto && rec.e > 0) {
       elAltLab.textContent = "Altitud";
@@ -1976,6 +2049,8 @@ body {
   toggle("t-spin", opts.spin, function (v) { opts.spin = v; });
   toggle("t-night", opts.night, function (v) { opts.night = v; });
   toggle("t-grid", opts.grid, function (v) { opts.grid = v; });
+  var frontBtn = toggle("t-front", opts.front, function (v) { opts.front = v; });
+  if (!nFront) frontBtn.hidden = true;
   var relBtn = toggle("t-relieve", opts.relieve, function (v) {
     opts.relieve = v;
     if (!v && (sel.tipo === "area" || sel.tipo === "punto")) seleccionar(null);
@@ -2484,8 +2559,28 @@ body {
       bindAttrib(progLine, "aH", bufFrontAlt, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufFrontIdx);
       gl.uniform1f(progLine.u.uR, 1.0060);
+      // La costa perfila la tierra y se dibuja siempre; el límite entre dos
+      // países va aparte, en otro color y por encima, y es lo que apaga el
+      // botón: sin él queda un mapa físico, sin líneas políticas.
       gl.uniform4fv(progLine.u.uColor, scene.border);
-      gl.drawElements(gl.LINES, nFront, gl.UNSIGNED_INT, 0);
+      gl.drawElements(gl.LINES, front.nCosta, gl.UNSIGNED_INT, 0);
+      if (opts.front && nFront > front.nCosta) {
+        gl.uniform1f(progLine.u.uR, 1.0064);
+        gl.uniform4fv(progLine.u.uColor, scene.frontera);
+        gl.drawElements(gl.LINES, nFront - front.nCosta, gl.UNSIGNED_INT,
+                        front.nCosta * 4);
+      }
+    }
+
+    // Contorno completo del país seleccionado, costa incluida.
+    if (nSelFront) {
+      disableAll();
+      bindAttrib(progLine, "aPos", bufFrontPos, 3);
+      bindAttrib(progLine, "aH", bufFrontAlt, 1);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufSelFront);
+      gl.uniform1f(progLine.u.uR, 1.0070);
+      gl.uniform4f(progLine.u.uColor, accentRGB[0], accentRGB[1], accentRGB[2], 1.0);
+      gl.drawElements(gl.LINES, nSelFront, gl.UNSIGNED_INT, 0);
     }
 
     if (sel.tipo === "div") {
@@ -2576,6 +2671,8 @@ body {
       rotation(mRot, view.yaw, view.pitch);
     },
     pickAt: function (px, py) { return pickLonLat(px, py); },
+    fronteras: front,
+    tramosDe: tramosDe,
     divisionEn: divisionEn,
     areaEn: areaEn,
     regionEn: regionEn,

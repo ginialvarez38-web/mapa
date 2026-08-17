@@ -1,7 +1,7 @@
 # Atlas Orbital
 
 Un mapa del mundo en 3D: un globo terráqueo que se dibuja con WebGL a partir de
-las fronteras reales de **241 países y 4.314 provincias, estados y
+las fronteras reales de **249 países y 4.322 provincias, estados y
 departamentos**, más **3.536 accidentes naturales** —cordilleras, desiertos,
 mesetas, cumbres, ríos, lagos y glaciares—, sin librerías externas y en **un
 solo archivo HTML** que funciona abriéndolo con doble clic.
@@ -18,10 +18,17 @@ index.html      → abre esto en el navegador
 - **Dos niveles**: el botón `Divisiones` alterna entre el mapa por provincias y
   el mapa por países. El nivel activo manda también al señalar: al pinchar se
   selecciona la división o el país, según lo que esté a la vista.
+- **Fronteras de todos los países**: 8.951 tramos, de los que 2.054 son
+  límites terrestres entre dos países y el resto, costa. Se dibujan en dos
+  colores —la costa perfila la tierra, el límite político va encima— y el
+  botón `Fronteras` apaga solo los segundos, para dejar un mapa físico limpio.
+  Al seleccionar un país se traza **su contorno entero**, islas incluidas, y su
+  ficha dice **con quién limita**: España → Andorra, Francia, Gibraltar,
+  Marruecos, Portugal.
 - **Ficha de cada región**: tipo (provincia, estado, óblast, prefectura…), país
   al que pertenece —pinchable, para saltar al país entero—, superficie, punto
   central, antípoda y hora solar del lugar.
-- **Índice lateral** con los 241 países y su superficie. El buscador acepta
+- **Índice lateral** con los 249 países y su superficie. El buscador acepta
   también divisiones y accidentes: escribe «navarra», «baviera», «chubut»,
   «himalaya», «aconcagua» o «sahara».
 - **Relieve**: el botón `Relieve` apaga los colores políticos y pinta la
@@ -90,7 +97,7 @@ python3 tools/bundle.py          # plantilla + datos      → index.html
 
 ## Decisiones técnicas
 
-Dibujar 4.314 polígonos administrativos sobre una esfera, en un archivo que
+Dibujar 4.322 polígonos administrativos sobre una esfera, en un archivo que
 tiene que caber en un navegador, plantea seis problemas. Uno por paso:
 
 **1. Reducir 1,3 millones de puntos.** El nivel administrativo 1 de Natural
@@ -114,9 +121,22 @@ divisiones a 1:10 M: las provincias asomaban sobre el mar y los contornos no
 encajaban. Ahora toda la geometría sale del mismo origen y **las fronteras de
 país se deducen de los arcos**: un arco que separa divisiones de dos países
 distintos, o que no tiene división al otro lado —es decir, costa—, es frontera
-de país. Se dibujan más marcadas, sobre las divisiones. Los dos países que
-Natural Earth no subdivide (Bermudas y Guayana Francesa) entran como una
-división única.
+de país. Cada tramo se guarda con su clase —costa o límite terrestre— y con
+los países que separa, así que la lista de vecinos de la ficha y las líneas
+del globo salen del mismo sitio y no se pueden contradecir. Los países que
+Natural Earth no subdivide entran como una división única.
+
+**3b. Que no falte ningún país.** Las divisiones por debajo de 20 km² no se
+dibujan: a esa escala son un punto y multiplican el peso del archivo. Pero
+Mónaco, San Marino, Gibraltar, Anguila o Nauru están repartidos en distritos
+de pocos km² y **todos** caían por debajo del umbral: el país entero
+desaparecía del mapa aunque su costa se siguiera dibujando, con un tramo de
+frontera huérfano al que no pertenecía ningún país. Ahora, cuando un país se
+queda sin una sola división, vuelve entero y en una pieza, sin pasar por el
+mínimo. Son diez, y con ellos son 249 los países del atlas. En la dirección
+contraria, Natural Earth cuelga algunos territorios de su metrópoli —la
+Guayana Francesa figura dentro de Francia—: comparando el código de *geounit*
+se evita dibujarlos dos veces, con la costa y la frontera duplicadas encima.
 
 **4. Triangular sin cuñas.** Cada anillo se triangula por recorte de orejas,
 con puente para los huecos —un país dentro de otro, como Lesoto dentro de
@@ -194,21 +214,27 @@ pertenencia (división y país), de modo que resaltar una provincia o un país
 entero es cambiar un uniforme, no reconstruir nada. La selección no usa lectura
 de píxeles: se lanza un rayo desde el cursor, se corta con la esfera, se
 deshace la rotación y se resuelve el punto en polígono, con una rejilla de 6°
-que reduce las 4.314 divisiones a las pocas candidatas de esa celda.
+que reduce las 4.322 divisiones a las pocas candidatas de esa celda.
 
 Los datos van cuantizados a enteros de 16 bits e indexados a 16 bits siempre
-que caben, y codificados en base64: 4.314 divisiones (280.000 vértices,
+que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 295.000 triángulos) ocupan 5,2 MB y toda la geografía física, 1,2 MB más.
 
 ## Comprobaciones
 
 - Las fronteras compartidas coinciden vértice a vértice: ninguna grieta entre
   divisiones vecinas.
+- **Fronteras**: los 249 países tienen contorno —ninguno se queda sin—, no hay
+  ningún tramo sin país al que atribuirlo, y las 169 listas de vecinos son
+  simétricas: si A limita con B, B limita con A. Contrastadas a mano: España →
+  Andorra, Francia, Gibraltar, Marruecos, Portugal; Bolivia → Argentina,
+  Brasil, Chile, Paraguay, Perú; Mónaco → Francia; San Marino → Italia;
+  Islandia → ninguno, solo costa.
 - El relleno no se sale del polígono en ninguna división salvo restos por
   debajo del 4% en 68 municipios diminutos (comunas eslovenas, distritos de
   Londres), invisibles a cualquier escala.
 - Pinchando en el centro de la pantalla sobre el punto representativo de cada
-  división, **4.307 de 4.314** devuelven la división correcta; las 7 restantes
+  división, **4.315 de 4.322** devuelven la división correcta; las 7 restantes
   son franjas de menos de un kilómetro de ancho.
 - Pinchando sobre el Himalaya, el Sahara, la cuenca del Amazonas, el Gobi, el
   Baikal y los Andes se obtiene en cada caso el accidente correcto con su
@@ -218,6 +244,10 @@ que caben, y codificados en base64: 4.314 divisiones (280.000 vértices,
   mapa y con el nombre en español. Ningún nombre queda con caracteres rotos.
   Los 1.057 ríos con nombre son buscables, aunque su rótulo solo aparezca al
   acercarse.
+- En los microestados recuperados la superficie es solo orientativa: la rejilla
+  de cuantización mide ~930 m, así que Mónaco sale con 18 km² frente a sus 2
+  reales. San Marino (61 km²), Anguila (86 frente a 91) o Nauru (30 frente a
+  21) quedan más cerca. Sus contornos y sus vecinos sí son correctos.
 - Superficies contrastadas con las reales: España 506.716 km² (505.990),
   Italia 301.173 (301.340), Reino Unido 242.553 (242.495), Brasil 8.519.258
   (8.515.767), Japón 375.652 (377.975). Francia suma 636.524 km² porque
