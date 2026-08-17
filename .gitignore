@@ -7,7 +7,9 @@ data/10m_lakes.geojson
 data/50m_rivers_lake_centerlines.geojson
 data/50m_lakes.geojson
 data/50m_glaciated_areas.geojson
+data/10m_populated_places.geojson
 data/mundo.json
 data/relieve.json
+data/ciudades.json
 __pycache__/
 *.pyc

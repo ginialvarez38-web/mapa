@@ -298,6 +298,18 @@ body {
   cursor: pointer;
 }
 .card .pais[hidden] { display: none; }
+.card .pais[disabled] { cursor: default; border-bottom-color: transparent; }
+.facts .enlace {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.facts .enlace:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.facts .enlace:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .card .pais:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .card .pais:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -524,6 +536,11 @@ body {
   </div>
   <dl class="facts">
     <dt>Superficie</dt><dd id="c-area">—</dd>
+    <dt id="c-pob-lab">Población</dt><dd id="c-pob">—</dd>
+    <dt id="c-reg-lab">Región</dt>
+    <dd><button class="enlace" id="c-reg" type="button">—</button></dd>
+    <dt id="c-cap-lab">Capital</dt>
+    <dd><button class="enlace" id="c-cap" type="button">—</button></dd>
     <dt id="c-divs-lab">Divisiones</dt><dd id="c-divs">—</dd>
     <dt id="c-lim-lab">Limita con</dt><dd id="c-lim">—</dd>
     <dt id="c-alt-lab">Altitud</dt><dd id="c-alt">—</dd>
@@ -543,6 +560,7 @@ body {
   <button class="btn" id="t-spin" aria-pressed="true">Rotar</button>
   <button class="btn" id="t-night" aria-pressed="false">Día/Noche</button>
   <button class="btn" id="t-front" aria-pressed="true" title="Límites entre países; la costa se dibuja siempre">Fronteras</button>
+  <button class="btn" id="t-ciudades" aria-pressed="true" title="Capitales y ciudades: cuanto más cerca, más aparecen">Ciudades</button>
   <button class="btn" id="t-divs" aria-pressed="true">Divisiones</button>
   <button class="btn" id="t-relieve" aria-pressed="true">Relieve</button>
   <button class="btn" id="t-3d" aria-pressed="true" title="Relieve esquemático, exagerado 16 veces: se levanta a partir de las cordilleras y las cumbres reales, no es un modelo de elevación">3D</button>
@@ -563,13 +581,15 @@ body {
 
 <p class="sr-only">
   Mapa del mundo en tres dimensiones. El globo se dibuja con WebGL a partir de las
-  fronteras y las divisiones administrativas reales de todos los países; el índice
-  lateral permite localizar y centrar cada uno, y la ficha de cada país dice con
-  quién limita.
+  fronteras y las divisiones administrativas reales de todos los países, con sus
+  capitales y más de siete mil ciudades; el índice lateral permite localizar y
+  centrar cada una, y la ficha de cada país dice cuál es su capital y con quién
+  limita.
 </p>
 
 <script id="mundo-data" type="application/json">__MUNDO_DATA__</script>
 <script id="relieve-data" type="application/json">__RELIEVE_DATA__</script>
+<script id="ciudades-data" type="application/json">__CIUDADES_DATA__</script>
 
 <script>
 (function () {
@@ -604,6 +624,8 @@ body {
       rio: [0.35, 0.60, 0.82, 0.75],
       label:  "#E9EFF7",
       marca:  "#F0D6A8",
+      capital: "#FFD98A",
+      ciudad:  "#DCE6F2",
       halo:   "rgba(4,8,16,.82)"
     },
     carta: {
@@ -627,6 +649,8 @@ body {
       rio: [0.32, 0.50, 0.68, 0.85],
       label:  "#14202C",
       marca:  "#7A5322",
+      capital: "#8C2F16",
+      ciudad:  "#2A3644",
       halo:   "rgba(255,255,255,.85)"
     }
   };
@@ -895,6 +919,74 @@ body {
       front.pais = new Uint16Array(pb.buffer, pb.byteOffset, pb.byteLength >> 1);
     }
   })();
+
+  // ---------------------------------------------------------------- //
+  // Capitales y ciudades                                              //
+  // ---------------------------------------------------------------- //
+
+  // Vienen ordenadas por rango de importancia —0 se lee desde el espacio, 9
+  // solo encima— y "cortes" marca dónde empieza cada rango, así que el globo
+  // recorre las 300 primeras de lejos y no las 7.358 en cada fotograma.
+  var ciudades = [];
+  var capitalDe = null;
+  (function () {
+    var el = document.getElementById("ciudades-data");
+    if (!el || !el.textContent) return;
+    var raw;
+    try { raw = JSON.parse(el.textContent); } catch (e) { return; }
+    if (!raw || !raw.n || !raw.n.length) return;
+
+    var cb = b64Bytes(raw.v);
+    var ll = new Int16Array(cb.buffer, cb.byteOffset, cb.byteLength >> 1);
+    function u16(b64) {
+      var b = b64Bytes(b64);
+      return new Uint16Array(b.buffer, b.byteOffset, b.byteLength >> 1);
+    }
+    function u32(b64) {
+      var b = b64Bytes(b64);
+      return new Uint32Array(b.buffer, b.byteOffset, b.byteLength >> 2);
+    }
+    var cl = u16(raw.cl), pa = u16(raw.pa), rg = u16(raw.rg), tz = u16(raw.tz);
+    var dv = raw.dv ? u16(raw.dv) : null;
+    var pop = u32(raw.pop);
+    var regiones = raw.regiones || [], husos = raw.husos || [];
+    var escala = raw.scale || SCALE;
+
+    for (var i = 0; i < raw.n.length; i++) {
+      ciudades.push({
+        n: raw.n[i],
+        c: [ll[i * 2] / escala, ll[i * 2 + 1] / escala],
+        cl: cl[i],
+        pop: pop[i],
+        pa: pa[i] === 65535 ? -1 : pa[i],
+        pn: "",
+        en: "",
+        rg: rg[i] === 65535 ? "" : (regiones[rg[i]] || ""),
+        dv: !dv || dv[i] === 65535 ? -1 : dv[i],
+        tz: tz[i] === 65535 ? "" : (husos[tz[i]] || ""),
+        x: 0
+      });
+    }
+    // El nombre del origen, para que «Munich» encuentre Múnich.
+    var alias = raw.en || [];
+    for (var k = 0; k < alias.length; k++) {
+      if (ciudades[alias[k][0]]) ciudades[alias[k][0]].en = alias[k][1];
+    }
+    // El Vaticano no está en el mapa de países y su ciudad sí.
+    var ajenas = raw.ajenas || [];
+    for (var k = 0; k < ajenas.length; k++) {
+      if (ciudades[ajenas[k][0]]) ciudades[ajenas[k][0]].pn = ajenas[k][1];
+    }
+    var manual = raw.manual || [];
+    for (var k = 0; k < manual.length; k++) {
+      if (ciudades[manual[k]]) ciudades[manual[k]].x = 1;
+    }
+    ciudades.cortes = raw.cortes || [0];
+    capitalDe = {};
+    var caps = raw.capitales || [];
+    for (var k = 0; k < caps.length; k++) capitalDe[caps[k][0]] = caps[k][1];
+  })();
+  var NC = ciudades.length;
 
   // Tramos de frontera de cada país, para dibujar su contorno al seleccionarlo.
   var tramosPais = null;
@@ -1465,6 +1557,7 @@ body {
     night: false,
     grid: false,
     front: true,
+    ciudades: true,
     divs: true,
     relieve: true,
     tresd: true,
@@ -1685,7 +1778,9 @@ body {
     endPointer(e);
     if (!wasDrag) {
       var px = e.clientX - rect.left, py = e.clientY - rect.top;
-      var m = opts.relieve ? marcaCerca(px, py) : null;
+      // Las marcas —ciudades y relieve— ganan al relleno: son más pequeñas y
+      // más concretas que la región que hay debajo.
+      var m = marcaCerca(px, py);
       if (m) { seleccionar(m); return; }
       var ll = pickLonLat(px, py);
       seleccionar(ll ? regionEn(ll.lon, ll.lat) : null);
@@ -1744,20 +1839,34 @@ body {
 
   var tip = document.getElementById("tip");
 
+  // Qué decir de cada cosa señalada: el nombre y, cuando aclara algo, dónde
+  // está. Una ciudad y una división llevan su país; un país o un accidente
+  // natural se explican solos.
+  function rotuloDe(r, rec) {
+    if (r.tipo === "div") return rec.n + " · " + paises[rec.pa].n;
+    if (r.tipo === "ciudad") {
+      var donde = rec.pa >= 0 ? paises[rec.pa].n : rec.pn;
+      return donde ? rec.n + " · " + donde : rec.n;
+    }
+    if (r.tipo === "area" || r.tipo === "punto") return rec.n + " · " + (rec.ty || "Relieve");
+    return rec.n;
+  }
+
   function hoverAt(px, py, clientX, clientY) {
     var ll = pickLonLat(px, py);
     cursorLL = ll;
-    var r = ll ? regionEn(ll.lon, ll.lat) : null;
+    var r = marcaCerca(px, py) || (ll ? regionEn(ll.lon, ll.lat) : null);
     hover = r || { capa: null, i: -1 };
-    if (r) {
-      var rec = r.tipo === "div" ? divisiones[r.i] : paises[r.i];
-      var texto = r.tipo === "div"
-        ? rec.n + " · " + paises[rec.pa].n
-        : rec.n;
+    var rec = r ? registro(r) : null;
+    if (r && rec) {
+      var texto = rotuloDe(r, rec);
       tip.textContent = "";
       tip.appendChild(document.createTextNode(texto));
       var em = document.createElement("em");
-      em.textContent = fmtLatLon(ll.lat, ll.lon);
+      // Sobre una marca junto al limbo el rayo puede no cortar la esfera: se
+      // usa entonces la posición de lo señalado.
+      em.textContent = ll ? fmtLatLon(ll.lat, ll.lon)
+                          : fmtLatLon(rec.c[1], rec.c[0]);
       tip.appendChild(em);
       var w = tip.offsetWidth, h = tip.offsetHeight;
       tip.style.left = Math.min(window.innerWidth - w - 8, clientX + 14) + "px";
@@ -1799,6 +1908,14 @@ body {
   var elDivsLab = document.getElementById("c-divs-lab");
   var elLim = document.getElementById("c-lim");
   var elLimLab = document.getElementById("c-lim-lab");
+  var elPob = document.getElementById("c-pob");
+  var elPobLab = document.getElementById("c-pob-lab");
+  var elCap = document.getElementById("c-cap");
+  var elCapLab = document.getElementById("c-cap-lab");
+  var elReg = document.getElementById("c-reg");
+  var elRegLab = document.getElementById("c-reg-lab");
+
+  var TIPO_CIUDAD = ["Capital", "Capital regional", "Ciudad", "Base científica"];
   var elAlt = document.getElementById("c-alt");
   var elAltLab = document.getElementById("c-alt-lab");
   var elCenter = document.getElementById("c-center");
@@ -1826,6 +1943,7 @@ body {
   function registro(e) {
     if (e.tipo === "div") return divisiones[e.i];
     if (e.tipo === "pais") return paises[e.i];
+    if (e.tipo === "ciudad") return ciudades[e.i];
     if (!relieve) return null;
     if (e.tipo === "area") return relieve.areas[e.i];
     if (e.tipo === "punto") return relieve.puntos[e.i];
@@ -1841,18 +1959,47 @@ body {
     var esDiv = sel.tipo === "div";
     var esPais = sel.tipo === "pais";
     var esPunto = sel.tipo === "punto";
+    var esCiudad = sel.tipo === "ciudad";
     card.hidden = false;
     elName.textContent = rec.n;
-    elIso.textContent = rec.id || (esPunto || sel.tipo === "area" ? "Relieve" : "—");
+    elIso.textContent = rec.id || (esCiudad ? TIPO_CIUDAD[rec.cl] || "Ciudad"
+                                 : esPunto || sel.tipo === "area" ? "Relieve" : "—");
     elKind.textContent = esDiv ? (rec.ty || "División")
-                       : esPais ? "País" : (rec.ty || "Accidente natural");
-    elPais.hidden = !esDiv;
-    if (esDiv) {
-      elPais.textContent = paises[rec.pa].n;
-      elPais.dataset.pais = rec.pa;
+                       : esPais ? "País"
+                       : esCiudad ? (TIPO_CIUDAD[rec.cl] || "Ciudad")
+                       : (rec.ty || "Accidente natural");
+    // El país va debajo del nombre y se puede pinchar para saltar a él; una
+    // ciudad sin país en el mapa (Ciudad del Vaticano) lo dice como texto.
+    elPais.hidden = !(esDiv || esCiudad) || (esCiudad && rec.pa < 0 && !rec.pn);
+    if (esDiv || esCiudad) {
+      elPais.textContent = rec.pa >= 0 ? paises[rec.pa].n : rec.pn;
+      elPais.dataset.pais = rec.pa >= 0 ? rec.pa : -1;
+      elPais.disabled = rec.pa < 0;
     }
-    elArea.hidden = elArea.previousElementSibling.hidden = esPunto;
-    if (!esPunto) elArea.textContent = "≈ " + fmtNum(rec.a) + " km²";
+    // La región de una ciudad lleva al mismo sitio que el mapa: cuando se
+    // reconoce la división, el enlace la selecciona.
+    var verReg = esCiudad && !!rec.rg;
+    elReg.parentElement.hidden = elRegLab.hidden = !verReg;
+    if (verReg) {
+      elReg.textContent = rec.rg;
+      elReg.dataset.div = rec.dv;
+      elReg.disabled = rec.dv < 0;
+    }
+    elArea.hidden = elArea.previousElementSibling.hidden = esPunto || esCiudad;
+    if (!esPunto && !esCiudad) elArea.textContent = "≈ " + fmtNum(rec.a) + " km²";
+
+    // Población de la ciudad; y en la ficha de un país, cuántas divisiones.
+    var verPob = esCiudad && rec.pop > 0;
+    elPob.hidden = elPobLab.hidden = !verPob;
+    if (verPob) elPob.textContent = fmtNum(rec.pop) + " hab.";
+
+    var verCap = esPais && capitalDe && capitalDe[sel.i] !== undefined;
+    elCap.parentElement.hidden = elCapLab.hidden = !verCap;
+    if (verCap) {
+      elCap.textContent = ciudades[capitalDe[sel.i]].n;
+      elCap.dataset.ciudad = capitalDe[sel.i];
+    }
+
     elDivs.hidden = elDivsLab.hidden = !esPais;
     if (esPais) elDivs.textContent = fmtNum(rec.nd) + (rec.nd === 1 ? " división" : " divisiones");
     // Con quién comparte frontera terrestre: sale de los mismos arcos que se
@@ -1864,7 +2011,7 @@ body {
         ? vecinos.map(function (j) { return paises[j].n; }).join(", ")
         : "ningún país (solo costa)";
     }
-    contornoPais(esPais ? sel.i : esDiv ? rec.pa : -1);
+    contornoPais(esPais ? sel.i : esDiv || esCiudad ? rec.pa : -1);
     // Una cumbre da su altitud; un área, la de la cumbre más alta que contiene.
     if (esPunto && rec.e > 0) {
       elAltLab.textContent = "Altitud";
@@ -1911,7 +2058,15 @@ body {
   setInterval(updateSolar, 30000);
 
   elPais.addEventListener("click", function () {
-    seleccionar({ tipo: "pais", i: Number(elPais.dataset.pais) });
+    var i = Number(elPais.dataset.pais);
+    if (i >= 0) seleccionar({ tipo: "pais", i: i });
+  });
+  elCap.addEventListener("click", function () {
+    seleccionar({ tipo: "ciudad", i: Number(elCap.dataset.ciudad) });
+  });
+  elReg.addEventListener("click", function () {
+    var i = Number(elReg.dataset.div);
+    if (i >= 0) seleccionar({ tipo: "div", i: i });
   });
   document.getElementById("c-close").addEventListener("click", function () { seleccionar(null); });
   document.getElementById("c-goto").addEventListener("click", function () {
@@ -1989,6 +2144,12 @@ body {
       var d = divisiones[i];
       mira("div", i, d.n, d.en || d.id, paises[d.pa].n, 0.2);
     }
+    for (var i = 0; opts.ciudades && i < NC; i++) {
+      var c = ciudades[i];
+      mira("ciudad", i, c.n, c.en || null,
+           (c.pa >= 0 ? paises[c.pa].n : c.pn) + (c.pop ? " · " + fmtNum(c.pop) + " hab." : ""),
+           c.cl === 0 ? 0.05 : 0.15);
+    }
     if (relieve && opts.relieve) {
       for (var i = 0; i < relieve.areas.length; i++) {
         var a = relieve.areas[i];
@@ -2051,6 +2212,12 @@ body {
   toggle("t-grid", opts.grid, function (v) { opts.grid = v; });
   var frontBtn = toggle("t-front", opts.front, function (v) { opts.front = v; });
   if (!nFront) frontBtn.hidden = true;
+  var ciuBtn = toggle("t-ciudades", opts.ciudades, function (v) {
+    opts.ciudades = v;
+    if (!v && sel.tipo === "ciudad") seleccionar(null);
+    renderList(searchEl.value);
+  });
+  if (!NC) ciuBtn.hidden = true;
   var relBtn = toggle("t-relieve", opts.relieve, function (v) {
     opts.relieve = v;
     if (!v && (sel.tipo === "area" || sel.tipo === "punto")) seleccionar(null);
@@ -2115,6 +2282,10 @@ body {
     if (/^#[0-9a-f]{6}$/i.test(v)) accentRGB = hexToRgb(v);
   }
 
+  function acentoCSS() {
+    return "rgb(" + accentRGB.map(function (v) { return Math.round(v * 255); }).join(",") + ")";
+  }
+
   // Los rótulos del globo comparten pantalla con los paneles: estos entran en
   // la detección de solapes como una caja más, así ninguno queda medio tapado.
   var chromeEls = [
@@ -2139,8 +2310,100 @@ body {
   // Marcas dibujadas en el último fotograma, para poder pincharlas.
   var marcas = [];
 
+  // Tope de puntos por fotograma: acercándose del todo entran miles de
+  // ciudades en el recorte y no hace falta pintarlas todas para entender dónde
+  // están las cosas.
+  var TOPE_PUNTOS = 900;
+
+  // Cuentas de la pasada de ciudades, que va en dos tandas: las capitales
+  // antes que los nombres de las regiones y el resto después.
+  var ciuPuestos = 0, ciuPuntos = 0;
+
+  // Las ciudades aparecen por rango: de lejos solo las capitales y las grandes
+  // aglomeraciones; cada acercamiento destapa el siguiente escalón.
+  function dibujaCiudades(scene, boxes, aspect, t, soloCapitales) {
+    if (!NC || !opts.ciudades) return;
+    var d = view.dist;
+    var maxRango = d > 2.6 ? 0 : d > 2.1 ? 1 : d > 1.75 ? 2 : d > 1.45 ? 3
+                 : d > 1.28 ? 4 : d > 1.17 ? 5 : d > 1.10 ? 6 : d > 1.06 ? 7
+                 : d > 1.035 ? 8 : 9;
+    var cor = ciudades.cortes;
+    var hasta = Math.min(NC, cor[Math.min(maxRango + 1, cor.length - 1)]);
+    if (maxRango >= 9) hasta = NC;
+
+    var p = [0, 0, 0];
+    var horizon = 1 / view.dist;
+    // El tope de rótulos es holgado: la detección de solapes ya impide que se
+    // pisen, así que sobra sitio antes de que estorben.
+    var tope = d < 1.3 ? 52 : d < 2.2 ? 42 : 26;
+    if (soloCapitales) { ciuPuestos = 0; ciuPuntos = 0; }
+
+    ctx.save();
+    ctx.font = '500 11.5px ' + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    for (var i = 0; i < hasta; i++) {
+      var c = ciudades[i];
+      // La capital de un país es el rótulo que más manda de su zona: se pone
+      // antes que el nombre de la región, que en Japón o en Italia se llama
+      // igual que su capital y se la comería.
+      if (soloCapitales !== (c.cl === 0)) continue;
+      var elegida = sel.tipo === "ciudad" && sel.i === i;
+      if (ciuPuntos >= TOPE_PUNTOS && !elegida) continue;
+      unit(p, c.c[0] * DEG, c.c[1] * DEG);
+      rotateModel(p, mRot, p[0], p[1], p[2]);
+      var facing = (p[2] - horizon) / (1 - horizon);
+      if (facing < 0.05) continue;
+      var z = view.dist - p[2];
+      if (z <= 0.01) continue;
+      var sx = (p[0] / (z * t * aspect)) * 0.5 * W + W / 2;
+      var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
+      if (sx < 26 || sx > W - 26 || sy < 18 || sy > H - 18) continue;
+
+      // El punto se dibuja siempre; el rótulo, solo si cabe. Así una ciudad
+      // apretada contra el nombre de su provincia se sigue viendo y se sigue
+      // pudiendo pinchar, que es lo que se espera al ver el punto.
+      var capital = c.cl === 0;
+      ctx.globalAlpha = elegida ? 1 : Math.min(1, 0.42 + facing * 1.6);
+      var tinta = elegida ? acentoCSS() : capital ? scene.capital : scene.ciudad;
+      // Capital: círculo con anillo, el signo de siempre. Ciudad: punto.
+      ctx.beginPath();
+      ctx.arc(sx, sy, capital ? 3.4 : 2.1, 0, Math.PI * 2);
+      ctx.fillStyle = tinta;
+      ctx.fill();
+      if (capital) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, 5.6, 0, Math.PI * 2);
+        ctx.strokeStyle = tinta;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+      marcas.push({ tipo: "ciudad", i: i, sx: sx, sy: sy });
+      ciuPuntos++;
+
+      var w = ctx.measureText(c.n).width;
+      var box = [sx - w / 2 - 4, sy - 9, sx + w / 2 + 4, sy + 15];
+      var choca = ciuPuestos >= tope;
+      for (var b = 0; !choca && b < boxes.length; b++) {
+        var o = boxes[b];
+        if (box[0] < o[2] && box[2] > o[0] && box[1] < o[3] && box[3] > o[1]) choca = true;
+      }
+      if (choca && !elegida) { ctx.globalAlpha = 1; continue; }
+      boxes.push(box);
+      ciuPuestos++;
+
+      ctx.strokeStyle = scene.halo;
+      ctx.lineWidth = 3;
+      ctx.strokeText(c.n, sx, sy + 12);
+      ctx.fillStyle = elegida ? tinta : scene.label;
+      ctx.fillText(c.n, sx, sy + 12);
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+
   function dibujaRelieve(scene, boxes, aspect, t) {
-    marcas.length = 0;
     if (!relieve || !opts.relieve) return;
 
     var p = [0, 0, 0];
@@ -2252,6 +2515,10 @@ body {
     ctx.textBaseline = "middle";
     ctx.lineJoin = "round";
 
+    // Las marcas pinchables se rehacen enteras en cada fotograma.
+    marcas.length = 0;
+    dibujaCiudades(scene, boxes, aspect, t, true);
+
     for (var k = 0; k < orden.length && drawn < limit; k++) {
       var i = orden[k];
       var rec = lista[i];
@@ -2288,9 +2555,7 @@ body {
       ctx.strokeStyle = scene.halo;
       ctx.lineWidth = 3;
       ctx.strokeText(text, sx, sy - 9);
-      ctx.fillStyle = force
-        ? "rgb(" + accentRGB.map(function (v) { return Math.round(v * 255); }).join(",") + ")"
-        : scene.label;
+      ctx.fillStyle = force ? acentoCSS() : scene.label;
       ctx.fillText(text, sx, sy - 9);
 
       ctx.beginPath();
@@ -2299,6 +2564,9 @@ body {
       ctx.globalAlpha = 1;
     }
 
+    // El resto de ciudades y, al final, el relieve, que ocupa el hueco que
+    // quede. Las capitales ya se pusieron antes que estos rótulos.
+    dibujaCiudades(scene, boxes, aspect, t, false);
     dibujaRelieve(scene, boxes, aspect, t);
   }
 
@@ -2632,6 +2900,7 @@ body {
 
   var sub = document.getElementById("sub");
   sub.textContent = fmtNum(NP) + " países · " + fmtNum(ND) + " divisiones" +
+    (NC ? " · " + fmtNum(NC) + " ciudades" : "") +
     (relieve ? " · " + fmtNum(relieve.areas.length + relieve.puntos.length) +
                " accidentes naturales" : "");
 
@@ -2673,6 +2942,9 @@ body {
     pickAt: function (px, py) { return pickLonLat(px, py); },
     fronteras: front,
     tramosDe: tramosDe,
+    ciudades: ciudades,
+    capitalDe: capitalDe,
+    selectCiudad: function (i) { seleccionar(i >= 0 ? { tipo: "ciudad", i: i } : null); },
     divisionEn: divisionEn,
     areaEn: areaEn,
     regionEn: regionEn,

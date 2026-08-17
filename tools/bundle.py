@@ -14,13 +14,14 @@ ROOT = os.path.dirname(HERE)
 TPL = os.path.join(ROOT, "src", "globo.template.html")
 DATA = os.path.join(ROOT, "data", "mundo.json")
 RELIEVE = os.path.join(ROOT, "data", "relieve.json")
+CIUDADES = os.path.join(ROOT, "data", "ciudades.json")
 OUT = os.path.join(ROOT, "index.html")
 
 
 def main():
     with open(TPL, "r", encoding="utf-8") as fh:
         tpl = fh.read()
-    for marca in ("__MUNDO_DATA__", "__RELIEVE_DATA__"):
+    for marca in ("__MUNDO_DATA__", "__RELIEVE_DATA__", "__CIUDADES_DATA__"):
         if marca not in tpl:
             print("la plantilla no tiene el marcador %s" % marca, file=sys.stderr)
             return 1
@@ -36,6 +37,7 @@ def main():
 
     html = tpl.replace("__MUNDO_DATA__", blob(DATA))
     html = html.replace("__RELIEVE_DATA__", blob(RELIEVE))
+    html = html.replace("__CIUDADES_DATA__", blob(CIUDADES))
     with open(OUT, "w", encoding="utf-8") as fh:
         fh.write(html)
 

@@ -2,7 +2,7 @@
 
 Un mapa del mundo en 3D: un globo terráqueo que se dibuja con WebGL a partir de
 las fronteras reales de **249 países y 4.322 provincias, estados y
-departamentos**, más **3.536 accidentes naturales** —cordilleras, desiertos,
+departamentos**, con **7.358 ciudades** y **3.536 accidentes naturales** —cordilleras, desiertos,
 mesetas, cumbres, ríos, lagos y glaciares—, sin librerías externas y en **un
 solo archivo HTML** que funciona abriéndolo con doble clic.
 
@@ -18,6 +18,13 @@ index.html      → abre esto en el navegador
 - **Dos niveles**: el botón `Divisiones` alterna entre el mapa por provincias y
   el mapa por países. El nivel activo manda también al señalar: al pinchar se
   selecciona la división o el país, según lo que esté a la vista.
+- **Capitales y ciudades**: 7.358 poblaciones con su nombre en español, de
+  las que **265 son capitales** —redondel con anillo, como en cualquier atlas—
+  y 2.324, capitales de provincia. Van por importancia: desde el espacio solo
+  se ven las capitales y las grandes aglomeraciones, y cada acercamiento
+  destapa el siguiente escalón hasta los pueblos de menos de 5.000 habitantes.
+  Se pinchan para ver su población, su región —que lleva a la división del
+  mapa— y su hora solar, y la ficha de cada país trae su capital.
 - **Fronteras de todos los países**: 8.951 tramos, de los que 2.054 son
   límites terrestres entre dos países y el resto, costa. Se dibujan en dos
   colores —la costa perfila la tierra, el límite político va encima— y el
@@ -72,13 +79,14 @@ git -C /tmp/ne sparse-checkout set geojson
 cp /tmp/ne/geojson/ne_10m_admin_1_states_provinces.geojson data/admin1.geojson
 for c in 10m_geography_regions_polys 10m_geography_regions_elevation_points \
          10m_geography_regions_points 10m_rivers_lake_centerlines \
-         10m_lakes 50m_glaciated_areas; do
+         10m_lakes 50m_glaciated_areas 10m_populated_places; do
   cp /tmp/ne/geojson/ne_$c.geojson data/$c.geojson
 done
 
 # 2. geometría lista para la GPU  (~50 s)
 python3 tools/build_mundo.py     # divisiones y fronteras → data/mundo.json
 python3 tools/build_relieve.py   # geografía física       → data/relieve.json
+python3 tools/build_ciudades.py  # capitales y ciudades   → data/ciudades.json
 
 # 3. archivo único
 python3 tools/bundle.py          # plantilla + datos      → index.html
@@ -89,6 +97,7 @@ python3 tools/bundle.py          # plantilla + datos      → index.html
 | `src/globo.template.html` | La aplicación: estilos, interfaz y el motor WebGL. |
 | `tools/build_mundo.py` | Divisiones, países y fronteras a partir del GeoJSON. |
 | `tools/build_relieve.py` | Cordilleras, desiertos, cumbres, ríos, lagos, hielo y la rejilla de alturas. |
+| `tools/build_ciudades.py` | Capitales y ciudades, con su rango de aparición. |
 | `tools/topologia.py` | Simplificación que respeta las fronteras compartidas. |
 | `tools/geometria.py` | De polígonos lon/lat a triángulos sobre la esfera. |
 | `tools/nombres_es.py` | Nombres de países en español. |
@@ -137,6 +146,21 @@ mínimo. Son diez, y con ellos son 249 los países del atlas. En la dirección
 contraria, Natural Earth cuelga algunos territorios de su metrópoli —la
 Guayana Francesa figura dentro de Francia—: comparando el código de *geounit*
 se evita dibujarlos dos veces, con la costa y la frontera duplicadas encima.
+
+**3c. Que ninguna capital falte, y que un punto se pueda pinchar.** Natural
+Earth no marca capital de país en 41 territorios: Nuuk o Papeete figuran como
+«capital de región», y en las Feroe, las Cook o las Marianas la sede aparece
+como una capital de provincia más. Se resuelven por reglas —una capital de
+región es la capital de su territorio; si a un país le queda una sola ciudad
+marcada como capital, es esa— y las 16 que ni así están se añaden a mano, con
+la advertencia de que van a mano. Quedan 235 países con capital de 249: los 14
+restantes son la Antártida, bases militares y atolones deshabitados.
+
+Y un detalle que cambia el uso: el **punto se dibuja siempre, el rótulo solo si
+cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
+desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
+está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
+hay hueco, como en un mapa de papel.
 
 **4. Triangular sin cuñas.** Cada anillo se triangula por recorte de orejas,
 con puente para los huecos —un país dentro de otro, como Lesoto dentro de
@@ -240,6 +264,13 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   Baikal y los Andes se obtiene en cada caso el accidente correcto con su
   cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
   Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
+- **Ciudades**: pinchando encima de 40 puntos de ciudad dibujados, 39
+  devuelven esa misma ciudad. El que falla siempre es un par de capitales
+  pegadas —Kinsasa y Brazzaville, a 5 km una de otra a cada orilla del Congo;
+  Roma y la Ciudad del Vaticano, a 2 km—: desde el espacio sus puntos caen a
+  menos de 20 píxeles y gana el más cercano al cursor. Acercándose se separan.
+  La región sale con el nombre en español del propio mapa en 6.610 de las 7.222
+  ciudades que la traen, y en 235 de los 249 países la ficha da su capital.
 - **Ríos**: de una lista de 125 grandes ríos del mundo, los 125 están en el
   mapa y con el nombre en español. Ningún nombre queda con caracteres rotos.
   Los 1.057 ríos con nombre son buscables, aunque su rótulo solo aparezca al
@@ -258,6 +289,11 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 - Divisiones: [Natural Earth](https://www.naturalearthdata.com/), capa
   `ne_10m_admin_1_states_provinces`, dominio público. Los nombres en español
   vienen del propio conjunto de datos (`name_es`).
+- Ciudades: Natural Earth, capa `populated_places` (1:10 M), con los nombres
+  en español del propio conjunto de datos (`NAME_ES`). La población es el
+  máximo del área metropolitana (`POP_MAX`), de en torno a 2010-2015: son
+  cifras de aglomeración, no del municipio, y por eso Madrid sale con 5,6
+  millones y no con 3,3.
 - Geografía física: Natural Earth, capas `geography_regions_polys`,
   `geography_regions_elevation_points`, `geography_regions_points`,
   `rivers_lake_centerlines` y `lakes` (1:10 M) y `glaciated_areas` (1:50 M).
@@ -272,6 +308,16 @@ de agua del planeta. Faltan cauces secundarios; comprobando una lista de 125
 grandes ríos, el único ausente del conjunto de datos era el Murrumbidgee
 australiano. Un inventario realmente completo (HydroRIVERS, con 8,5 millones de
 tramos) ocupa cerca de un gigabyte y no cabe en un archivo HTML.
+
+**Sobre las capitales añadidas a mano**: 16 territorios pequeños no tienen
+ninguna ciudad en la capa de Natural Earth, o la que tienen no es su capital.
+Se añaden en `tools/build_ciudades.py` (la tabla `CAPITALES_EXTRA`): El Valle,
+Yaren, Adamstown, San Pedro, Kingston, Saint Helier, Saint Peter Port, Road
+Town, Brades, Jamestown, Philipsburg, Marigot, Gustavia, Mata Utu, Nicosia
+Norte y Charlotte Amalie. Las cuatro primeras usan el punto de rótulo que
+Natural Earth da a la división administrativa homónima; el resto lleva la
+posición del centro urbano puesta a mano, con precisión de unos cientos de
+metros. Van marcadas en los datos para poder distinguirlas del origen.
 
 El nivel administrativo 1 no tiene la misma granularidad en todo el mundo: son
 las 51 provincias de España, los 50 estados de Estados Unidos, los 27 estados
