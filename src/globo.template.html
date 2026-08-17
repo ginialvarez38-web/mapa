@@ -289,8 +289,8 @@ body {
   position: fixed;
   top: 78px; right: 22px;
   z-index: 4;
-  width: 288px;
-  padding: 14px 16px 13px;
+  width: 232px;
+  padding: 10px 12px 11px;
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--panel);
@@ -298,80 +298,82 @@ body {
   -webkit-backdrop-filter: blur(16px);
   box-shadow: var(--shadow);
   font-family: var(--font-ui);
+  font-size: 12px;
 }
 .guerra[hidden] { display: none; }
-.guerra h2 {
-  margin: 0 0 2px;
-  font-family: var(--font-ui);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: .01em;
-}
-.guerra .lead { margin: 0 0 10px; font-size: 12px; line-height: 1.45; color: var(--ink-soft); }
-.guerra .cifras {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 11px;
+.guerra.plegado .lead,
+.guerra.plegado #g-cuerpo { display: none; }
+
+.g-cab { display: flex; align-items: center; gap: 10px; }
+.g-cab > b { font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+.g-mini { display: flex; align-items: baseline; gap: 4px; margin-left: auto; }
+.g-mini span {
   font-family: var(--font-data);
+  font-size: 8px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
 }
-.guerra .cifras div { display: flex; flex-direction: column; gap: 2px; }
-.guerra .cifras span {
-  font-size: 8.5px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase;
+.g-mini b { font-family: var(--font-data); font-size: 11.5px; font-weight: 600; }
+.g-plegar {
+  margin-left: 2px; padding: 0 3px;
+  border: 0; background: none; color: var(--muted);
+  font-size: 11px; line-height: 1; cursor: pointer;
 }
-.guerra .cifras b { font-size: 14px; font-weight: 600; letter-spacing: .01em; }
-.guerra .barra {
-  height: 4px; margin-bottom: 12px;
-  border-radius: 2px;
-  background: rgba(128,150,175,.28);
-  overflow: hidden;
+.g-plegar:hover { color: var(--ink); }
+
+.guerra .lead { margin: 7px 0 0; font-size: 11px; line-height: 1.4; color: var(--ink-soft); }
+.guerra .lead[hidden] { display: none; }
+
+.g-bandos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
+.g-bando { padding: 6px 7px; border-radius: 3px; background: rgba(128,150,175,.13); }
+.g-bando.yo { box-shadow: inset 2px 0 0 #C0392B; }
+.g-bando.el { box-shadow: inset 2px 0 0 #5B8DB8; }
+.g-bando span {
+  display: block;
+  font-family: var(--font-data);
+  font-size: 8px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
 }
-.guerra .barra i { display: block; height: 100%; background: #C0392B; transition: width .35s ease; }
-.guerra .objetivo {
-  margin-bottom: 11px; padding: 10px 11px;
-  border: 1px solid var(--line-strong);
-  border-radius: 3px;
+.g-bando b {
+  display: block; margin-top: 1px;
+  font-size: 12px; font-weight: 600; line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.guerra .objetivo[hidden] { display: none; }
-.guerra .objetivo h3 { margin: 0; font-size: 13.5px; font-weight: 600; }
-.guerra .objetivo p { margin: 3px 0 0; font-size: 11.5px; color: var(--ink-soft); }
+.g-bando em {
+  display: block; margin-top: 2px;
+  font-family: var(--font-data); font-size: 9.5px; font-style: normal; color: var(--ink-soft);
+}
+
+.g-orden { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }
+.g-orden[hidden] { display: none; }
+.g-ruta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
+.g-ruta b { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-ruta b:last-child { text-align: right; color: var(--ink-soft); }
+.g-ruta i { font-style: normal; color: var(--muted); }
+
 .guerra .duelo {
   display: flex; align-items: baseline; justify-content: space-between;
-  margin: 9px 0 2px;
+  margin: 5px 0 3px;
   font-family: var(--font-data);
 }
-.guerra .duelo b { font-size: 17px; font-weight: 600; }
+.guerra .duelo b { font-size: 14px; font-weight: 600; }
 .guerra .duelo .yo { color: #E06A5A; }
 .guerra .duelo .el { color: #7FB3E0; }
-.guerra .duelo em { font-size: 10px; font-style: normal; color: var(--muted); letter-spacing: .1em; }
-.guerra label.envio {
-  display: block; margin: 10px 0 4px;
-  font-size: 10px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
-}
-.guerra input[type=range] { width: 100%; accent-color: #C0392B; }
-.guerra .fila { display: flex; gap: 7px; margin-top: 10px; }
-.guerra .fila .btn { flex: 1; justify-content: center; text-align: center; }
+.guerra .duelo em { font-size: 9.5px; font-style: normal; color: var(--muted); letter-spacing: .08em; }
+
+.guerra input[type=range] { width: 100%; margin: 0; accent-color: #C0392B; }
+.guerra .fila { display: flex; align-items: center; gap: 7px; margin-top: 7px; }
+.guerra .fila .btn { flex: 1; justify-content: center; text-align: center; font-size: 11px; padding: 5px 8px; }
+.g-envio-n { font-family: var(--font-data); font-size: 11px; color: var(--ink-soft); }
 .guerra .btn.primario { border-color: #C0392B; background: rgba(192,57,43,.22); }
 .guerra .btn.primario:hover:not([disabled]) { background: rgba(192,57,43,.38); }
 .guerra .btn[disabled] { opacity: .42; cursor: default; }
-.guerra .diario {
-  margin: 11px 0 0; padding: 9px 0 0;
-  border-top: 1px solid var(--line);
-  max-height: 116px; overflow-y: auto;
-  font-size: 11.5px; line-height: 1.5; color: var(--ink-soft);
-}
-.guerra .diario p { margin: 0 0 4px; }
-.guerra .diario .gana { color: #E08A5A; }
-.guerra .diario .pierde { color: var(--muted); }
 .guerra .veredicto {
-  margin: 10px 0 0; padding: 10px 11px;
+  margin: 9px 0 0; padding: 8px 9px;
   border-radius: 3px;
   background: rgba(192,57,43,.16);
-  font-size: 12.5px; line-height: 1.45;
+  font-size: 11.5px; line-height: 1.4;
 }
 @media (max-width: 900px) {
-  .guerra { top: auto; bottom: 104px; right: 12px; left: 12px; width: auto; }
-  .guerra .diario { max-height: 66px; }
+  .guerra { top: auto; bottom: 104px; right: 12px; width: 214px; }
+}
 }
 
 .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -608,43 +610,56 @@ body {
 </div>
 
 <section class="guerra" id="guerra" hidden aria-live="polite">
-  <h2 id="g-titulo">Campaña</h2>
-  <p class="lead" id="g-lead">Elige en el mapa el país con el que empiezas.</p>
-
-  <div class="cifras" id="g-cifras" hidden>
-    <div><span>Turno</span><b id="g-turno">1</b></div>
-    <div><span>Países</span><b id="g-paises">1</b></div>
-    <div><span>Tropas</span><b id="g-tropas">—</b></div>
-    <div><span>Asaltos</span><b id="g-acciones">1</b></div>
-    <div><span>Reclutas</span><b id="g-reclutas">—</b></div>
-    <div><span>Bajas</span><b id="g-bajas">0</b></div>
+  <div class="g-cab">
+    <b>Campaña</b>
+    <div class="g-mini"><span>Turno</span><b id="g-turno">1</b></div>
+    <div class="g-mini"><span>Asaltos</span><b id="g-acciones">1/1</b></div>
+    <button class="g-plegar" id="g-plegar" type="button" aria-pressed="false"
+            aria-label="Plegar el panel">&#9652;</button>
   </div>
-  <div class="barra" id="g-barra" hidden><i id="g-barra-i" style="width:0%"></i></div>
 
-  <div class="objetivo" id="g-obj" hidden>
-    <h3 id="g-obj-n">—</h3>
-    <p id="g-obj-d">—</p>
-    <div class="duelo">
-      <b class="yo" id="g-yo">—</b>
-      <em id="g-odds">—</em>
-      <b class="el" id="g-el">—</b>
+  <p class="lead" id="g-lead">Pincha en el mapa la división con la que empiezas.</p>
+
+  <div id="g-cuerpo" hidden>
+    <div class="g-bandos">
+      <div class="g-bando yo">
+        <span>Eres</span>
+        <b id="g-yo-pais">—</b>
+        <em><i id="g-yo-divs">—</i> divisiones · <i id="g-yo-tropas">—</i></em>
+      </div>
+      <div class="g-bando el">
+        <span>Atacas a</span>
+        <b id="g-obj-pais">—</b>
+        <em>le quedan <i id="g-obj-divs">—</i></em>
+      </div>
     </div>
-    <label class="envio" for="g-envio">Tropas al asalto · <span id="g-envio-n">—</span></label>
-    <input type="range" id="g-envio" min="5" max="100" value="70">
+
+    <div class="g-orden" id="g-orden" hidden>
+      <div class="g-ruta">
+        <b id="g-origen">—</b>
+        <i id="g-flecha">&#8594;</i>
+        <b id="g-destino">—</b>
+      </div>
+      <div class="duelo">
+        <b class="yo" id="g-fuerza">—</b>
+        <em id="g-odds">—</em>
+        <b class="el" id="g-rival">—</b>
+      </div>
+      <input type="range" id="g-envio" min="0" max="100" value="80"
+             aria-label="Tropas que envías">
+      <div class="fila">
+        <button class="btn primario" id="g-atacar" type="button">Atacar</button>
+        <span class="g-envio-n" id="g-envio-n">—</span>
+      </div>
+    </div>
+
+    <div class="veredicto" id="g-veredicto" hidden>—</div>
+
     <div class="fila">
-      <button class="btn primario" id="g-atacar" type="button">Atacar</button>
-      <button class="btn" id="g-cancelar" type="button">Soltar</button>
+      <button class="btn" id="g-turno-fin" type="button">Terminar turno</button>
+      <button class="btn" id="g-salir" type="button">Salir</button>
     </div>
   </div>
-
-  <div class="veredicto" id="g-veredicto" hidden>—</div>
-
-  <div class="fila">
-    <button class="btn" id="g-turno-fin" type="button" hidden>Terminar turno</button>
-    <button class="btn" id="g-salir" type="button">Salir</button>
-  </div>
-
-  <div class="diario" id="g-diario" hidden></div>
 </section>
 
 <nav class="panel" id="panel" aria-label="Índice de países">
@@ -1582,12 +1597,13 @@ body {
     for (var i = 0; i < ND; i++) {
       var ip = divisiones[i].pa;
       var rgb = juego
-        ? hexToRgb(juego.duenyo[ip] === 1 ? COLOR_IMPERIO
-                 : juego.frente && juego.frente[ip] ? COLOR_FRENTE : COLOR_LIBRE)
+        ? hexToRgb(juego.duenyo[i] === 1 ? COLOR_IMPERIO
+                 : juego.frente && juego.frente[i] ? COLOR_FRENTE : COLOR_LIBRE)
         : colorPais(scene, ip);
       // Con las divisiones a la vista, cada una toma el tono de su país en un
-      // matiz distinto; sin ellas, todo el país va de un color.
-      var k = opts.divs && !juego ? 0.88 + 0.20 * (((i * 37) % 5) / 4) : 1;
+      // matiz distinto; sin ellas, todo el país va de un color. En campaña el
+      // matiz separa una división conquistada de la de al lado.
+      var k = opts.divs ? 0.88 + 0.20 * (((i * 37) % 5) / 4) : 1;
       palData[i * 4] = Math.min(255, rgb[0] * 255 * k);
       palData[i * 4 + 1] = Math.min(255, rgb[1] * 255 * k);
       palData[i * 4 + 2] = Math.min(255, rgb[2] * 255 * k);
@@ -1925,12 +1941,13 @@ body {
       // más concretas que la región que hay debajo.
       var m = marcaCerca(px, py);
       var ll = pickLonLat(px, py);
-      // En campaña el clic es una orden militar antes que una consulta.
+      // En campaña el clic es una orden militar antes que una consulta, y va
+      // sobre la división concreta que se toca.
       if (eligiendo || juego) {
-        var ip = paisBajo(m, ll);
-        if (ip >= 0) {
-          if (eligiendo) { empiezaEn(ip); return; }
-          if (eligeObjetivo(ip)) return;
+        var dv = divisionBajo(m, ll);
+        if (dv >= 0) {
+          if (eligiendo) { empiezaEn(dv); return; }
+          if (tocaDivision(dv)) return;
         }
       }
       if (m) { seleccionar(m); return; }
@@ -2254,21 +2271,24 @@ body {
 
   var MAX_RESULTADOS = 240;
 
-  // Lo que se lee bajo el nombre de un país en el índice: su superficie, o su
-  // ejército si hay una campaña en marcha.
-  function subPais(i) {
-    if (!juego) return fmtArea(paises[i].a);
+  // Lo que se lee bajo el nombre de una división en el parte de guerra.
+  function subDiv(i) {
     var t = fmtNum(Math.round(juego.tropas[i]));
-    if (juego.duenyo[i] === 1) return "Tuyo · " + t;
-    if (juego.frente[i] === "mar") return "Desembarco · " + t;
-    if (juego.frente[i]) return "Al alcance · " + t;
-    return t;
+    var pais = paises[divisiones[i].pa].n;
+    if (i === juego.origen) return "Desde aquí · " + t;
+    if (juego.duenyo[i] === 1) return "Tuya · " + t;
+    if (juego.frente[i] === "mar") return "Desembarco · " + pais + " · " + t;
+    if (juego.frente[i]) return "Al alcance · " + pais + " · " + t;
+    return pais + " · " + t;
   }
 
+  // Orden del parte: primero lo atacable, luego lo tuyo, y de lo demás sólo lo
+  // que toca al frente. Listar 4.322 divisiones no ayuda a nadie.
   function rangoLista(i) {
     if (juego.frente[i]) return 0;
-    if (juego.duenyo[i] === 1) return 1;
-    return 2;
+    if (i === juego.origen) return 1;
+    if (juego.duenyo[i] === 1) return 2;
+    return 3;
   }
 
   // Al buscar manda la relevancia, no la categoría: si escribes «nilo» lo
@@ -2286,18 +2306,24 @@ body {
     var q = normalize(filter || "");
     listEl.textContent = "";
 
-    if (!q) {                                   // sin búsqueda, el índice de países
-      // En campaña el índice deja de ser alfabético: delante lo que se puede
-      // atacar ahora, luego lo tuyo y al final el resto del mundo.
-      var orden = [];
-      for (var i = 0; i < NP; i++) orden.push(i);
+    if (!q) {
+      // En campaña el índice deja de ser el de países: pasa a ser el parte de
+      // guerra, con las divisiones que puedes atacar ahora delante, luego las
+      // tuyas del frente y al final las demás.
       if (juego) {
+        var orden = [];
+        for (var i = 0; i < ND; i++) if (rangoLista(i) < 3) orden.push(i);
         orden.sort(function (a, b) {
           return rangoLista(a) - rangoLista(b) || juego.tropas[a] - juego.tropas[b];
         });
+        for (var k = 0; k < orden.length && k < MAX_RESULTADOS; k++) {
+          fila("div", orden[k], divisiones[orden[k]].n, subDiv(orden[k]));
+        }
+        marcarLista();
+        return;
       }
-      for (var k = 0; k < orden.length && k < MAX_RESULTADOS; k++) {
-        fila("pais", orden[k], paises[orden[k]].n, subPais(orden[k]));
+      for (var i = 0; i < NP && i < MAX_RESULTADOS; i++) {
+        fila("pais", i, paises[i].n, fmtArea(paises[i].a));
       }
       marcarLista();
       return;
@@ -2315,11 +2341,13 @@ body {
     }
 
     for (var i = 0; i < NP; i++) {
-      mira("pais", i, paises[i].n, paises[i].en || paises[i].id, subPais(i), 0);
+      mira("pais", i, paises[i].n, paises[i].en || paises[i].id, fmtArea(paises[i].a),
+           juego ? 0.4 : 0);
     }
     for (var i = 0; i < ND; i++) {
       var d = divisiones[i];
-      mira("div", i, d.n, d.en || d.id, paises[d.pa].n, 0.2);
+      mira("div", i, d.n, d.en || d.id, juego ? subDiv(i) : paises[d.pa].n,
+           juego ? 0 : 0.2);
     }
     for (var i = 0; opts.ciudades && i < NC; i++) {
       var c = ciudades[i];
@@ -2358,11 +2386,12 @@ body {
     var b = e.target.closest("button");
     if (!b) return;
     var r = desdeBoton(b);
-    // Con la campaña abierta el índice sirve para elegir país y para buscar
-    // objetivos por nombre, no solo para mirar fichas.
-    if ((eligiendo || juego) && r && r.tipo === "pais") {
+    // Con la campaña abierta el índice manda divisiones, no fichas: sirve para
+    // elegir con cuál empiezas y para buscar objetivos por nombre.
+    if ((eligiendo || juego) && r && r.tipo === "div") {
       if (eligiendo) { empiezaEn(r.i); return; }
-      if (eligeObjetivo(r.i)) { flyTo(paises[r.i].c[0], paises[r.i].c[1]); return; }
+      flyTo(divisiones[r.i].c[0], divisiones[r.i].c[1]);
+      if (tocaDivision(r.i)) return;
     }
     seleccionar(r);
   });
@@ -2378,49 +2407,109 @@ body {
   renderList("");
 
   // ---------------------------------------------------------------- //
-  // Campaña: conquistar el mundo país a país                          //
+  // Campaña: conquistar el mundo división a división                  //
   // ---------------------------------------------------------------- //
   //
-  // Las reglas se apoyan en lo que el mapa ya sabe: quién limita con quién
-  // sale de los arcos de frontera, el ejército de cada país de la población
-  // de sus ciudades y su superficie, y la ventaja defensiva de la altura del
-  // terreno. Nada de esto es un número inventado por el juego.
+  // La unidad de conquista es la división, no el país: así se ve avanzar el
+  // frente provincia a provincia en vez de a saltos de país entero. Todo sale
+  // de lo que el mapa ya sabe: quién limita con quién viene de los arcos
+  // compartidos, el ejército de cada división de la población de sus ciudades
+  // y su superficie, y la ventaja del defensor, de la altura de su terreno.
 
   var juego = null;
 
-  // Población urbana de cada país, sumando sus ciudades. Se calcula una vez.
-  var pobPais = null;
-  function poblacionPorPais() {
-    if (pobPais) return pobPais;
-    pobPais = new Float64Array(NP);
-    for (var k = 0; k < NC; k++) {
-      if (ciudades[k].pa >= 0) pobPais[ciudades[k].pa] += ciudades[k].pop;
+  // --- vecindad entre divisiones, desde los arcos compartidos --------------
+  var vecOff = null, vecFlat = null;
+  (function () {
+    var v = mundo.vecindad;
+    if (!v || !v.o) return;
+    var bo = b64Bytes(v.o), bv = b64Bytes(v.v);
+    vecOff = new Uint32Array(bo.buffer, bo.byteOffset, bo.byteLength >> 2);
+    vecFlat = new Uint16Array(bv.buffer, bv.byteOffset, bv.byteLength >> 1);
+  })();
+
+  // Vecindad de arcos más la que haga falta añadir a mano. Los arcos no ven
+  // los enclaves: Viena está metida dentro de Baja Austria sin compartir su
+  // anillo con nadie, y como ella hay 270 divisiones —capitales rodeadas por
+  // su provincia, islas— que se quedaban sin una sola vecina y volvían la
+  // campaña injugable desde ahí.
+  var vecExtra = null;
+  function vecinosDiv(i) {
+    var out = [];
+    if (vecOff) {
+      for (var k = vecOff[i]; k < vecOff[i + 1]; k++) out.push(vecFlat[k]);
     }
-    return pobPais;
+    if (vecExtra && vecExtra[i]) {
+      for (var k = 0; k < vecExtra[i].length; k++) {
+        if (out.indexOf(vecExtra[i][k]) < 0) out.push(vecExtra[i][k]);
+      }
+    }
+    return out;
   }
 
-  // Ejército inicial: la población manda, la extensión pesa menos y hay un
-  // suelo para que ningún país sea gratis.
-  function ejercitoDe(ip) {
-    var base = poblacionPorPais()[ip] / 900 + Math.sqrt(Math.max(1, paises[ip].a)) * 14;
-    return Math.max(1200, Math.round(base));
+  function anota(a, b) {
+    if (a === b) return;
+    if (!vecExtra[a]) vecExtra[a] = [];
+    if (vecExtra[a].indexOf(b) < 0) vecExtra[a].push(b);
   }
 
-  // Ventaja del terreno: un país alto y quebrado se defiende mejor. Se mide
-  // sobre la misma rejilla de alturas que levanta el relieve en 3D.
-  function defensaDe(ip) {
-    var b = paises[ip].b, alto = 0, n = 0;
-    var pasos = 4;
-    for (var i = 0; i <= pasos; i++) {
-      for (var j = 0; j <= pasos; j++) {
-        var lon = b[0] + (b[2] - b[0]) * i / pasos;
-        var lat = b[1] + (b[3] - b[1]) * j / pasos;
-        alto += alturaR(lon, lat) * 6371000;
+  // Se resuelven todos de una vez al empezar la partida: hacerlo por las bravas
+  // cuando toque rompería la simetría —Viena sabría de Baja Austria, pero Baja
+  // Austria no de Viena— y el frente dependería del orden de conquista.
+  function completaVecindad() {
+    if (vecExtra) return;
+    vecExtra = new Array(ND);
+    if (!vecOff) return;
+    for (var i = 0; i < ND; i++) {
+      if (vecOff[i + 1] > vecOff[i]) continue;
+      var d = decoded[i];
+      if (!d || !d.lonlat) continue;
+      var cen = divisiones[i].c, b = divisiones[i].b;
+      var paso = Math.max(0.05, Math.min(0.45, Math.hypot(b[2] - b[0], b[3] - b[1]) * 0.3));
+      var salto = Math.max(1, Math.floor(d.nv / 24));
+      for (var k = 0; k < d.nv; k += salto) {
+        var lon = d.lonlat[k * 2] / SCALE, lat = d.lonlat[k * 2 + 1] / SCALE;
+        var dx = lon - cen[0], dy = lat - cen[1];
+        var m = Math.hypot(dx, dy) || 1;
+        var otro = divisionEn(lon + dx / m * paso, lat + dy / m * paso);
+        if (otro < 0 || otro === i) continue;
+        anota(i, otro);
+        anota(otro, i);
+      }
+    }
+  }
+
+  // --- fuerza y terreno de cada división -----------------------------------
+  var pobDiv = null;
+  function poblacionPorDiv() {
+    if (pobDiv) return pobDiv;
+    pobDiv = new Float64Array(ND);
+    for (var k = 0; k < NC; k++) {
+      if (ciudades[k].dv >= 0) pobDiv[ciudades[k].dv] += ciudades[k].pop;
+    }
+    return pobDiv;
+  }
+
+  function ejercitoDiv(i) {
+    var base = poblacionPorDiv()[i] / 900 + Math.sqrt(Math.max(1, divisiones[i].a)) * 9;
+    return Math.max(300, Math.round(base));
+  }
+
+  // Un terreno alto y quebrado se defiende mejor, medido sobre la misma
+  // rejilla de alturas que levanta el relieve en 3D.
+  var defDiv = null;
+  function defensaDiv(i) {
+    if (!defDiv) defDiv = new Float64Array(ND);
+    if (defDiv[i]) return defDiv[i];
+    var b = divisiones[i].b, alto = 0, n = 0;
+    for (var x = 0; x <= 3; x++) {
+      for (var y = 0; y <= 3; y++) {
+        alto += alturaR(b[0] + (b[2] - b[0]) * x / 3, b[1] + (b[3] - b[1]) * y / 3) * 6371000;
         n++;
       }
     }
-    var media = n ? alto / n : 0;               // metros
-    return 1 + Math.min(0.55, media / 4200);
+    defDiv[i] = 1 + Math.min(0.55, (alto / n) / 4200);
+    return defDiv[i];
   }
 
   function gcKm(lon1, lat1, lon2, lat2) {
@@ -2432,75 +2521,55 @@ body {
     return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
   }
 
-  // Puertos de un país: puntos de su contorno con mar de verdad delante.
+  // --- puertos: qué divisiones dan al mar de verdad ------------------------
   //
-  // No vale mirar sólo la clase del tramo. Un tramo «de costa» es el que no
-  // tiene división al otro lado, y eso incluye las orillas de los lagos y los
-  // huecos que dejan las divisiones diminutas que no se dibujan: por ahí
-  // Austria acababa embarcando tropas hacia Jersey. La prueba buena es salir
-  // del contorno hacia fuera y ver si allí sigue habiendo tierra.
-  var puertosPais = null;
-  function puertosDe(ip) {
-    if (!puertosPais) puertosPais = new Array(NP);
-    if (puertosPais[ip]) return puertosPais[ip];
+  // No vale mirar sólo el contorno: una división limita con el vacío también
+  // en la orilla de un lago o donde su vecina es demasiado pequeña para
+  // dibujarse. La prueba buena es salir hacia fuera y ver si allí sigue
+  // habiendo tierra, y hacerlo a dos distancias, porque un hueco entre
+  // polígonos engaña a una sonda pero no a dos.
+  var puertosDiv = null;
+  function puertosDe(i) {
+    if (!puertosDiv) puertosDiv = new Array(ND);
+    if (puertosDiv[i]) return puertosDiv[i];
     var out = [];
-    var lista = tramosDe(ip);
-    if (lista && front.ll) {
-      var cen = paises[ip].c;
-      // Candidatos repartidos por TODO el contorno. Recortar la lista pronto
-      // dejaba a España con puertos sólo en Canarias, y el Estrecho —14 km—
-      // se medía como una travesía de 900.
-      var candidatos = [];
-      var porTramo = Math.max(2, Math.round(320 / Math.max(1, lista.length)));
-      for (var k = 0; k < lista.length; k++) {
-        var ini = front.s[lista[k] * 2], n = front.s[lista[k] * 2 + 1];
-        var salto = Math.max(1, Math.floor(n / porTramo));
-        for (var j = 0; j < n; j += salto) {
-          candidatos.push([front.ll[(ini + j) * 2] / SCALE, front.ll[(ini + j) * 2 + 1] / SCALE]);
+    var d = decoded[i];
+    if (d && d.lonlat) {
+      var cen = divisiones[i].c;
+      var b = divisiones[i].b;
+      var paso = Math.max(0.06, Math.min(0.5, Math.hypot(b[2] - b[0], b[3] - b[1]) * 0.3));
+      // Pocas sondas y repartidas. Cada una es un punto-en-polígono contra la
+      // celda del índice, y con 4.322 divisiones la diferencia entre sondear
+      // 90 puntos o 16 son segundos de partida.
+      var n = d.nv;
+      var sondas = 16;
+      var salto = Math.max(1, Math.floor(n / sondas));
+      for (var k = 0; k < n; k += salto) {
+        var lon = d.lonlat[k * 2] / SCALE, lat = d.lonlat[k * 2 + 1] / SCALE;
+        var dx = lon - cen[0], dy = lat - cen[1];
+        var m = Math.hypot(dx, dy) || 1;
+        dx /= m; dy /= m;
+        if (mar(lon, lat, dx, dy, paso) && mar(lon, lat, dx, dy, paso * 2)) {
+          out.push([lon, lat]);
         }
       }
-      // Cuánto se sale a mirar: a la medida del país. Con un paso fijo, San
-      // Marino «llegaba» al Adriático que tiene a 35 km y se convertía en
-      // potencia naval.
-      var b = paises[ip].b;
-      var diag = Math.hypot(b[2] - b[0], b[3] - b[1]);
-      var paso = Math.max(0.08, Math.min(0.6, diag * 0.25));
-
-      // Y se comprueba a dos distancias: un hueco entre polígonos —los hay en
-      // la frontera de Croacia con Eslovenia— engaña a una sonda, no a dos.
-      function hayMar(lon, lat, dx, dy, f) {
-        var mx = lon + dx * paso * f, my = lat + dy * paso * f;
-        if (my > 89 || my < -89) return false;
-        if (mx > 180) mx -= 360; else if (mx < -180) mx += 360;
-        return divisionEn(mx, my) < 0;
-      }
-
-      var salto2 = Math.max(1, Math.floor(candidatos.length / 220));
-      var hallados = [];
-      for (var k = 0; k < candidatos.length; k += salto2) {
-        var lon = candidatos[k][0], lat = candidatos[k][1];
-        var dx = lon - cen[0], dy = lat - cen[1];
-        var d = Math.hypot(dx, dy) || 1;
-        dx /= d; dy /= d;
-        if (hayMar(lon, lat, dx, dy, 1) && hayMar(lon, lat, dx, dy, 2)) hallados.push([lon, lat]);
-      }
-      // Se recorta al final y de forma pareja, para no quedarse con un trozo
-      // de costa y perder el resto.
-      var q = Math.max(1, Math.ceil(hallados.length / 48));
-      for (var k = 0; k < hallados.length; k += q) out.push(hallados[k]);
     }
-    puertosPais[ip] = out;
+    puertosDiv[i] = out;
     return out;
   }
 
-  // Travesía más corta entre dos países, de puerto a puerto. Se guarda en
-  // caché: en una partida larga se pregunta muchas veces por la misma pareja.
+  function mar(lon, lat, dx, dy, paso) {
+    var mx = lon + dx * paso, my = lat + dy * paso;
+    if (my > 89 || my < -89) return false;
+    if (mx > 180) mx -= 360; else if (mx < -180) mx += 360;
+    return divisionEn(mx, my) < 0;
+  }
+
   var cacheMar = {};
   function travesiaKm(a, b) {
     var clave = a < b ? a + ":" + b : b + ":" + a;
     if (cacheMar[clave] !== undefined) return cacheMar[clave];
-    var pa = puertosDe(a), pb = puertosDe(b);
-    var mejor = Infinity;
+    var pa = puertosDe(a), pb = puertosDe(b), mejor = Infinity;
     for (var i = 0; i < pa.length; i++) {
       for (var j = 0; j < pb.length; j++) {
         var d = gcKm(pa[i][0], pa[i][1], pb[j][0], pb[j][1]);
@@ -2511,123 +2580,114 @@ body {
     return mejor;
   }
 
-  // Alcance de la flota: empieza siendo un salto de estrecho y crece con el
-  // imperio. Sin esto la partida se atasca al final con media docena de islas
-  // perdidas —Heard, Clipperton, la Antártida— que nadie puede alcanzar.
+  // La flota empieza cruzando estrechos y llega más lejos con el imperio.
   function alcanceNaval() {
-    if (!juego) return 900;
-    return Math.min(4200, 900 + juego.conquistas * 45);
+    return juego ? Math.min(3800, 700 + juego.conquistas * 6) : 700;
   }
 
-  // Vecindad aumentada. La lista de limítrofes sale de los arcos compartidos y
-  // es exacta, pero deja fuera algún enclave: el Cosmódromo de Baikonur está
-  // metido en Kazajistán sin que su anillo lo comparta nadie, así que se
-  // quedaba sin vecinos, sin costa y sin forma de conquistarlo. Para esos —y
-  // sólo para esos— se mira qué país hay justo al otro lado de su contorno.
-  function vecindad() {
-    var vec = new Array(NP);
-    for (var i = 0; i < NP; i++) vec[i] = (paises[i].lim || []).slice();
-    for (var i = 0; i < NP; i++) {
-      if (vec[i].length || puertosDe(i).length) continue;
-      var lista = tramosDe(i);
-      if (!lista || !front.ll) continue;
-      var cen = paises[i].c;
-      var b = paises[i].b;
-      var paso = Math.max(0.06, Math.min(0.5, Math.hypot(b[2] - b[0], b[3] - b[1]) * 0.3));
-      for (var k = 0; k < lista.length; k++) {
-        var ini = front.s[lista[k] * 2], n = front.s[lista[k] * 2 + 1];
-        var salto = Math.max(1, Math.floor(n / 8));
-        for (var j = 0; j < n; j += salto) {
-          var lon = front.ll[(ini + j) * 2] / SCALE, lat = front.ll[(ini + j) * 2 + 1] / SCALE;
-          var dx = lon - cen[0], dy = lat - cen[1];
-          var d = Math.hypot(dx, dy) || 1;
-          var dv = divisionEn(lon + dx / d * paso, lat + dy / d * paso);
-          if (dv < 0) continue;
-          var otro = divisiones[dv].pa;
-          if (otro === i || vec[i].indexOf(otro) >= 0) continue;
-          vec[i].push(otro);
-          if (vec[otro].indexOf(i) < 0) vec[otro].push(i);
-        }
-      }
-    }
-    return vec;
-  }
-
+  // --- estado de la partida ------------------------------------------------
   function nuevaCampana(inicio) {
-    var duenyo = new Int8Array(NP);          // 0 neutral, 1 jugador
-    var tropas = new Float64Array(NP);
-    var defensa = new Float64Array(NP);
-    for (var i = 0; i < NP; i++) {
-      tropas[i] = ejercitoDe(i);
-      defensa[i] = defensaDe(i);
-    }
+    completaVecindad();
+    var duenyo = new Int8Array(ND);
+    var tropas = new Float64Array(ND);
+    for (var i = 0; i < ND; i++) tropas[i] = ejercitoDiv(i);
     duenyo[inicio] = 1;
     juego = {
-      duenyo: duenyo, tropas: tropas, defensa: defensa, vecinos: vecindad(),
-      inicio: inicio, turno: 1, bajasPropias: 0, bajasEnemigas: 0,
-      conquistas: 0, objetivo: -1, asalto: null, fin: null,
-      acciones: 1, registro: []
+      duenyo: duenyo, tropas: tropas,
+      inicio: inicio, pais: divisiones[inicio].pa,
+      turno: 1, acciones: 1, conquistas: 0,
+      bajasPropias: 0, bajasEnemigas: 0,
+      origen: inicio, objetivo: -1, manual: false, asalto: null, fin: null,
+      alcance: 700, costeras: [], registro: [], mios: [inicio], frente: {}
     };
-    recalculaFrente();
+    if (puertosDe(inicio).length) juego.costeras.push(inicio);
+    recalculaFrente(true);
     uploadPalette(SCENES[opts.scene]);
     return juego;
   }
 
-  // El frente: todo país neutral que toca al imperio por tierra, más los que
-  // están al alcance de un desembarco. Sin esto una isla sería inalcanzable y
-  // la partida se atascaría con medio mundo conquistado.
-  function recalculaFrente() {
+  // El frente son las divisiones libres que tocan al imperio. Se mantiene al
+  // día en cada conquista en vez de rehacerlo entero: con 4.322 divisiones,
+  // repasarlas todas después de cada asalto se notaba.
+  function recalculaFrente(completo) {
     if (!juego) return;
-    var frente = {};
-    var mios = [];
-    for (var i = 0; i < NP; i++) if (juego.duenyo[i] === 1) mios.push(i);
-    for (var k = 0; k < mios.length; k++) {
-      var lim = juego.vecinos[mios[k]] || [];
-      for (var j = 0; j < lim.length; j++) {
-        if (juego.duenyo[lim[j]] === 0) frente[lim[j]] = "tierra";
+    if (completo) {
+      juego.frente = {};
+      juego.mios = [];
+      juego.costeras = [];
+      for (var i = 0; i < ND; i++) {
+        if (juego.duenyo[i] !== 1) continue;
+        juego.mios.push(i);
+        if (puertosDe(i).length) juego.costeras.push(i);
       }
+      for (var k = 0; k < juego.mios.length; k++) sumaFrentePor(juego.mios[k]);
     }
-    // Desembarcos: solo entre países con puerto y solo si la travesía es
-    // corta. Un país sin salida al mar no embarca a nadie.
-    var conPuerto = [];
-    for (var k = 0; k < mios.length; k++) {
-      if (puertosDe(mios[k]).length) conPuerto.push(mios[k]);
-    }
-    var alcance = alcanceNaval();
-    for (var i = 0; i < NP; i++) {
-      if (juego.duenyo[i] !== 0 || frente[i] || !puertosDe(i).length) continue;
-      for (var k = 0; k < conPuerto.length; k++) {
-        if (travesiaKm(conPuerto[k], i) <= alcance) { frente[i] = "mar"; break; }
-      }
-    }
-    juego.frente = frente;
-    juego.mios = mios;
+    juego.alcance = alcanceNaval();
   }
 
-  function tropasImperio() {
-    var t = 0;
-    for (var i = 0; i < NP; i++) if (juego.duenyo[i] === 1) t += juego.tropas[i];
-    return Math.round(t);
+  // Lo que se abre al conquistar una división: sus vecinas por tierra y, si
+  // tiene puerto, lo que quede a un salto de mar.
+  function sumaFrentePor(i) {
+    var vec = vecinosDiv(i);
+    for (var k = 0; k < vec.length; k++) {
+      if (juego.duenyo[vec[k]] === 0) juego.frente[vec[k]] = "tierra";
+    }
+    if (!puertosDe(i).length) return;
+    var alcance = juego.alcance;
+    var c1 = divisiones[i].c;
+    // Tres filtros cada vez más caros: primero la latitud, que es una resta;
+    // luego la distancia entre centros; y sólo entonces, de puerto a puerto.
+    var margen = (alcance + 900) / 111;
+    for (var j = 0; j < ND; j++) {
+      if (juego.duenyo[j] !== 0 || juego.frente[j]) continue;
+      var c2 = divisiones[j].c;
+      if (Math.abs(c1[1] - c2[1]) > margen) continue;
+      if (gcKm(c1[0], c1[1], c2[0], c2[1]) > alcance + 900) continue;
+      if (!puertosDe(j).length) continue;
+      if (travesiaKm(i, j) <= alcance) juego.frente[j] = "mar";
+    }
   }
 
-  // Resolución de la batalla, por rondas. El defensor pega más fuerte cuanto
-  // más alto es su terreno; el desembarco cuesta un tercio de la fuerza.
-  function resuelveBatalla(atacante, objetivo) {
-    var vía = juego.frente[objetivo];
-    var penal = vía === "mar" ? 0.66 : 1;
+  // ¿Desde dónde se puede asaltar esta división? Devuelve la mejor propia.
+  function origenPara(objetivo) {
+    if (!juego) return -1;
+    var vec = vecinosDiv(objetivo);
+    var mejor = -1, max = -1;
+    for (var k = 0; k < vec.length; k++) {
+      if (juego.duenyo[vec[k]] === 1 && juego.tropas[vec[k]] > max) {
+        max = juego.tropas[vec[k]]; mejor = vec[k];
+      }
+    }
+    if (mejor >= 0) return mejor;
+    if (!puertosDe(objetivo).length) return -1;
+    for (var k = 0; k < juego.costeras.length; k++) {
+      var c = juego.costeras[k];
+      if (travesiaKm(c, objetivo) <= juego.alcance && juego.tropas[c] > max) {
+        max = juego.tropas[c]; mejor = c;
+      }
+    }
+    return mejor;
+  }
+
+  function esVecina(a, b) {
+    var vec = vecinosDiv(a);
+    for (var k = 0; k < vec.length; k++) if (vec[k] === b) return true;
+    return false;
+  }
+
+  // --- batalla -------------------------------------------------------------
+  function resuelveBatalla(atacante, objetivo, porMar) {
+    var penal = porMar ? 0.66 : 1;
     var atk = atacante * penal;
     var def = juego.tropas[objetivo];
-    var mult = juego.defensa[objetivo];
+    var mult = defensaDiv(objetivo);
     var atk0 = atk, def0 = def, rondas = 0;
-    // Un ejército no pelea hasta el último hombre: cuando ha perdido tres
-    // cuartas partes, se retira. Sin esta regla cada asalto fallido borraba
-    // todo lo enviado y atacar de menos era siempre suicidio.
+    // Un ejército no pelea hasta el último hombre: al perder tres cuartas
+    // partes se retira, y lo que quede vuelve a casa.
     var rompe = atk0 * 0.25;
     while (atk > rompe && def > 0 && rondas < 400) {
-      var azarA = 0.55 + Math.random() * 0.9;
-      var azarD = 0.55 + Math.random() * 0.9;
-      var bajasDef = atk * 0.055 * azarA / mult;
-      var bajasAtk = def * 0.055 * azarD * mult;
+      var bajasDef = atk * 0.055 * (0.55 + Math.random() * 0.9) / mult;
+      var bajasAtk = def * 0.055 * (0.55 + Math.random() * 0.9) * mult;
       atk -= bajasAtk;
       def -= bajasDef;
       rondas++;
@@ -2635,7 +2695,7 @@ body {
     var gana = def <= 0;
     var vuelven = Math.max(0, Math.round(Math.max(0, atk) / penal));
     return {
-      gana: gana, rondas: rondas, vía: vía,
+      gana: gana, porMar: porMar,
       enviadas: Math.round(atacante),
       bajasAtk: Math.round(atacante - vuelven),
       bajasDef: Math.round(gana ? def0 : def0 - Math.max(0, def)),
@@ -2645,97 +2705,120 @@ body {
     };
   }
 
-  // Reparte tropas entre los territorios propios, a partes iguales.
-  function reparteEnImperio(n) {
-    if (n <= 0 || !juego.mios.length) return;
-    var cada = n / juego.mios.length;
-    for (var k = 0; k < juego.mios.length; k++) juego.tropas[juego.mios[k]] += cada;
-  }
-
-  // Asaltos que caben en un turno: uno, y otro más por cada diez territorios.
-  // Un imperio manda más campañas a la vez que un país solo, pero ni el mayor
-  // puede lanzarlas todas de golpe.
-  function accionesPorTurno() {
-    return juego ? 1 + Math.floor(juego.mios.length / 10) : 1;
-  }
-
-  function atacar(objetivo, enviadas) {
-    if (!juego || juego.fin || !juego.frente[objetivo]) return null;
+  function atacar(origen, objetivo, enviadas) {
+    if (!juego || juego.fin) return null;
     if (juego.acciones <= 0) return null;
-    var disponibles = 0;
-    for (var k = 0; k < juego.mios.length; k++) disponibles += juego.tropas[juego.mios[k]];
-    enviadas = Math.min(enviadas, Math.floor(disponibles) - juego.mios.length);
-    if (enviadas < 100) return null;
+    if (juego.duenyo[origen] !== 1 || juego.duenyo[objetivo] === 1) return null;
+    var porMar = !esVecina(origen, objetivo);
+    if (porMar && travesiaKm(origen, objetivo) > juego.alcance) return null;
+    enviadas = Math.min(Math.floor(enviadas), Math.floor(juego.tropas[origen]) - 1);
+    if (enviadas < 50) return null;
 
-    // Las tropas salen a prorrata de cada territorio, dejando una guarnición.
-    var resto = enviadas;
-    for (var k = 0; k < juego.mios.length; k++) {
-      var ip = juego.mios[k];
-      var aporta = Math.min(juego.tropas[ip] - 1, enviadas * (juego.tropas[ip] / disponibles));
-      juego.tropas[ip] -= aporta;
-      resto -= aporta;
-    }
     juego.acciones--;
-    var r = resuelveBatalla(enviadas, objetivo);
+    juego.tropas[origen] -= enviadas;
+    var r = resuelveBatalla(enviadas, objetivo, porMar);
+    r.origen = origen;
+    r.div = objetivo;
     juego.bajasPropias += r.bajasAtk;
     juego.bajasEnemigas += r.bajasDef;
     if (r.gana) {
       juego.duenyo[objetivo] = 1;
       juego.tropas[objetivo] = r.supervivientes;
       juego.conquistas++;
-      recalculaFrente();
+      juego.mios.push(objetivo);
+      if (puertosDe(objetivo).length) juego.costeras.push(objetivo);
+      delete juego.frente[objetivo];
+      juego.alcance = alcanceNaval();
+      sumaFrentePor(objetivo);
+      juego.origen = objetivo;               // el frente avanza contigo
+      juego.manual = false;
       uploadPalette(SCENES[opts.scene]);
     } else {
       juego.tropas[objetivo] = r.restanDef;
-      reparteEnImperio(r.retirados);        // los que se retiran vuelven a casa
+      juego.tropas[origen] += r.retirados;
     }
-    r.pais = objetivo;
+    juego.asalto = { avance: 0, hasta: performance.now() + 620, div: objetivo };
     juego.registro.unshift(r);
     if (juego.registro.length > 40) juego.registro.pop();
     compruebaFin();
     return r;
   }
 
-  // Fin de turno. El imperio recluta de lo que domina —cada territorio aporta
-  // según su población y su tamaño, que es lo que hace que conquistar merezca
-  // la pena— y el resto del mundo se arma contra él, más deprisa cuanto más
-  // grande eres.
+  // Mover tropas entre divisiones propias: la logística no gasta asalto, y
+  // dentro del imperio se llega a cualquier parte.
+  function mover(origen, destino, cuantas) {
+    if (!juego || juego.fin) return false;
+    if (juego.duenyo[origen] !== 1 || juego.duenyo[destino] !== 1) return false;
+    if (origen === destino) return false;
+    cuantas = Math.min(Math.floor(cuantas), Math.floor(juego.tropas[origen]) - 1);
+    if (cuantas < 1) return false;
+    juego.tropas[origen] -= cuantas;
+    juego.tropas[destino] += cuantas;
+    juego.origen = destino;
+    juego.manual = false;
+    return true;
+  }
+
+  // Fin de turno: el imperio recluta de lo que domina y el mundo libre se
+  // moviliza contra él, hasta donde le da su población y ahí se para.
   function terminaTurno() {
     if (!juego || juego.fin) return;
     juego.turno++;
-    var cuota = juego.mios.length / NP;
+    var cuota = juego.mios.length / ND;
     var alarma = 1 + cuota * 1.8;
+    // Cada división levanta a los suyos y se los queda. Volcar todos los
+    // reclutas en una sola dejaba al imperio con 143.000 hombres en la
+    // retaguardia atacando el frente con 411: por eso hay que moverlos.
     var reclutas = 0;
-    for (var k = 0; k < juego.mios.length; k++) reclutas += ejercitoDe(juego.mios[k]) * 0.07;
-    reparteEnImperio(reclutas);
-    // Los países libres se movilizan hasta donde da su población, y ahí se
-    // paran. Dejándolos crecer sin techo, al final de la partida el mundo
-    // fabricaba ejércitos infinitos y no había forma de cerrar la conquista.
-    for (var i = 0; i < NP; i++) {
-      if (juego.duenyo[i] === 1) continue;
-      var techo = ejercitoDe(i) * (1 + 2.4 * cuota);
-      if (juego.tropas[i] < techo) juego.tropas[i] += (techo - juego.tropas[i]) * 0.06;
+    for (var k = 0; k < juego.mios.length; k++) {
+      var mia = juego.mios[k];
+      var suyos = ejercitoDiv(mia) * 0.07;
+      juego.tropas[mia] += suyos;
+      reclutas += suyos;
     }
     juego.reclutas = Math.round(reclutas);
+    for (var i = 0; i < ND; i++) {
+      if (juego.duenyo[i] === 1) continue;
+      var techo = ejercitoDiv(i) * (1 + 2.4 * cuota);
+      if (juego.tropas[i] < techo) juego.tropas[i] += (techo - juego.tropas[i]) * 0.06;
+    }
     juego.acciones = accionesPorTurno();
     compruebaFin();
   }
 
-  // Se gana cuando ya no queda nada que conquistar: o el mundo entero, o todo
-  // lo que la flota alcanza teniendo dominada la mayor parte de la tierra.
-  // Sin la segunda condición la partida no terminaba nunca por culpa de cuatro
-  // islas deshabitadas.
+  // Asaltos por turno: uno, y otro más por cada veinte divisiones.
+  function accionesPorTurno() {
+    return juego ? 1 + Math.floor(juego.mios.length / 20) : 1;
+  }
+
+  function tropasImperio() {
+    var t = 0;
+    for (var k = 0; k < juego.mios.length; k++) t += juego.tropas[juego.mios[k]];
+    return Math.round(t);
+  }
+
   function compruebaFin() {
     if (!juego || juego.fin) return;
-    if (juego.mios.length >= NP) { juego.fin = "victoria"; return; }
-    var vivas = 0;
-    for (var k = 0; k < juego.mios.length; k++) vivas += juego.tropas[juego.mios[k]];
+    if (juego.mios.length >= ND) { juego.fin = "victoria"; return; }
     if (!Object.keys(juego.frente).length) {
       var mio = 0, todo = 0;
-      for (var i = 0; i < NP; i++) { todo += paises[i].a; if (juego.duenyo[i] === 1) mio += paises[i].a; }
+      for (var i = 0; i < ND; i++) { todo += divisiones[i].a; if (juego.duenyo[i] === 1) mio += divisiones[i].a; }
       if (mio / todo >= 0.85) { juego.fin = "victoria"; return; }
     }
-    if (vivas < 150 && Object.keys(juego.frente).length) juego.fin = "derrota";
+    // Un imperio de cientos de divisiones no se queda sin ejército; la cuenta
+    // sólo hace falta mientras es pequeño.
+    if (juego.mios.length < 40 && tropasImperio() < 80) juego.fin = "derrota";
+  }
+
+  // Cuántas divisiones de un país quedan libres, para el marcador del objetivo.
+  function restanDe(ip) {
+    var libres = 0, total = 0;
+    var hijos = paises[ip].hijos;
+    for (var k = 0; k < hijos.length; k++) {
+      total++;
+      if (juego.duenyo[hijos[k]] !== 1) libres++;
+    }
+    return [libres, total];
   }
 
   function finCampana() {
@@ -2748,53 +2831,46 @@ body {
     renderList(searchEl.value);
   }
 
-  // --- panel de la campaña -------------------------------------------------
+  // --- panel ---------------------------------------------------------------
 
   var eligiendo = false;
   var gEl = document.getElementById("guerra");
-  var gTitulo = document.getElementById("g-titulo");
   var gLead = document.getElementById("g-lead");
-  var gCifras = document.getElementById("g-cifras");
-  var gBarra = document.getElementById("g-barra");
-  var gBarraI = document.getElementById("g-barra-i");
+  var gYoPais = document.getElementById("g-yo-pais");
+  var gYoDivs = document.getElementById("g-yo-divs");
+  var gYoTropas = document.getElementById("g-yo-tropas");
+  var gObjPais = document.getElementById("g-obj-pais");
+  var gObjDivs = document.getElementById("g-obj-divs");
   var gTurno = document.getElementById("g-turno");
-  var gPaises = document.getElementById("g-paises");
-  var gTropas = document.getElementById("g-tropas");
   var gAcciones = document.getElementById("g-acciones");
-  var gReclutas = document.getElementById("g-reclutas");
-  var gBajas = document.getElementById("g-bajas");
-  var gObj = document.getElementById("g-obj");
-  var gObjN = document.getElementById("g-obj-n");
-  var gObjD = document.getElementById("g-obj-d");
-  var gYo = document.getElementById("g-yo");
-  var gEl2 = document.getElementById("g-el");
+  var gCuerpo = document.getElementById("g-cuerpo");
+  var gOrden = document.getElementById("g-orden");
+  var gOrigen = document.getElementById("g-origen");
+  var gDestino = document.getElementById("g-destino");
+  var gFlecha = document.getElementById("g-flecha");
+  var gYo = document.getElementById("g-fuerza");
+  var gEl2 = document.getElementById("g-rival");
   var gOdds = document.getElementById("g-odds");
   var gEnvio = document.getElementById("g-envio");
   var gEnvioN = document.getElementById("g-envio-n");
   var gAtacar = document.getElementById("g-atacar");
-  var gCancelar = document.getElementById("g-cancelar");
   var gTurnoFin = document.getElementById("g-turno-fin");
   var gSalir = document.getElementById("g-salir");
-  var gDiario = document.getElementById("g-diario");
+  var gPlegar = document.getElementById("g-plegar");
   var gVeredicto = document.getElementById("g-veredicto");
 
-  function tropasDisponibles() {
-    var t = 0;
-    for (var k = 0; k < juego.mios.length; k++) t += juego.tropas[juego.mios[k]] - 1;
-    return Math.max(0, Math.floor(t));
-  }
-
   function envioActual() {
-    return Math.floor(tropasDisponibles() * (Number(gEnvio.value) / 100));
+    if (!juego || juego.origen < 0) return 0;
+    var hay = Math.max(0, Math.floor(juego.tropas[juego.origen]) - 1);
+    return Math.floor(hay * (Number(gEnvio.value) / 100));
   }
 
-  // Pronóstico: se simula la batalla unas cuantas veces y se cuenta cuántas
-  // se ganan. Es honesto —usa el mismo resolvedor que el ataque de verdad— y
-  // evita prometer una probabilidad que la fórmula no tiene.
-  function pronostico(objetivo, enviadas) {
-    if (enviadas < 100) return 0;
-    var ganadas = 0, n = 60;
-    for (var k = 0; k < n; k++) if (resuelveBatalla(enviadas, objetivo).gana) ganadas++;
+  // Pronóstico honesto: se simula con el mismo resolvedor que el ataque real.
+  function pronostico(origen, objetivo, enviadas) {
+    if (!juego || enviadas < 50) return 0;
+    var porMar = !esVecina(origen, objetivo);
+    var ganadas = 0, n = 50;
+    for (var k = 0; k < n; k++) if (resuelveBatalla(enviadas, objetivo, porMar).gana) ganadas++;
     return ganadas / n;
   }
 
@@ -2803,100 +2879,157 @@ body {
     gEl.hidden = false;
 
     if (!juego) {
-      gTitulo.textContent = "Campaña";
       gLead.hidden = false;
-      gLead.textContent = "Elige en el mapa —o en el índice— el país con el que empiezas. "
-                        + "Desde ahí tendrás que conquistar los otros 248.";
-      gCifras.hidden = gBarra.hidden = gObj.hidden = gDiario.hidden = true;
-      gTurnoFin.hidden = true;
-      gVeredicto.hidden = true;
+      gLead.textContent = "Pincha en el mapa la división con la que empiezas.";
+      gCuerpo.hidden = true;
       return;
     }
+    gCuerpo.hidden = false;
 
-    gTitulo.textContent = paises[juego.inicio].n;
-    gCifras.hidden = gBarra.hidden = false;
-    gTurnoFin.hidden = !!juego.fin;
+    gYoPais.textContent = paises[juego.pais].n;
+    gYoDivs.textContent = fmtNum(juego.mios.length) + " / " + fmtNum(ND);
+    gYoTropas.textContent = fmtNum(tropasImperio());
     gTurno.textContent = fmtNum(juego.turno);
-    gPaises.textContent = fmtNum(juego.mios.length) + " / " + fmtNum(NP);
-    gTropas.textContent = fmtNum(tropasImperio());
-    gAcciones.textContent = fmtNum(juego.acciones) + " / " + fmtNum(accionesPorTurno());
-    gReclutas.textContent = juego.reclutas ? "+" + fmtNum(juego.reclutas) : "—";
-    gBajas.textContent = fmtNum(juego.bajasPropias);
-    gBarraI.style.width = (100 * juego.mios.length / NP).toFixed(1) + "%";
+    gAcciones.textContent = fmtNum(juego.acciones) + "/" + fmtNum(accionesPorTurno());
 
-    var enFrente = Object.keys(juego.frente).length;
-    gLead.hidden = false;
-    gLead.textContent = juego.fin ? ""
-      : !enFrente
-        ? "Sin nadie al alcance: termina turnos para reunir fuerzas y flota."
-      : juego.acciones <= 0
-        ? "Se acabaron los asaltos de este turno. Termina el turno para reclutar."
-        : "Tienes " + fmtNum(enFrente) + (enFrente === 1 ? " país" : " países")
-          + " al alcance. Pincha uno para preparar el asalto.";
+    var o = juego.origen, d = juego.objetivo;
+    var valida = d >= 0 && juego.duenyo[d] !== 1 && o >= 0 && juego.duenyo[o] === 1;
+    var porMar = valida && !esVecina(o, d);
+    if (valida && porMar && travesiaKm(o, d) > juego.alcance) valida = false;
 
-    var o = juego.objetivo;
-    var vivo = o >= 0 && juego.frente[o] && !juego.fin;
-    gObj.hidden = !vivo;
-    if (vivo) {
-      var enviadas = envioActual();
-      var prob = pronostico(o, enviadas);
-      gObjN.textContent = paises[o].n;
-      var alt = Math.round((juego.defensa[o] - 1) * 100);
-      gObjD.textContent = (juego.frente[o] === "mar" ? "Desembarco (−34% de fuerza)" : "Frontera terrestre")
-                        + (alt > 4 ? " · terreno +" + alt + "% a la defensa" : "");
-      gYo.textContent = fmtNum(enviadas);
-      gEl2.textContent = fmtNum(Math.round(juego.tropas[o]));
-      gOdds.textContent = Math.round(prob * 100) + "%";
-      gEnvioN.textContent = fmtNum(enviadas) + " de " + fmtNum(tropasDisponibles());
-      gAtacar.disabled = enviadas < 100 || juego.acciones <= 0;
-      gAtacar.textContent = juego.acciones <= 0 ? "Sin asaltos" : "Atacar";
+    // País al que estás avanzando: el de la división marcada.
+    if (d >= 0) {
+      var ip = divisiones[d].pa;
+      var q = restanDe(ip);
+      gObjPais.textContent = paises[ip].n;
+      gObjDivs.textContent = fmtNum(q[0]) + " / " + fmtNum(q[1]);
+    } else {
+      gObjPais.textContent = "—";
+      gObjDivs.textContent = "—";
     }
 
+    gOrden.hidden = !(o >= 0);
+    if (o >= 0) {
+      gOrigen.textContent = divisiones[o].n;
+      gDestino.textContent = d >= 0 ? divisiones[d].n : "elige destino";
+      // Nada de espadas ni barcos: esos glifos no están en la tipografía del
+      // panel y salían como una caja. El modo lo dice el botón.
+      gFlecha.textContent = d >= 0 && juego.duenyo[d] === 1 ? "⇢" : "→";
+      var enviadas = envioActual();
+      gEnvioN.textContent = fmtNum(enviadas);
+      gYo.textContent = fmtNum(enviadas);
+      if (valida) {
+        gEl2.textContent = fmtNum(Math.round(juego.tropas[d]));
+        gOdds.textContent = Math.round(pronostico(o, d, enviadas) * 100) + "%";
+        gAtacar.textContent = juego.acciones <= 0 ? "Sin asaltos" : porMar ? "Desembarcar" : "Atacar";
+        gAtacar.disabled = enviadas < 50 || juego.acciones <= 0;
+      } else if (d >= 0 && juego.duenyo[d] === 1) {
+        gEl2.textContent = fmtNum(Math.round(juego.tropas[d]));
+        gOdds.textContent = "mover";
+        gAtacar.textContent = "Mover";
+        gAtacar.disabled = enviadas < 1;
+      } else {
+        gEl2.textContent = "—";
+        gOdds.textContent = "—";
+        gAtacar.textContent = "Atacar";
+        gAtacar.disabled = true;
+      }
+    }
+
+    var enFrente = Object.keys(juego.frente).length;
+    gLead.hidden = !!juego.fin;
+    gLead.textContent = !enFrente
+      ? "Nada al alcance: termina turnos para reunir tropas y flota."
+      : juego.acciones <= 0
+        ? "Sin asaltos este turno. Puedes seguir moviendo tropas."
+        : "Toca una división tuya para tomarla como origen y otra para atacar o reforzar.";
+
+    gTurnoFin.hidden = !!juego.fin;
     gVeredicto.hidden = !juego.fin;
     if (juego.fin) {
       gVeredicto.textContent = juego.fin === "victoria"
-        ? "El mundo entero es tuyo en " + fmtNum(juego.turno) + " turnos, con "
-          + fmtNum(juego.bajasPropias) + " bajas propias."
-        : "Tu ejército se ha deshecho. Llegaste a " + fmtNum(juego.conquistas)
-          + (juego.conquistas === 1 ? " conquista" : " conquistas") + " en "
-          + fmtNum(juego.turno) + " turnos.";
-    }
-
-    gDiario.hidden = !juego.registro.length;
-    gDiario.textContent = "";
-    for (var k = 0; k < juego.registro.length && k < 14; k++) {
-      var r = juego.registro[k];
-      var linea = document.createElement("p");
-      linea.className = r.gana ? "gana" : "pierde";
-      linea.textContent = (r.gana ? "▲ " : "▽ ") + paises[r.pais].n + " · "
-        + fmtNum(r.bajasAtk) + " bajas propias, " + fmtNum(r.bajasDef) + " ajenas"
-        + (r.gana ? "" : " · resisten " + fmtNum(r.restanDef));
-      gDiario.appendChild(linea);
+        ? "El mundo es tuyo: " + fmtNum(juego.mios.length) + " divisiones en "
+          + fmtNum(juego.turno) + " turnos y " + fmtNum(juego.bajasPropias) + " bajas."
+        : "Tu ejército se ha deshecho tras " + fmtNum(juego.conquistas)
+          + " conquistas en " + fmtNum(juego.turno) + " turnos.";
     }
   }
 
-  // Qué país hay bajo el cursor, mirando primero la marca dibujada —la cifra
-  // de tropas o una ciudad— y si no, el relleno del globo.
-  function paisBajo(marca, ll) {
-    if (marca) {
-      if (marca.tipo === "pais") return marca.i;
-      if (marca.tipo === "ciudad") return ciudades[marca.i].pa;
+  // Qué división hay bajo el cursor, mirando primero la cifra dibujada y si no
+  // el relleno del globo.
+  function divisionBajo(marca, ll) {
+    if (marca && marca.tipo === "div") return marca.i;
+    if (marca && marca.tipo === "ciudad" && ciudades[marca.i].dv >= 0) return ciudades[marca.i].dv;
+    return ll ? divisionEn(ll.lon, ll.lat) : -1;
+  }
+
+  // Un toque en el mapa, que es como se juega:
+  //   · división propia sin orden a medias → pasa a ser el origen
+  //   · otra propia con un origen ya puesto → orden de movimiento
+  //   · división ajena → objetivo del asalto, con el mejor origen si hace falta
+  //   · el propio origen otra vez → cancela
+  //
+  // El origen se marca «a mano» sólo cuando lo eliges tú. Sin esa distinción,
+  // como después de cada conquista el mando avanza solo a la división tomada,
+  // el siguiente toque sobre una división tuya se entendía como destino de un
+  // movimiento en vez de como el origen que querías elegir.
+  function tocaDivision(i) {
+    if (!juego || juego.fin || i < 0) return false;
+    if (juego.duenyo[i] === 1) {
+      if (i === juego.origen) {
+        juego.objetivo = -1;
+        juego.manual = false;
+      } else if (juego.objetivo === i) {
+        // Segundo toque sobre el destino: el mando se traslada allí, que es
+        // como se va llevando el cuartel general detrás del frente.
+        juego.origen = i;
+        juego.objetivo = -1;
+        juego.manual = true;
+      } else if (juego.manual && juego.origen >= 0 && juego.duenyo[juego.origen] === 1) {
+        juego.objetivo = i;
+      } else {
+        juego.origen = i;
+        juego.objetivo = -1;
+        juego.manual = true;
+      }
+    } else {
+      juego.objetivo = i;
+      // Si desde donde estás no se llega, se toma el mejor punto de partida.
+      var o = juego.origen;
+      var vale = o >= 0 && juego.duenyo[o] === 1 &&
+                 (esVecina(o, i) || (puertosDe(i).length && puertosDe(o).length &&
+                                     travesiaKm(o, i) <= juego.alcance));
+      if (!vale) {
+        var mejor = origenPara(i);
+        if (mejor >= 0) juego.origen = mejor;
+      }
     }
-    if (!ll) return -1;
-    var d = divisionEn(ll.lon, ll.lat);
-    return d >= 0 ? divisiones[d].pa : -1;
+    pintaGuerra();
+    renderList(searchEl.value);
+    return true;
+  }
+
+  function empiezaEn(i) {
+    eligiendo = false;
+    vistaDeGuerra(true);
+    nuevaCampana(i);
+    seleccionar(null);
+    var b = divisiones[i].b;
+    var span = Math.max(b[2] - b[0], (b[3] - b[1]) * 1.6);
+    flyTo(divisiones[i].c[0], divisiones[i].c[1], clampDist(1.12 + span * 0.06));
+    pintaGuerra();
+    renderList(searchEl.value);
   }
 
   // La campaña necesita el mapa político limpio: con el relieve encendido el
   // mundo entero es marrón y no se distingue el imperio, y los rótulos de
-  // ciudades y cumbres tapan las cifras de tropas. Se guarda cómo estaba todo
-  // para devolverlo al salir.
+  // ciudades y cumbres tapan las cifras de tropas.
   var vistaPrevia = null;
   function vistaDeGuerra(entrar) {
     if (entrar) {
       if (vistaPrevia) return;
       vistaPrevia = { relieve: opts.relieve, ciudades: opts.ciudades, divs: opts.divs };
-      opts.relieve = false; opts.ciudades = false; opts.divs = false;
+      opts.relieve = false; opts.ciudades = false; opts.divs = true;
     } else {
       if (!vistaPrevia) return;
       opts.relieve = vistaPrevia.relieve;
@@ -2909,46 +3042,28 @@ body {
     divsBtn.setAttribute("aria-pressed", String(opts.divs));
   }
 
-  function empiezaEn(ip) {
-    eligiendo = false;
-    vistaDeGuerra(true);
-    nuevaCampana(ip);
-    seleccionar(null);
-    var b = paises[ip].b;
-    var span = Math.max(b[2] - b[0], (b[3] - b[1]) * 1.6);
-    flyTo(paises[ip].c[0], paises[ip].c[1], clampDist(1.5 + span * 0.06));
-    pintaGuerra();
-    renderList(searchEl.value);
-  }
-
-  function eligeObjetivo(ip) {
-    if (!juego || juego.fin) return false;
-    if (!juego.frente[ip]) return false;
-    juego.objetivo = ip;
-    pintaGuerra();
-    return true;
-  }
-
   gEnvio.addEventListener("input", pintaGuerra);
-  gCancelar.addEventListener("click", function () {
-    if (juego) { juego.objetivo = -1; pintaGuerra(); }
-  });
   gAtacar.addEventListener("click", function () {
-    if (!juego || juego.objetivo < 0) return;
-    var destino = juego.objetivo;
-    var r = atacar(destino, envioActual());
-    if (!r) return;
-    // El cerco se cierra sobre el objetivo mientras se resuelve.
-    juego.asalto = { avance: 0, hasta: performance.now() + 620, pais: destino };
-    if (r.gana) juego.objetivo = -1;
+    if (!juego || juego.origen < 0 || juego.objetivo < 0) return;
+    var o = juego.origen, d = juego.objetivo;
+    if (juego.duenyo[d] === 1) mover(o, d, envioActual());
+    else atacar(o, d, envioActual());
+    juego.objetivo = -1;
+    juego.manual = false;
     pintaGuerra();
     renderList(searchEl.value);
   });
   gTurnoFin.addEventListener("click", function () {
     terminaTurno();
     pintaGuerra();
+    renderList(searchEl.value);
   });
   gSalir.addEventListener("click", finCampana);
+  gPlegar.addEventListener("click", function () {
+    var plegado = gEl.classList.toggle("plegado");
+    gPlegar.setAttribute("aria-pressed", String(plegado));
+    gPlegar.textContent = plegado ? "▾" : "▴";
+  });
 
   // ---------------------------------------------------------------- //
   // Controles                                                         //
@@ -3173,14 +3288,15 @@ body {
 
   // --- capa de campaña: cifras de tropas y el cerco de estandartes ---------
 
-  // Puntos del contorno de un país repartidos alrededor de su centro, que es
-  // donde se plantan los estandartes del asedio.
-  function anilloDe(ip, aspect, t, cuantos) {
-    var lista = tramosDe(ip);
-    if (!lista || !front.ll) return null;
+  // Puntos del contorno de una división repartidos alrededor de su centro, que
+  // es donde se plantan los estandartes del asedio. Sale de su propia
+  // geometría, la misma con la que se dibuja el relleno.
+  function anilloDe(dv, aspect, t, cuantos) {
+    var d = decoded[dv];
+    if (!d || !d.lonlat) return null;
     var p = [0, 0, 0];
     var horizon = 1 / view.dist;
-    unit(p, paises[ip].c[0] * DEG, paises[ip].c[1] * DEG);
+    unit(p, divisiones[dv].c[0] * DEG, divisiones[dv].c[1] * DEG);
     rotateModel(p, mRot, p[0], p[1], p[2]);
     if ((p[2] - horizon) / (1 - horizon) < 0.02) return null;
     var zc = view.dist - p[2];
@@ -3192,101 +3308,153 @@ body {
     // marca el borde real por ese lado.
     var mejor = new Array(cuantos), lejos = new Array(cuantos);
     for (var k = 0; k < cuantos; k++) lejos[k] = -1;
-    for (var k = 0; k < lista.length; k++) {
-      var ini = front.s[lista[k] * 2], n = front.s[lista[k] * 2 + 1];
-      var salto = Math.max(1, Math.floor(n / 24));
-      for (var j = 0; j < n; j += salto) {
-        var lon = front.ll[(ini + j) * 2] / SCALE * DEG;
-        var lat = front.ll[(ini + j) * 2 + 1] / SCALE * DEG;
-        unit(p, lon, lat);
-        rotateModel(p, mRot, p[0], p[1], p[2]);
-        if ((p[2] - horizon) / (1 - horizon) < 0.02) continue;
-        var z = view.dist - p[2];
-        if (z <= 0.01) continue;
-        var sx = (p[0] / (z * t * aspect)) * 0.5 * W + W / 2;
-        var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
-        var dx = sx - cx, dy = sy - cy;
-        var d = Math.sqrt(dx * dx + dy * dy);
-        var sector = Math.floor((Math.atan2(dy, dx) + Math.PI) / (Math.PI * 2) * cuantos) % cuantos;
-        if (d > lejos[sector]) { lejos[sector] = d; mejor[sector] = [sx, sy, dx / (d || 1), dy / (d || 1)]; }
-      }
+    var salto = Math.max(1, Math.floor(d.nv / 160));
+    for (var k = 0; k < d.nv; k += salto) {
+      unit(p, d.lonlat[k * 2] / SCALE * DEG, d.lonlat[k * 2 + 1] / SCALE * DEG);
+      rotateModel(p, mRot, p[0], p[1], p[2]);
+      if ((p[2] - horizon) / (1 - horizon) < 0.02) continue;
+      var z = view.dist - p[2];
+      if (z <= 0.01) continue;
+      var sx = (p[0] / (z * t * aspect)) * 0.5 * W + W / 2;
+      var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
+      var dx = sx - cx, dy = sy - cy;
+      var dd = Math.sqrt(dx * dx + dy * dy);
+      var sector = Math.floor((Math.atan2(dy, dx) + Math.PI) / (Math.PI * 2) * cuantos) % cuantos;
+      if (dd > lejos[sector]) { lejos[sector] = dd; mejor[sector] = [sx, sy, dx / (dd || 1), dy / (dd || 1)]; }
     }
     var pts = [];
     for (var k = 0; k < cuantos; k++) if (mejor[k]) pts.push(mejor[k]);
-    return pts.length ? { cx: cx, cy: cy, pts: pts } : null;
+    return pts.length ? { cx: cx, cy: cy, pts: pts, radio: Math.max.apply(null, lejos) } : null;
   }
 
   // Un estandarte: rectángulo con asta, que a este tamaño se lee mejor que
   // cualquier intento de bandera real.
-  function estandarte(sx, sy, color, alto) {
-    var w = 15, h = 10;
+  function estandarte(sx, sy, color) {
+    var w = 13, h = 9;
     ctx.fillStyle = "rgba(0,0,0,.45)";
     ctx.fillRect(sx - w / 2 + 1, sy - h / 2 + 1, w, h);
     ctx.fillStyle = color;
     ctx.fillRect(sx - w / 2, sy - h / 2, w, h);
     ctx.fillStyle = "rgba(255,255,255,.92)";
-    ctx.fillRect(sx - w / 2, sy - h / 2 + (alto ? 0 : h / 2 - 1), w, alto ? 2.5 : 2.5);
+    ctx.fillRect(sx - w / 2, sy - 1.2, w, 2.4);
+  }
+
+  // Proyecta el centro de una división a pantalla, o null si no se ve.
+  function enPantalla(dv, aspect, t, p) {
+    unit(p, divisiones[dv].c[0] * DEG, divisiones[dv].c[1] * DEG);
+    rotateModel(p, mRot, p[0], p[1], p[2]);
+    if ((p[2] - 1 / view.dist) / (1 - 1 / view.dist) < 0.06) return null;
+    var z = view.dist - p[2];
+    if (z <= 0.01) return null;
+    return [(p[0] / (z * t * aspect)) * 0.5 * W + W / 2,
+            H / 2 - (p[1] / (z * t)) * 0.5 * H];
   }
 
   function dibujaCampana(scene, boxes, aspect, t) {
     if (!juego) return;
     var p = [0, 0, 0];
-    var horizon = 1 / view.dist;
+    var fuente = getComputedStyle(document.body).fontFamily;
 
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Cifras de tropas: las del imperio juntas en su capital de campaña y las
-    // de los países que puedes atacar ahora. Poner un número sobre los 249
-    // convertía el mapa en una sopa de dígitos.
-    ctx.font = '600 13px ' + getComputedStyle(document.body).fontFamily;
-    for (var i = 0; i < NP; i++) {
-      var mio = juego.duenyo[i] === 1;
-      var esFrente = !!juego.frente[i];
-      var esObj = juego.objetivo === i;
-      if (mio && i !== juego.inicio) continue;
-      if (!mio && !esFrente && !esObj) continue;
-      unit(p, paises[i].c[0] * DEG, paises[i].c[1] * DEG);
-      rotateModel(p, mRot, p[0], p[1], p[2]);
-      if ((p[2] - horizon) / (1 - horizon) < 0.06) continue;
-      var z = view.dist - p[2];
-      if (z <= 0.01) continue;
-      var sx = (p[0] / (z * t * aspect)) * 0.5 * W + W / 2;
-      var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
-      var cifra = fmtNum(Math.round(mio ? tropasImperio() : juego.tropas[i]));
-      var grande = mio || esObj;
-      // Un «349.033» a 30 px del borde se corta por la mitad: el margen tiene
-      // que ser el del propio número.
-      var margen = grande ? 26 + cifra.length * 9 : 34;
-      if (sx < margen || sx > W - margen || sy < 24 || sy > H - 24) continue;
-
-      ctx.font = (grande ? '700 ' + (mio ? 30 : 22) : '600 13') + 'px ' +
-                 getComputedStyle(document.body).fontFamily;
-      // Las cifras pequeñas van bajo el nombre del país, no encima: los dos
-      // salen del mismo centro y se pisaban.
-      var cy = grande ? sy : sy + 13;
-      ctx.lineWidth = grande ? 5 : 3;
-      ctx.strokeStyle = "rgba(0,0,0,.72)";
-      ctx.strokeText(cifra, sx, cy);
-      ctx.fillStyle = mio ? "#FFE8E2" : esObj ? "#EAF4FF" : "rgba(226,236,246,.78)";
-      ctx.fillText(cifra, sx, cy);
-      var media = ctx.measureText(cifra).width / 2 + 5;
-      boxes.push([sx - media, cy - (grande ? 18 : 9), sx + media, cy + (grande ? 18 : 9)]);
-      marcas.push({ tipo: "pais", i: i, sx: sx, sy: cy });
+    // Las cifras que importan: la guarnición de la división desde la que
+    // atacas, la del objetivo y la de todo lo que está al alcance. Poner un
+    // número sobre las 4.322 convertía el mapa en una sopa de dígitos.
+    var pinta = {};
+    for (var k in juego.frente) pinta[+k] = "frente";
+    if (juego.origen >= 0) pinta[juego.origen] = "origen";
+    if (juego.objetivo >= 0) pinta[juego.objetivo] = "objetivo";
+    // Y las propias que tocan al frente, que son de las que puedes tirar.
+    for (var k in juego.frente) {
+      var vec = vecinosDiv(+k);
+      for (var j = 0; j < vec.length; j++) {
+        if (juego.duenyo[vec[j]] === 1 && !pinta[vec[j]]) pinta[vec[j]] = "propia";
+      }
     }
 
-    // El cerco: los estandartes del objetivo en su borde y los del imperio
-    // rodeándolo por fuera, como en un asedio dibujado sobre el mapa.
-    if (juego.objetivo >= 0 && juego.frente[juego.objetivo]) {
-      var anillo = anilloDe(juego.objetivo, aspect, t, 14);
-      if (anillo) {
+    for (var clave in pinta) {
+      var i = +clave, papel = pinta[i];
+      var q = enPantalla(i, aspect, t, p);
+      if (!q) continue;
+      var sx = q[0], sy = q[1];
+      var cifra = fmtNum(Math.round(juego.tropas[i]));
+      var grande = papel === "origen" || papel === "objetivo";
+      var margen = grande ? 24 + cifra.length * 7 : 30;
+      if (sx < margen || sx > W - margen || sy < 22 || sy > H - 22) continue;
+
+      ctx.font = (grande ? "700 20px " : "600 12px ") + fuente;
+      // Donde las divisiones son diminutas —los municipios eslovenos— caben
+      // decenas de cifras en un palmo: las pequeñas ceden el sitio, las del
+      // origen y el objetivo no.
+      if (!grande) {
+        var w2 = ctx.measureText(cifra).width / 2 + 4;
+        var caja = [sx - w2, sy - 8, sx + w2, sy + 8];
+        var choca = false;
+        for (var b = 0; b < boxes.length; b++) {
+          var ob = boxes[b];
+          if (caja[0] < ob[2] && caja[2] > ob[0] && caja[1] < ob[3] && caja[3] > ob[1]) {
+            choca = true; break;
+          }
+        }
+        if (choca) continue;
+      }
+      ctx.lineWidth = grande ? 4.5 : 3;
+      ctx.strokeStyle = "rgba(0,0,0,.72)";
+      ctx.strokeText(cifra, sx, sy);
+      ctx.fillStyle = papel === "origen" ? "#FFD9CF"
+                    : papel === "objetivo" ? "#DCEDFF"
+                    : papel === "propia" ? "rgba(255,214,204,.85)"
+                    : "rgba(226,236,246,.82)";
+      ctx.fillText(cifra, sx, sy);
+      var media = ctx.measureText(cifra).width / 2 + 5;
+      boxes.push([sx - media, sy - (grande ? 14 : 8), sx + media, sy + (grande ? 14 : 8)]);
+      marcas.push({ tipo: "div", i: i, sx: sx, sy: sy });
+
+      // Un aro marca de dónde sale el ataque y una cruz, hacia dónde va.
+      if (grande) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, 20, 0, Math.PI * 2);
+        ctx.strokeStyle = papel === "origen" ? "rgba(224,106,90,.85)" : "rgba(127,179,224,.85)";
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash(papel === "origen" ? [] : [4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // La flecha de la orden, del origen al destino.
+    if (juego.origen >= 0 && juego.objetivo >= 0) {
+      var a = enPantalla(juego.origen, aspect, t, p);
+      var b = enPantalla(juego.objetivo, aspect, t, p);
+      if (a && b) {
+        var dx = b[0] - a[0], dy = b[1] - a[1];
+        var d = Math.hypot(dx, dy) || 1;
+        if (d > 46) {
+          ctx.beginPath();
+          ctx.moveTo(a[0] + dx / d * 22, a[1] + dy / d * 22);
+          ctx.lineTo(b[0] - dx / d * 22, b[1] - dy / d * 22);
+          ctx.strokeStyle = juego.duenyo[juego.objetivo] === 1
+            ? "rgba(255,214,204,.7)" : "rgba(224,106,90,.9)";
+          ctx.lineWidth = 2;
+          ctx.setLineDash(juego.duenyo[juego.objetivo] === 1 ? [5, 4] : []);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+    }
+
+    // El cerco: los estandartes del defensor en su borde y los del imperio
+    // rodeándolo por fuera, como un asedio dibujado sobre el mapa.
+    if (juego.objetivo >= 0 && juego.duenyo[juego.objetivo] !== 1) {
+      var anillo = anilloDe(juego.objetivo, aspect, t, 12);
+      if (anillo && anillo.radio > 14) {
         var pulso = juego.asalto ? juego.asalto.avance : 0;
         for (var k = 0; k < anillo.pts.length; k++) {
-          var q = anillo.pts[k];
-          estandarte(q[0] - q[2] * 9, q[1] - q[3] * 9, "#2E6DA4", false);
-          var fuera = 26 - pulso * 22;
-          estandarte(q[0] + q[2] * fuera, q[1] + q[3] * fuera, COLOR_IMPERIO, true);
+          var g = anillo.pts[k];
+          estandarte(g[0] - g[2] * 8, g[1] - g[3] * 8, "#2E6DA4");
+          estandarte(g[0] + g[2] * (24 - pulso * 20), g[1] + g[3] * (24 - pulso * 20), COLOR_IMPERIO);
         }
       }
     }
@@ -3846,12 +4014,16 @@ body {
     capitalDe: capitalDe,
     puertosDe: function (i) { return puertosDe(i); },
     travesiaKm: function (a, b) { return travesiaKm(a, b); },
+    decoded: decoded,
     juego: function () { return juego; },
     empiezaEn: empiezaEn,
-    atacar: function (i, n) { var r = atacar(i, n); pintaGuerra(); return r; },
+    tocaDivision: tocaDivision,
+    atacar: function (o, d, n) { var r = atacar(o, d, n); pintaGuerra(); return r; },
+    mover: function (o, d, n) { var r = mover(o, d, n); pintaGuerra(); return r; },
     finTurno: function () { terminaTurno(); pintaGuerra(); },
-    disponibles: function () { return juego ? tropasDisponibles() : 0; },
-    pronostico: function (i, n) { return pronostico(i, n); },
+    pronostico: function (o, d, n) { return pronostico(o, d, n); },
+    origenPara: function (d) { return origenPara(d); },
+    vecinosDiv: vecinosDiv,
     selectCiudad: function (i) { seleccionar(i >= 0 ? { tipo: "ciudad", i: i } : null); },
     divisionEn: divisionEn,
     areaEn: areaEn,

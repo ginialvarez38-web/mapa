@@ -18,15 +18,17 @@ index.html      → abre esto en el navegador
 - **Dos niveles**: el botón `Divisiones` alterna entre el mapa por provincias y
   el mapa por países. El nivel activo manda también al señalar: al pinchar se
   selecciona la división o el país, según lo que esté a la vista.
-- **Campaña**: el botón `Campaña` convierte el globo en un juego de conquista.
-  Eliges un país y tienes que tomar los otros 248. Nada del juego es inventado:
-  **con quién limitas** sale de los arcos de frontera, el **ejército** de cada
-  país de la población de sus ciudades y su superficie, la **ventaja defensiva**
-  de la altura real de su terreno —Liechtenstein defiende con un +55% porque
-  está en los Alpes— y los **desembarcos**, de la distancia entre costas de
-  verdad. El país asediado aparece cercado de estandartes, con las dos cifras de
-  tropas sobre el mapa. Cada turno da un asalto, y uno más por cada diez
-  territorios; el mundo libre se moviliza contra ti cuanto más creces.
+- **Campaña**: el botón `Campaña` convierte el globo en un juego de conquista
+  **división a división** —las 4.322, no los 249 países—, de modo que el frente
+  se ve avanzar provincia a provincia. Se juega tocando el mapa: una división
+  tuya pasa a ser el origen, otra tuya recibe las tropas que le mandes, y una
+  ajena es el objetivo del asalto. Nada del juego es inventado: **quién limita
+  con quién** sale de los arcos de frontera, el **ejército** de cada división de
+  la población de sus ciudades y su superficie, la **ventaja defensiva** de la
+  altura real de su terreno y los **desembarcos**, de la distancia entre costas
+  de verdad. Cada división levanta a los suyos y se los queda, así que mover
+  tropas al frente es la mitad del juego. El panel es pequeño a propósito y se
+  pliega: dice de qué país eres, a cuál estás atacando y cuánto le queda.
 - **Capitales y ciudades**: 7.358 poblaciones con su nombre en español, de
   las que **265 son capitales** —redondel con anillo, como en cualquier atlas—
   y 2.324, capitales de provincia. Van por importancia: desde el espacio solo
@@ -174,6 +176,28 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3e. Conquistar por divisiones.** La primera campaña se jugaba por países, y
+mirándola no se veía avanzar nada: un país entero cambiaba de color de golpe.
+Pasar a las 4.322 divisiones necesitaba saber **qué división limita con cuál**,
+que es otra vez el mismo arco compartido: si dos divisiones usan el mismo arco,
+son vecinas. Salen 10.214 enlaces —y 270 divisiones sin ninguno—.
+
+Esas 270 son el problema interesante. Viena está metida dentro de Baja Austria
+sin compartir su anillo con nadie, así que empezar la partida en Viena dejaba
+un frente vacío y la campaña muerta desde el primer turno. Los enclaves y las
+islas se resuelven mirando qué división hay al otro lado del contorno, y se
+hace de una vez al empezar: hacerlo cuando toque rompería la simetría —Viena
+sabría de Baja Austria y Baja Austria no de Viena— y el frente dependería del
+orden de conquista.
+
+El fallo que enseñó cómo debía jugarse salió de dejar la partida corriendo
+sola: el imperio tenía **143.301 hombres y atacaba con 411**. Los refuerzos
+caían todos en una división de retaguardia. Ahora cada división levanta a los
+suyos y se los queda, y llevarlos al frente es una decisión del jugador —que es
+exactamente lo que se pedía—. Con un bot que concentra tropas antes de atacar,
+la partida desde Viena termina conquistando las 4.322 divisiones en 132 turnos,
+4.353 asaltos y 32 fracasos.
+
 **3d. Un juego que no se inventa los datos.** La campaña usa lo que el mapa ya
 sabía, y eso obligó a arreglar tres cosas del propio mapa. La primera: un tramo
 de frontera «de costa» es el que no tiene división al otro lado, y eso incluye
@@ -299,9 +323,10 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   Baikal y los Andes se obtiene en cada caso el accidente correcto con su
   cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
   Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
-- **Campaña**: cinco partidas jugadas de principio a fin por un bot terminan en
-  victoria conquistando los 249 países, en 38 a 172 turnos según lo buena que
-  sea la posición de partida. La costa se clasifica bien en los 30 países
+- **Campaña**: una partida jugada de principio a fin por un bot termina en
+  victoria con las **4.322 divisiones** conquistadas en 132 turnos y 4.353
+  asaltos, de los que fracasan 32. Moverse, atacar, terminar turno y salir
+  dejan el mapa como estaba. La costa se clasifica bien en los 30 países
   comprobados, y las travesías dan 86 km entre Japón y Corea, 122 entre el
   Reino Unido y Francia y 154 entre Cuba y Estados Unidos.
 - **Ciudades**: pinchando encima de 40 puntos de ciudad dibujados, 39

@@ -24,8 +24,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from geometria import (SCALE, b64_i16, b64_u16, densify_open, pack_polygons,
-                       quantize)
+from geometria import (SCALE, b64_i16, b64_u16, b64_u32, densify_open,
+                       pack_polygons, quantize)
 from nombres_es import ALIAS_NE, NOMBRES, PAISES_NE
 from topologia import cuantizar, simplificar
 
@@ -210,6 +210,7 @@ def main():
             "v": packed["v"], "t": packed["t"], "r": packed["r"],
             "b": packed["b"], "c": packed["c"], "a": packed["a"],
             "i32": packed.get("i32", 0),
+            "_fi": fi,
         })
         total_v += packed["nv"]
         total_t += packed["nt"]
@@ -383,7 +384,47 @@ def main():
     fronteras = {"v": b64_i16(verts), "s": [x for t in tramos for x in t[:2]],
                  "nc": n_costa}
 
+    # --- 8. vecindad entre divisiones ---------------------------------------
+    # El mismo arco compartido que sirve para no dejar grietas dice tambien
+    # quien limita con quien: si dos divisiones usan el mismo arco, son
+    # vecinas. Sin esto una campana solo puede avanzar pais a pais.
     divisiones.sort(key=lambda d: (paises[d["pa"]]["n"], d["n"]))
+    por_fi = {}
+    for i, d in enumerate(divisiones):
+        if d.get("_fi") is not None:
+            por_fi[d["_fi"]] = i
+
+    arcos_de = {}
+    for idx, (fi, _, _) in enumerate(plano):
+        i = por_fi.get(fi)
+        if i is None:
+            continue
+        for clave in usos[idx]:
+            arcos_de.setdefault(clave, set()).add(i)
+
+    vecinos = [set() for _ in divisiones]
+    for clave, quienes in arcos_de.items():
+        if len(quienes) < 2:
+            continue
+        lista = sorted(quienes)
+        for a in lista:
+            for b in lista:
+                if a != b:
+                    vecinos[a].add(b)
+
+    plano_vec = []
+    offsets = [0]
+    for v in vecinos:
+        plano_vec.extend(sorted(v))
+        offsets.append(len(plano_vec))
+    vecindad = {"o": b64_u32(offsets), "v": b64_u16(plano_vec)}
+    sin_vecinos = sum(1 for v in vecinos if not v)
+    print("vecindad de divisiones: %d enlaces, %d sin vecinos"
+          % (len(plano_vec) // 2, sin_vecinos))
+
+    for d in divisiones:
+        d.pop("_fi", None)
+
     orden = sorted(range(len(paises)), key=lambda i: paises[i]["n"])
     remap = dict((viejo, nuevo) for nuevo, viejo in enumerate(orden))
     for d in divisiones:
@@ -396,7 +437,7 @@ def main():
                               for t in tramos for x in t[3:5]])
 
     salida = {"scale": SCALE, "divisiones": divisiones, "paises": paises,
-              "fronteras": fronteras}
+              "fronteras": fronteras, "vecindad": vecindad}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(salida, fh, separators=(",", ":"), ensure_ascii=False)
 
