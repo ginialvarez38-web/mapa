@@ -18,6 +18,15 @@ index.html      → abre esto en el navegador
 - **Dos niveles**: el botón `Divisiones` alterna entre el mapa por provincias y
   el mapa por países. El nivel activo manda también al señalar: al pinchar se
   selecciona la división o el país, según lo que esté a la vista.
+- **Campaña**: el botón `Campaña` convierte el globo en un juego de conquista.
+  Eliges un país y tienes que tomar los otros 248. Nada del juego es inventado:
+  **con quién limitas** sale de los arcos de frontera, el **ejército** de cada
+  país de la población de sus ciudades y su superficie, la **ventaja defensiva**
+  de la altura real de su terreno —Liechtenstein defiende con un +55% porque
+  está en los Alpes— y los **desembarcos**, de la distancia entre costas de
+  verdad. El país asediado aparece cercado de estandartes, con las dos cifras de
+  tropas sobre el mapa. Cada turno da un asalto, y uno más por cada diez
+  territorios; el mundo libre se moviliza contra ti cuanto más creces.
 - **Capitales y ciudades**: 7.358 poblaciones con su nombre en español, de
   las que **265 son capitales** —redondel con anillo, como en cualquier atlas—
   y 2.324, capitales de provincia. Van por importancia: desde el espacio solo
@@ -66,6 +75,9 @@ index.html      → abre esto en el navegador
   es de agarre exacto en corto —el punto se queda bajo el cursor— y se acelera
   en las vistas lejanas.
 - **Retícula** de meridianos y paralelos cada 15°.
+- En campaña, el índice deja de ser alfabético: delante lo que puedes atacar
+  ahora, con su ejército, y el mapa se pone en blanco político —sin relieve ni
+  ciudades— para que se lea la partida. Al salir vuelve como estaba.
 - Teclado: flechas para girar, `+` / `−` para acercar, `Inicio` para reiniciar
   la vista y `Esc` para cerrar la ficha.
 
@@ -161,6 +173,29 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3d. Un juego que no se inventa los datos.** La campaña usa lo que el mapa ya
+sabía, y eso obligó a arreglar tres cosas del propio mapa. La primera: un tramo
+de frontera «de costa» es el que no tiene división al otro lado, y eso incluye
+las orillas de los lagos, así que Austria embarcaba tropas hacia Jersey. La
+prueba buena es salir del contorno hacia el mar y ver si allí sigue habiendo
+tierra —y a dos distancias, porque un hueco entre polígonos engaña a una sonda
+pero no a dos—; con eso, los dieciséis países sin salida al mar que se
+comprobaron tienen cero puertos y los catorce con costa los tienen. La segunda:
+recortar pronto la lista de puertos dejaba a España con costa sólo en Canarias
+y medía el Estrecho —14 km— como una travesía de 900; ahora se muestrea todo el
+contorno y se recorta al final. La tercera: el Cosmódromo de Baikonur es un
+enclave en Kazajistán cuyo anillo no comparte nadie, así que se quedaba sin
+vecinos, sin costa y sin forma de conquistarlo; para los enclaves así se mira
+qué país hay al otro lado de su contorno.
+
+El equilibrio salió de jugar la partida sola. Con los ejércitos libres creciendo
+un porcentaje fijo por turno, al final de la conquista el mundo fabricaba
+ejércitos infinitos y ninguna partida terminaba: ahora cada país se moviliza
+hasta donde da su población y ahí se para. Cinco campañas automáticas, con un
+bot que decide mirando el mismo pronóstico que ve el jugador, terminan en
+victoria: Estados Unidos y Japón en 38 turnos, Austria en 105, Portugal en 123 y
+Mongolia —encajonada entre Rusia y China— en 172.
 
 **4. Triangular sin cuñas.** Cada anillo se triangula por recorte de orejas,
 con puente para los huecos —un país dentro de otro, como Lesoto dentro de
@@ -264,6 +299,11 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   Baikal y los Andes se obtiene en cada caso el accidente correcto con su
   cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
   Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
+- **Campaña**: cinco partidas jugadas de principio a fin por un bot terminan en
+  victoria conquistando los 249 países, en 38 a 172 turnos según lo buena que
+  sea la posición de partida. La costa se clasifica bien en los 30 países
+  comprobados, y las travesías dan 86 km entre Japón y Corea, 122 entre el
+  Reino Unido y Francia y 154 entre Cuba y Estados Unidos.
 - **Ciudades**: pinchando encima de 40 puntos de ciudad dibujados, 39
   devuelven esa misma ciudad. El que falla siempre es un par de capitales
   pegadas —Kinsasa y Brazzaville, a 5 km una de otra a cada orilla del Congo;
