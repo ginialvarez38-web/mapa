@@ -23,11 +23,12 @@ index.html      → abre esto en el navegador
   ciudades siguen ahí— y sobre una rejilla de cuarto de grado, 342.730 cuadros
   de tierra de unos 28 km. Eliges un país y a partir de ahí:
 
-  - **hay un orden de batalla**. Cada bando reparte a sus hombres en **cuerpos
-    de ejército** —uno por cada cuarto de millón, con el ancho del frente como
-    techo—, y cada cuerpo sostiene su tramo de línea, nivela su propio sector,
-    marcha dos celdas al día y ataca por su cuenta hacia donde le mandas. Como
-    cada uno lleva su objetivo, hay varias ofensivas a la vez;
+  - **hay un orden de batalla**. Cada bando reparte a sus hombres en formaciones
+    de campaña —legiones, huestes, cuerpos o ejércitos, según el siglo, con el
+    ancho del frente como techo—, y cada una sostiene su tramo de línea, nivela
+    su propio sector, marcha a la velocidad de su época y ataca por su cuenta
+    hacia donde le mandas. Como cada una lleva su objetivo, hay varias ofensivas
+    a la vez;
   - **el defensor responde**. Tiene sus propios cuerpos, saca al frente las
     guarniciones del interior, se atrinchera y contraataca por donde te ve el
     flanco descolgado o la línea rota;
@@ -54,6 +55,17 @@ index.html      → abre esto en el navegador
     encima antes de que le llegue el turno;
   - **el terreno cuenta**, con los datos del mapa: la altura real, los ríos como
     línea de defensa y las ciudades como plazas fuertes.
+
+  Y todo eso se pelea **en la época que elijas**: ocho, de la Antigüedad a hoy.
+  No son ocho dificultades, son ocho guerras distintas —cambian la quinta que
+  puede levantar un estado, el tamaño y el nombre de sus formaciones, la marcha
+  diaria, el alcance del suministro por tierra y por mar, lo que vale una
+  muralla, lo deprisa que se cava, cuánta sangre cuesta un día de combate, si la
+  brecha se puede explotar, si la campaña para en invierno, lo que tarda una
+  orden en llegar y lo que se sabe del enemigo—. En 1916 una ofensiva gana diez
+  celdas en dos años y paga dos bajas por cada una que hace; en 1942 rompe el
+  frente y embolsa ejércitos enteros; en el 348 a. C. la campaña se detiene de
+  noviembre a marzo.
 
   Un tic es un día. No hay turnos ni botón de ataque: **se juega tocando el
   mapa** —una bandera tuya, tomas el mando de ese cuerpo; terreno ajeno, ese
@@ -209,6 +221,116 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3k. Ocho épocas, ocho guerras.** El motor ya se comportaba como una guerra,
+pero como una guerra de 1942: la única que sabía pelear. La historia militar
+lleva tres mil años diciendo que eso cambia, y cambia de maneras que se pueden
+poner en números. Cada época es una tabla de coeficientes, y cada coeficiente
+sale de algo que está escrito:
+
+| | Antigüedad | Edad Media | Pólvora | Napoleónica | Industrial | Gran Guerra | Mecanizada | Moderna |
+|---|---|---|---|---|---|---|---|---|
+| año | 350 a. C. | 1200 | 1700 | 1805 | 1870 | 1916 | 1942 | 2000 |
+| quinta (% de la población) | 1,0 | 0,8 | 1,5 | 2,5 | 4,0 | 9,0 | 10,0 | 3,0 |
+| formación | Legión 15.000 | Hueste 12.000 | Cuerpo 18.000 | Cuerpo 25.000 | Cuerpo 30.000 | Ejército 40.000 | Ejército 60.000 | Cuerpo 35.000 |
+| hombres por celda de asalto | 2.600 | 2.200 | 3.400 | 4.200 | 6.500 | 14.000 | 8.500 | 4.500 |
+| marcha (celdas/día ≈ 28 km) | 0,72 | 0,70 | 0,80 | 1,15 | 0,95 | 0,75 | 2,00 | 2,60 |
+| suministro (celdas) | 12 | 10 | 16 | 20 | 30 | 34 | 46 | 60 |
+| travesía marítima (celdas) | 11 | 11 | 12 | 13 | 14 | 15 | 16 | 18 |
+| trinchera (×) | 0,15 | 0,20 | 0,35 | 0,30 | 0,55 | 1,10 | 0,70 | 0,60 |
+| plaza fuerte (×) | 2,6 | 3,2 | 2,8 | 2,2 | 2,0 | 1,9 | 1,7 | 1,6 |
+| Lanchester *k* | 1,00 | 1,02 | 1,08 | 1,12 | 1,20 | 1,25 | 1,35 | 1,45 |
+| ritmo de desgaste | 1,9 | 1,5 | 0,7 | 1,5 | 0,85 | 0,45 | 1,0 | 1,5 |
+| persecución | 0,55 | 0,45 | 0,32 | 0,45 | 0,28 | **0,12** | 0,50 | 0,55 |
+| explotación (celdas) | 2 | 2 | 1 | 2 | 1 | **0** | 3 | 3 |
+| cuarteles de invierno | sí | sí | sí | no | no | no | no | no |
+| la orden tarda (días) | 6 | 7 | 5 | 4 | 2 | 2 | 1 | 0 |
+| fricción | 0,30 | 0,34 | 0,26 | 0,20 | 0,14 | 0,12 | 0,08 | 0,05 |
+
+*De dónde sale cada cosa.*
+
+**El exponente de Lanchester.** Lanchester y Osipov, en 1915, separaron dos
+regímenes: la **ley lineal** del combate antiguo —una fila de duelos, donde el
+número cuenta uno a uno— y la **ley cuadrática** del fuego dirigido, donde lo
+que pesa no es el número sino su cuadrado, porque cada arma puede cambiar de
+blanco. En la simulación no se usa el cuadrado a pelo —Dupuy encontró que la
+guerra real queda mucho más cerca de la lineal que de la cuadrática—, sino un
+exponente que se aplica a la *razón de fuerzas*: 1,00 en la falange y 1,45 con
+munición guiada. Es la diferencia entre que concentrar sirva de poco o lo sea
+todo.
+
+**El 3 a 1.** La regla de oro de la doctrina —3:1 para asaltar una posición
+preparada, 2,5:1 para un ataque de encuentro, 1:1 para contraatacar— aparece
+aquí como lo que es: una tendencia, no un umbral. Los ataques con 3:1 salieron
+bien en torno al 74% de las veces en los recuentos históricos, y en la
+simulación una posición se pierde cuando el defensor se rompe **y** el atacante
+tiene con qué entrar; el contraataque enemigo exige 1,35:1 antes de intentarlo.
+
+**Las frontales.** En Austerlitz, cuatro cuerpos de trece mil hombres en diez
+kilómetros. En 1916, la doctrina francobritánica daba a una división de 1.500 a
+2.500 metros al atacar y el doble al defender. En 1944 el reglamento alemán
+daba a una división de 6 a 10 km, y en el frente ruso hubo divisiones cubriendo
+cincuenta. De ahí sale la columna de «hombres por celda de asalto», que es lo
+que decide cuánto frente puede atacar de verdad un cuerpo.
+
+**Las marchas.** Veinte a treinta y dos kilómetros al día es la marcha normal de
+infantería en casi cualquier siglo; más de treinta y dos, marcha forzada. El
+ejército de Alejandro se movía entre 11 y 30 km diarios con todo el tren, y una
+punta ligera podía hacer 55. Una división de infantería de la Segunda Guerra
+hacía de 19 a 24. Un cuerpo acorazado, mucho más. Por eso la marcha va de 0,7 a
+2,6 celdas al día.
+
+**La logística.** Van Creveld: el ejército de tracción animal *vive del país*
+por el que marcha, porque el forraje pesa el doble que la comida de los hombres
+—veinte libras por caballo frente a tres por soldado, con un caballo por cada
+cuatro hombres—, y eso le pone un techo a lo lejos que puede ir de su base. El
+ferrocarril lo levanta, el camión lo levanta otra vez. De ahí que el alcance del
+suministro vaya de 12 a 60 celdas. Y de ahí también que **la distancia degrade
+el suministro pero no lo corte**: lo que lo corta es quedarse sin camino a casa,
+y eso es una bolsa. Al mar se le da su propio alcance: sin travesías, Roma no
+podía sostener Sicilia y Cerdeña, que es lo que sostuvo durante siete siglos.
+
+**La brecha que no se explota.** La columna que más cambia la partida es la de
+explotación, y en la Gran Guerra vale cero. Ésa es toda la historia del frente
+occidental: se rompía la primera línea y no había con qué seguir, porque el
+defensor traía sus reservas en tren y el atacante avanzaba a pie por encima de
+su propio bombardeo. La respuesta llegó como **batalla en profundidad** —
+Triandafíllov, Tujachevski, Isserson: atacar en toda la profundidad del
+dispositivo enemigo a la vez, romper con ejércitos de choque y explotar con
+formaciones móviles hasta provocar la parálisis operativa, no la simple ganancia
+de terreno—. En la simulación eso son tres celdas de explotación detrás de cada
+brecha, y de ahí salen los embolsamientos.
+
+**La persecución.** En una batalla antigua la mayoría de los muertos son del
+bando que huye, y de ahí el 0,55; en 1916 el que cede retrocede dos kilómetros
+y vuelve a cavar, y de ahí el 0,12. Es la misma cifra que decide si romper el
+frente destruye al enemigo o sólo lo empuja.
+
+**El asedio.** Las plazas fuertes valen por tres ejércitos en la Edad Media y
+por poco más de uno hoy, y no se toman al asalto: se toman por hambre. La
+mayoría de los asedios medievales británicos no pasaban de dos meses, pero
+Palermo aguantó diez y Kenilworth ciento setenta y dos días —al rendirse le
+quedaba comida para dos—. Aquí no hace falta ninguna regla de asedio: una plaza
+cortada del suministro pierde organización y acaba capitulando sola.
+
+**La fricción y la niebla.** Clausewitz: en la guerra todo es muy sencillo, pero
+lo más sencillo es difícil. Cada cuerpo tiene una probabilidad de no hacer lo
+que se le mandó —del 30% en la Antigüedad al 5% hoy—, las órdenes tardan en
+llegar entre seis días y ninguno, y **lo que sabes del enemigo es una
+estimación**: las cifras enemigas se dibujan con un «≈» y un error que va del
+70% al 12% según lo que veía cada época. Las propias, exactas.
+
+**El aire.** La interdicción aérea no mata al enemigo: le corta la carretera.
+Operación Strangle obligó a los alemanes en Italia a emplear a miles de hombres
+sólo en reparar puentes y vías. Aquí se lleva un trozo del alcance del
+suministro enemigo: nada antes de 1914, un 3% en la Gran Guerra, un 18% en 1942
+y un 35% hoy.
+
+**La política de la guerra.** La moral nacional baja con el terreno perdido, con
+la capital y con el ejército de campaña, y el aguante depende del siglo: un
+reino antiguo se somete cuando pierde su ejército y su plaza principal, un
+estado de 1916 pelea hasta que se le acaba el país. Es la diferencia entre la
+guerra por batalla decisiva y la guerra total.
 
 **3j. De pintar el frente a mandar un ejército.** La versión anterior ya
 simulaba suministro, organización y desgaste, pero seguía teniendo un solo
@@ -508,6 +630,30 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 - **Simulación**: 200 días de guerra cuestan 3,4 s en el navegador de pruebas
   por software —17 ms de reloj por día simulado—, con el mapa de un millón de
   celdas y el suministro de los dos bandos recalculándose cada cuatro días.
+  Abrir una campaña cuesta entre 0,2 y 0,7 s según la época, que es lo que tarda
+  en calcularse el mapa de travesías marítimas.
+- **Épocas**: la misma invasión, con la misma orden y el mismo eje, en las ocho.
+  Dos años de guerra, desde 741 celdas:
+
+  | época | celdas | tomadas / perdidas | bajas propias / ajenas | invierno |
+  |---|---|---|---|---|
+  | Antigüedad | 1.369 | +431 / −58 | 352k / 96k | 152 d parados |
+  | Edad Media | 1.351 | +375 / −0 | 123k / 56k | 152 d parados |
+  | Pólvora | 1.553 | +632 / −34 | 227k / 165k | 152 d parados |
+  | Napoleónica | 1.050 | +455 / −146 | 623k / 351k | — |
+  | Industrial | 1.000 | +365 / −106 | 481k / 397k | — |
+  | Gran Guerra | 857 | **+161 / −45** | **329k / 177k** | — |
+  | Mecanizada | 1.331 | +653 / −97 | 733k / 873k | — |
+  | Moderna | 1.374 | +581 / −5 | 140k / 904k | — |
+
+  La fila que importa es la de 1916: la ofensiva mejor abastecida y con más
+  hombres de todas gana la sexta parte de terreno que las demás y paga dos bajas
+  por cada una que hace. Nadie la programó así; sale de que la explotación vale
+  cero, la trinchera vale el doble y la persecución no existe. Y la de 2000, al
+  revés: poco terreno los primeros meses y una proporción de bajas de uno a seis.
+- **Suministro marítimo**: sin travesías, las 39 celdas de Sicilia y Cerdeña
+  salían siempre sin abastecer en una campaña italiana. Con ellas, queda una:
+  un islote suelto en mitad del Atlántico.
 - **Banderas**: los 249 países tienen una, y las 249 se dibujan sin fallar.
 - La campaña no toca los ajustes del mapa: el relieve, las divisiones y las
   ciudades siguen como estuvieran, y al terminar no queda nada encendido.
@@ -536,6 +682,48 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   Italia 301.173 (301.340), Reino Unido 242.553 (242.495), Brasil 8.519.258
   (8.515.767), Japón 375.652 (377.975). Francia suma 636.524 km² porque
   Natural Earth incluye sus departamentos de ultramar.
+
+## Sobre la guerra · lecturas
+
+Los coeficientes de las ocho épocas no son de oído. Esto es lo que hay detrás:
+
+- **Lanchester y Osipov (1915-16)**, ley lineal y ley cuadrática —
+  [Lanchester's laws](https://en.wikipedia.org/wiki/Lanchester%27s_laws) y
+  [Lanchester Systems, Naval Postgraduate School](https://faculty.nps.edu/awashburn/Files/Notes/Lanchester.pdf).
+- **Trevor N. Dupuy**, el modelo cuantificado del juicio (QJM/TNDM): poder de
+  combate = fuerza × factores del entorno × eficacia, y las «verdades» del
+  desgaste —el que gana pierde menos que el que pierde, las fuerzas pequeñas se
+  desangran más deprisa— en
+  [The Dupuy Institute](https://dupuyinstitute.org/2016/06/17/trevor-n-dupuys-combat-attrition-verities/).
+- **La regla del 3 a 1** y lo que dicen de ella los recuentos históricos:
+  [Trevor Dupuy and the 3-1 Rule](https://dupuyinstitute.org/2016/07/11/trevor-dupuy-and-the-3-1-rule/)
+  y [Mastering the Correlation of Forces](https://www.militaryhistoryonline.com/Modern/Correlation).
+- **Frontales por época**: Austerlitz y la dispersión creciente en
+  [From Complicated to Complex, Modern War Institute](https://mwi.westpoint.edu/from-complicated-to-complex-the-changing-context-of-war/);
+  las frontales divisionarias de 1916 en
+  [The Evolution of British Infantry Tactics in World War One](https://www.militaryhistoryonline.com/WWI/BritishInfantryInWWI);
+  las de 1944 en [Infantry Unit Frontages during WW2](https://balagan.info/infantry-unit-frontages-during-ww2).
+- **Marchas**: [How Fast Do Armies Move?, A Collection of Unmitigated Pedantry](https://acoup.blog/2019/10/06/new-acquisitions-how-fast-do-armies-move/).
+- **Logística**: Martin van Creveld, *Supplying War: Logistics from Wallenstein
+  to Patton* — el ejército de tracción animal vive del país, y las cuentas de
+  forraje frente a rancho en
+  [The Economics and Logistics of Horse-drawn Armies](https://journals.gold.ac.uk/index.php/bjmh/article/download/1466/1578/1741)
+  e [History of Military Logistics](https://www.hgwdavie.com/).
+- **Batalla en profundidad**: Triandafíllov, Tujachevski e Isserson en
+  [Deep operation](https://en.wikipedia.org/wiki/Deep_operation) y
+  [The Evolution of Russian Operational Art](https://archive.smallwarsjournal.com/index.php/jrnl/art/evolution-russian-operational-art).
+- **Asedios**: duraciones y rendiciones por hambre en
+  [Siege, New World Encyclopedia](https://www.newworldencyclopedia.org/entry/Siege).
+- **Interdicción aérea**: [Operation Strangle](https://en.wikipedia.org/wiki/Operation_Strangle_(World_War_II))
+  y [Air interdiction](https://military-history.fandom.com/wiki/Air_interdiction).
+- **Clausewitz**, la fricción, la niebla y el punto culminante del ataque;
+  **Jomini**, las líneas interiores; **Sun Tzu**, evitar la fuerza y buscar el
+  vacío. De ellos salen la orden que tarda en llegar, el «≈» de las cifras
+  enemigas y que una ofensiva culmine sola.
+
+Nada de esto convierte la campaña en un modelo predictivo: es un juego. Pero
+cada número tiene detrás una razón que se puede discutir, que es más de lo que
+suele tener un juego de conquistar el mundo.
 
 ## Datos
 
