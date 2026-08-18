@@ -18,22 +18,30 @@ index.html      → abre esto en el navegador
 - **Dos niveles**: el botón `Divisiones` alterna entre el mapa por provincias y
   el mapa por países. El nivel activo manda también al señalar: al pinchar se
   selecciona la división o el país, según lo que esté a la vista.
-- **Campaña**: el botón `Campaña` lanza una invasión que se libra **celda a
-  celda** sobre una rejilla de cuarto de grado —342.730 cuadros de tierra de
-  unos 28 km—, **sobre el mapa político de siempre**: los colores de cada país,
-  el relieve y las ciudades siguen ahí, y lo ocupado se pinta translúcido
-  encima, con la línea del frente marcada. No hay turnos, ni botón de ataque, ni
-  panel de órdenes: **se juega tocando el mapa**. Tocas terreno ajeno y el
-  frente empuja hacia allí solo; tocas terreno tuyo y ahí se pone el peso del
-  ataque. Como avanza en línea y no en punta, salen **salientes** por donde el
-  terreno cede, **ciudades rodeadas** que aguantan dentro de tu territorio y
-  **bolsas** cortadas del grueso enemigo, que se rinden solas. Nada es
-  inventado: la guarnición de cada celda sale del ejército de su división
-  —población de sus ciudades y superficie— repartido entre las celdas que
-  ocupa, la resistencia de la altura real del terreno, y las plazas fuertes de
-  las 7.358 ciudades del mapa. Cada división a la vista lleva **la bandera de
-  quien la tiene**: la del invasor donde ya manda y la del defensor donde
-  todavía resiste, de modo que se lee de un vistazo quién tiene qué.
+- **Campaña**: el botón `Campaña` abre una **simulación operacional de guerra**
+  sobre el mapa político de siempre —los colores de cada país, el relieve y las
+  ciudades siguen ahí— y sobre una rejilla de cuarto de grado, 342.730 cuadros
+  de tierra de unos 28 km. Eliges un país y a partir de ahí:
+
+  - **el defensor responde**. Cada país tiene su reserva de hombres, refuerza lo
+    que le atacas, se atrinchera y contraataca donde te ve flojo;
+  - **hay suministro**, repartido desde cada capital por territorio propio. Lo
+    que queda cortado se queda sin comer, pierde organización y acaba
+    rindiéndose: los cercos no son una regla aparte, salen de aquí;
+  - **las unidades se rompen antes de morir**. La organización baja al atacar y
+    se recupera descansando; una división rota no toma nada, así que las
+    ofensivas culminan;
+  - **los hombres se acaban**. La quinta de tu país es finita y el territorio
+    conquistado no da soldados, sólo carreteras. Es lo que impide la bola de
+    nieve y lo que le pone final a una campaña;
+  - **el terreno cuenta**, con los datos del mapa: la altura real, los ríos como
+    línea de defensa y las ciudades como plazas fuertes.
+
+  Un tic es un día. No hay turnos ni botón de ataque: **se juega tocando el
+  mapa** —terreno ajeno, el frente empuja hacia allí; terreno tuyo, ahí se pone
+  el peso del ataque— y una tira arriba dice el día, las celdas, los hombres en
+  línea, la organización, la reserva y las bajas de los dos bandos. Cada
+  división lleva **la bandera de quien la tiene**.
 - **Capitales y ciudades**: 7.358 poblaciones con su nombre en español, de
   las que **265 son capitales** —redondel con anillo, como en cualquier atlas—
   y 2.324, capitales de provincia. Van por importancia: desde el espacio solo
@@ -181,6 +189,39 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3i. Que la guerra se comporte como una guerra.** Las tres primeras versiones
+jugables eran mapas de pintar casillas: el enemigo no existía. Al ponerlo a
+simular de verdad, cada regla que faltaba se vio en los números.
+
+*El mundo caía en cuatro meses.* Los reemplazos salían del territorio ocupado,
+así que cada conquista pagaba la siguiente: 338.200 celdas en 120 días. Ahora
+los hombres salen de la quinta de **tu** país, es finita y se repone despacio;
+una población conquistada no te da soldados.
+
+*El mundo entero se rendía solo.* El suministro sólo se calcula para los países
+que tocan al frente, y los demás se quedaban a cero, es decir, dados por
+cercados: 200.000 celdas capitulando en dos meses sin que nadie las atacara.
+Ahora quien no está en contacto está abastecido, y al perder el contacto se le
+devuelve el suministro.
+
+*Dos años sin mover el frente.* Con los refuerzos repartidos a partes iguales
+por toda la línea no había superioridad local en ninguna parte, y las ofensivas
+culminaban justo antes de romper al defensor. Ahora los refuerzos se concentran
+donde señalas, atrincherarse ya no multiplica por 2,4 sino por 1,9, aplastar a
+alguien no agota al atacante como pelear de igual a igual, y al ceder una celda
+las de al lado pierden cohesión —el flanco al aire— para que un frente se
+desmorone en cadena en vez de resistir celda a celda eternamente.
+
+*Empezabas conquistando tu propio país.* La partida arrancaba con una sola
+división; ahora arranca con el país entero, que es lo que significa elegir con
+quién vas a la guerra. Y el defensor no contraataca las primeras semanas:
+quien ataca por sorpresa tiene la iniciativa mientras el otro moviliza.
+
+Con eso, una ofensiva austríaca hacia el Adriático se comporta como se espera:
+avanza deprisa el primer mes, culmina hacia el día 240 con la organización por
+debajo del 50%, paga dos bajas por cada una que hace atacando posiciones
+preparadas, y se para cuando se acaban los hombres.
 
 **3h. 249 banderas sin una sola imagen.** La política de seguridad del visor no
 deja pedir nada a otro servidor, así que las banderas en PNG no eran una opción:
@@ -392,6 +433,12 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   camino. Entrar, elegir el punto de partida tocando el mapa, señalar objetivo,
   lanzar la ofensiva, terminar turno, plegar el panel y salir funcionan con el
   dedo, y salir deja el mapa como estaba.
+- **Guerra**: una ofensiva desde Austria hacia Liubliana pasa de 155 a 302
+  celdas en un año, con 188.788 bajas propias y 67.299 ajenas, la organización
+  del frente cayendo del 75% al 60% y la reserva agotada al final. Por el
+  camino se forman bolsas sin suministro y quedan ciudades cercadas —Innsbruck,
+  Trieste—, y el defensor recupera terreno: de las 155 celdas austríacas
+  iniciales, 21 vuelven a manos enemigas.
 - **Banderas**: los 249 países tienen una, y las 249 se dibujan sin fallar.
 - La campaña no toca los ajustes del mapa: el relieve, las divisiones y las
   ciudades siguen como estuvieran, y al terminar no queda nada encendido.

@@ -293,7 +293,9 @@ body {
   z-index: 4;
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  max-width: min(620px, calc(100vw - 360px));
+  gap: 8px 16px;
   padding: 7px 12px;
   border: 1px solid var(--line);
   border-radius: 3px;
@@ -1220,7 +1222,7 @@ body {
     "varying vec3 vN; varying vec3 vGeo; varying float vIdx; varying float vPais; varying float vSom;",
     "uniform sampler2D uPal; uniform vec2 uPalSize;",
     "uniform sampler2D uMapa; uniform float uGuerra; uniform vec2 uMapaSize;",
-    "uniform vec3 uMio, uBolsa, uCerco;",
+    "uniform vec3 uMio, uBolsa, uCerco, uSinSum;",
     "uniform vec3 uLight; uniform float uNight; uniform float uShade;",
     "uniform float uHover, uSel, uHovPais, uSelPais; uniform vec3 uAccent;",
     "uniform float uAlpha, uFisico, uRealce; uniform vec3 uTierra;",
@@ -1244,18 +1246,18 @@ body {
     "    vec2 uv = vec2(atan(g.x, g.z) * 0.15915494 + 0.5,",
     "                   asin(clamp(g.y, -1.0, 1.0)) * 0.31830989 + 0.5);",
     "    float est = texture2D(uMapa, uv).a;",
-    "    if (est > 0.9) {",
-    "      col = mix(col, uMio, 0.42);",
+    "    if (est > 0.82) {",
+    "      col = mix(col, est > 0.95 ? uMio : uSinSum, 0.42);",
     "      vec2 px = 1.0 / uMapaSize;",
     "      float borde = 0.0;",
-    "      borde += step(texture2D(uMapa, uv + vec2(px.x, 0.0)).a, 0.9);",
-    "      borde += step(texture2D(uMapa, uv - vec2(px.x, 0.0)).a, 0.9);",
-    "      borde += step(texture2D(uMapa, uv + vec2(0.0, px.y)).a, 0.9);",
-    "      borde += step(texture2D(uMapa, uv - vec2(0.0, px.y)).a, 0.9);",
+    "      borde += step(texture2D(uMapa, uv + vec2(px.x, 0.0)).a, 0.82);",
+    "      borde += step(texture2D(uMapa, uv - vec2(px.x, 0.0)).a, 0.82);",
+    "      borde += step(texture2D(uMapa, uv + vec2(0.0, px.y)).a, 0.82);",
+    "      borde += step(texture2D(uMapa, uv - vec2(0.0, px.y)).a, 0.82);",
     "      if (borde > 0.5) col = mix(col, uMio * 0.55 + 0.45, 0.85);",
     "    }",
-    "    else if (est > 0.6) col = mix(col, uBolsa, 0.55);",       // 180: embolsado
-    "    else if (est > 0.35) col = mix(col, uCerco, 0.55);",      // 120: cercado
+    "    else if (est > 0.55) col = mix(col, uBolsa, 0.55);",       // 170: enemigo cortado
+    "    else if (est > 0.30) col = mix(col, uCerco, 0.55);",      // 110: plaza aislada
     "  }",
     "  bool sel = abs(vIdx - uSel) < 0.5 || abs(vPais - uSelPais) < 0.5;",
     "  bool hov = abs(vIdx - uHover) < 0.5 || abs(vPais - uHovPais) < 0.5;",
@@ -2487,29 +2489,36 @@ body {
   }
 
   // ---------------------------------------------------------------- //
-  // Campaña: la invasión se libra celda a celda                       //
+  // Campaña: simulación operacional de una guerra                     //
   // ---------------------------------------------------------------- //
   //
-  // El territorio se toma por celdas de cuarto de grado, no por provincias, de
-  // modo que el frente queda donde lo dejan los combates: con salientes por
-  // donde el terreno cede, con ciudades rodeadas que aguantan dentro de tu
-  // territorio y con bolsas de tropas enemigas cortadas de los suyos.
+  // Lo que hace que esto sea una guerra y no un juego de pintar casillas:
   //
-  // Todo sigue saliendo del propio mapa: la guarnición de cada celda, del
-  // ejército de su división —población de sus ciudades y superficie— repartido
-  // entre las celdas que ocupa; la resistencia, de la altura real del terreno;
-  // y las ciudades, de las 7.358 que ya están puestas.
+  //   · el defensor responde. Cada país tiene su reserva de hombres, refuerza
+  //     lo que le atacas y contraataca donde te ve flojo.
+  //   · hay suministro. Cada bando lo reparte desde su capital a través de su
+  //     propio territorio; lo que queda cortado se queda sin comer, pierde
+  //     organización y acaba rindiéndose. Los cercos no son una regla aparte:
+  //     salen solos de aquí.
+  //   · las unidades se rompen antes de morir. La organización baja al atacar
+  //     y se recupera descansando; una división rota no toma nada.
+  //   · el terreno cuenta con los datos del mapa: la altura real, los ríos como
+  //     línea de defensa y las ciudades como plazas fuertes.
+  //   · atrincherarse lleva tiempo, y quien lleva semanas quieto es mucho más
+  //     caro de desalojar.
+  //
+  // Un tic es un día. Nada de esto es un número inventado por el juego: la
+  // población de las ciudades da los hombres, la rejilla de alturas da el
+  // terreno y las polilíneas de los ríos, los cauces.
 
   var juego = null;
   var MAR = 65535;
 
-  // Cuánto cuesta tomar una celda y cuánto renta tenerla. Salieron de jugar la
-  // partida: con el primer reparto, una ofensiva se llevaba seis celdas y el
-  // reclutamiento no daba ni para una por turno, así que el frente no avanzaba.
-  var COSTE_CELDA = 0.5;        // por punto de resistencia
-  var RENTA_CELDA = 5;          // hombres por turno y celda ocupada
+  var DIA = 170;              // ms de reloj por día de guerra
+  var ALCANCE_SUM = 46;       // celdas desde la capital antes de quedarse sin nada
 
-  // --- fuerza de cada celda ------------------------------------------------
+  // --- preparación del tablero ---------------------------------------------
+
   var pobDiv = null;
   function poblacionPorDiv() {
     if (pobDiv) return pobDiv;
@@ -2525,29 +2534,52 @@ body {
                                     Math.sqrt(Math.max(1, divisiones[i].a)) * 9));
   }
 
-  // Cuántas celdas ocupa cada división, para repartir su ejército.
-  function cuentaCeldas() {
-    var n = new Uint32Array(ND);
-    for (var c = 0; c < NCEL; c++) {
-      var d = celdaDiv[c];
-      if (d !== MAR) n[d]++;
+  // Los ríos, sobre la rejilla: cruzar un cauce cuesta, y con eso los frentes
+  // se pegan a los ríos igual que en cualquier guerra de verdad.
+  function rasterizaRios() {
+    var rio = new Uint8Array(NCEL);
+    if (!relieve || !relieve.rios || !relieve.rios.v) return rio;
+    var rb = b64Bytes(relieve.rios.v);
+    var ll = new Int16Array(rb.buffer, rb.byteOffset, rb.byteLength >> 1);
+    var s = relieve.rios.s;
+    var cortes = relieve.rios.c || [0];
+    // sólo los ríos de cierta entidad: un arroyo no detiene a nadie
+    var hasta = s.length >> 1;
+    if (cortes.length > 8) hasta = cortes[8];
+    for (var t = 0; t < hasta; t++) {
+      var ini = s[t * 2], n = s[t * 2 + 1];
+      for (var k = 0; k < n - 1; k++) {
+        var lon1 = ll[(ini + k) * 2] / SCALE, lat1 = ll[(ini + k) * 2 + 1] / SCALE;
+        var lon2 = ll[(ini + k + 1) * 2] / SCALE, lat2 = ll[(ini + k + 1) * 2 + 1] / SCALE;
+        var pasos = Math.max(1, Math.ceil(Math.max(Math.abs(lon2 - lon1),
+                                                   Math.abs(lat2 - lat1)) * 4));
+        for (var p = 0; p <= pasos; p++) {
+          var f = p / pasos;
+          rio[celdaDe(lon1 + (lon2 - lon1) * f, lat1 + (lat2 - lat1) * f)] = 1;
+        }
+      }
     }
-    return n;
+    return rio;
   }
 
-  // Prepara el tablero: quién guarnece cada celda y cuánto cuesta tomarla.
   function preparaCeldas() {
     rasterizaMundo();
     creaTexturaMapa();
-    var porDiv = cuentaCeldas();
+
+    var porDiv = new Uint32Array(ND);
+    for (var c = 0; c < NCEL; c++) if (celdaDiv[c] !== MAR) porDiv[celdaDiv[c]]++;
+
     var est = new Uint8Array(NCEL);
-    var def = new Float32Array(NCEL);
+    var paisCel = new Uint16Array(NCEL);
+    var terreno = new Float32Array(NCEL);
+    var fort = new Float32Array(NCEL);
+    var fuerza = new Float32Array(NCEL);
     var ciudadEn = new Int32Array(NCEL);
+    paisCel.fill(MAR);
     ciudadEn.fill(-1);
 
     for (var k = 0; k < NC; k++) {
       var cc = celdaDe(ciudades[k].c[0], ciudades[k].c[1]);
-      // gana la ciudad más poblada si dos caen en la misma celda
       if (ciudadEn[cc] < 0 || ciudades[k].pop > ciudades[ciudadEn[cc]].pop) ciudadEn[cc] = k;
     }
 
@@ -2555,21 +2587,21 @@ body {
       var d = celdaDiv[c];
       if (d === MAR) continue;
       est[c] = 1;
-      var base = ejercitoDiv(d) / Math.max(1, porDiv[d]);
-      // El terreno alto se defiende mejor, con la misma rejilla de alturas que
-      // levanta el relieve en 3D.
+      paisCel[c] = divisiones[d].pa;
+      // El terreno, de la misma rejilla de alturas que levanta el relieve.
       var alto = alturaR(lonDeCelda(c), latDeCelda(c)) * 6371000;
-      var terreno = 1 + Math.min(0.7, alto / 3600);
+      terreno[c] = 1 + Math.min(1.1, alto / 2600);
       var ciu = ciudadEn[c];
-      // Una ciudad es una plaza fuerte: cuesta mucho más que el campo abierto.
-      var urbe = ciu >= 0 ? 2.2 + Math.min(6, Math.sqrt(ciudades[ciu].pop) / 260) : 1;
-      def[c] = Math.max(12, base * terreno * urbe);
+      fort[c] = ciu >= 0 ? 1 + Math.min(1.6, Math.sqrt(ciudades[ciu].pop) / 900) : 1;
+      // Guarnición: el ejército de su división repartido entre sus celdas.
+      fuerza[c] = Math.max(40, ejercitoDiv(d) / Math.max(1, porDiv[d]));
     }
-    return { est: est, def: def, ciudad: ciudadEn };
+
+    return { est: est, paisCel: paisCel, terreno: terreno, fort: fort,
+             fuerza: fuerza, ciudad: ciudadEn, rio: rasterizaRios() };
   }
 
-  // --- vecindad de celdas --------------------------------------------------
-  // La rejilla da la vuelta por el este y el oeste, y se corta en los polos.
+  // Vecindad de celdas: la rejilla da la vuelta por el este y el oeste.
   function vecinas(c, out) {
     var x = c % GW, y = (c / GW) | 0;
     var n = 0;
@@ -2580,49 +2612,245 @@ body {
     return n;
   }
 
-  // --- estado de la partida ------------------------------------------------
+  function distCel(a, b) {
+    var ax = a % GW, ay = (a / GW) | 0, bx = b % GW, by = (b / GW) | 0;
+    var dx = Math.abs(ax - bx);
+    if (dx > GW / 2) dx = GW - dx;
+    return Math.hypot(dx, ay - by);
+  }
+
+  // --- estado --------------------------------------------------------------
   function nuevaCampana(celdaInicio) {
-    var tab = preparaCeldas();
+    var t = preparaCeldas();
     juego = {
-      est: tab.est, def: tab.def, ciudad: tab.ciudad,
-      bolsa: new Uint8Array(NCEL),
-      sitiada: new Uint8Array(NCEL),
+      est: t.est, paisCel: t.paisCel, terreno: t.terreno, fort: t.fort,
+      rio: t.rio, ciudad: t.ciudad,
+      fuerza: t.fuerza,
+      org: new Float32Array(NCEL),
+      trinch: new Float32Array(NCEL),
+      // Todo el mundo empieza abastecido. El suministro sólo se recalcula para
+      // los países que tocan al frente: dejar el resto a cero los daba por
+      // cercados y el mundo entero se rendía solo en dos meses.
+      sum: new Float32Array(NCEL),
       inicio: celdaInicio,
       pais: celdaDiv[celdaInicio] !== MAR ? divisiones[celdaDiv[celdaInicio]].pa : -1,
-      tropas: 0, mias: 0, tierra: 0, bajasPropias: 0, bajasEnemigas: 0,
+      dia: 0, reloj: 0,
+      reserva: 0, gastados: 0, movilizables: 0, bajas: 0, bajasEnemigas: 0,
+      mias: 0, tierra: 0, sinSum: 0, enBatalla: 0,
       objetivo: -1, esfuerzo: celdaInicio, fin: null,
-      bolsasVivas: 0, sitios: 0, renta: 0,
-      frontera: null, frenteSet: null, ultimoCerco: 0
+      frente: null, frenteSet: null,
+      capitalPais: null, reservaPais: null, enContacto: [],
+      ultimoSum: -1e9, registro: []
     };
     for (var c = 0; c < NCEL; c++) if (juego.est[c]) juego.tierra++;
+    juego.org.fill(0.75);
+    juego.sum.fill(1);
 
-    // Se empieza con la división entera del punto elegido: un cuadro de 28 km
-    // no da para lanzar nada.
-    var d0 = celdaDiv[celdaInicio];
-    for (var c = 0; c < NCEL; c++) if (celdaDiv[c] === d0) tomaCelda(c);
-    if (!juego.mias) tomaCelda(celdaInicio);
-    juego.tropas = Math.round(ejercitoDiv(d0));
+    // Capitales, que son de donde sale el suministro de cada país.
+    juego.capitalPais = new Int32Array(NP);
+    juego.capitalPais.fill(-1);
+    if (capitalDe) {
+      for (var ip in capitalDe) {
+        var ciu = ciudades[capitalDe[ip]];
+        juego.capitalPais[+ip] = celdaDe(ciu.c[0], ciu.c[1]);
+      }
+    }
+    for (var i = 0; i < NP; i++) {
+      if (juego.capitalPais[i] < 0) juego.capitalPais[i] = celdaDe(paises[i].c[0], paises[i].c[1]);
+    }
+    // Los hombres que puede poner en pie cada país salen de su población, no de
+    // su superficie ni de lo que conquiste. Es el límite que hace que una
+    // guerra se acabe: cuando se agota la quinta, ya no hay con qué seguir.
+    var pobPais = new Float64Array(NP);
+    for (var k = 0; k < NC; k++) {
+      if (ciudades[k].pa >= 0) pobPais[ciudades[k].pa] += ciudades[k].pop;
+    }
+    juego.reservaPais = new Float32Array(NP);
+    juego.movilizable = new Float32Array(NP);
+    for (var i = 0; i < NP; i++) {
+      // La población de las ciudades es sólo la urbana; el resto del país pesa
+      // otro tanto y pico. De ahí, un 4% es lo que un estado puede movilizar.
+      var total = Math.max(30000, pobPais[i] * 2.2) * 0.04;
+      juego.movilizable[i] = total;
+      juego.reservaPais[i] = total * 0.55;      // el resto ya está en el frente
+    }
+    // Las celdas de cada país, en una lista. El suministro se recalcula muchas
+    // veces y recorrer el millón de celdas por cada país en contacto se notaba.
+    var celdasPais = new Uint32Array(NP);
+    for (var c = 0; c < NCEL; c++) if (juego.paisCel[c] !== MAR) celdasPais[juego.paisCel[c]]++;
+    juego.celdasDe = new Array(NP);
+    for (var i = 0; i < NP; i++) juego.celdasDe[i] = new Int32Array(celdasPais[i]);
+    var llenos = new Uint32Array(NP);
+    for (var c = 0; c < NCEL; c++) {
+      var ipx = juego.paisCel[c];
+      if (ipx !== MAR) juego.celdasDe[ipx][llenos[ipx]++] = c;
+    }
+    for (var c = 0; c < NCEL; c++) {
+      var ip = juego.paisCel[c];
+      if (ip === MAR) continue;
+      juego.fuerza[c] = Math.max(60, juego.movilizable[ip] * 0.45 /
+                                     Math.max(1, celdasPais[ip]));
+    }
 
-    recalculaFrontera();
-    calculaRenta();
+    // Se empieza con el país entero: eliges con quién vas a la guerra, no una
+    // provincia suelta. Antes había que conquistar el propio país primero, lo
+    // que no tenía ningún sentido.
+    var ip0 = juego.pais;
+    for (var c = 0; c < NCEL; c++) {
+      if (ip0 >= 0 && juego.paisCel[c] === ip0) tomaCelda(c, juego.fuerza[c]);
+    }
+    if (!juego.mias) tomaCelda(celdaInicio, 500);
+    juego.reserva = juego.reservaPais[juego.pais] || 5000;
+    juego.movilizables = juego.movilizable[juego.pais] || 20000;
+    juego.reservaPais[juego.pais] = 0;
+    juego.movilizable[juego.pais] = 0;
+    juego.capital = celdaInicio;
+
+    recalculaFrente();
+    calculaSuministro(true);
     subeMapa();
     return juego;
   }
 
-  function tomaCelda(c) {
+  function tomaCelda(c, conFuerza) {
     if (juego.est[c] !== 1) return false;
     juego.est[c] = 2;
-    juego.bolsa[c] = 0;
-    juego.sitiada[c] = 0;
+    juego.fuerza[c] = conFuerza || 0;
+    juego.org[c] = 0.45;
+    juego.trinch[c] = 0;
     juego.mias++;
-    mapaBuf[c] = 255;
-    ensucia(c);
+    pintaCelda(c);
     return true;
   }
 
-  // La frontera se mantiene al día en vez de rehacerse: en tiempo real no se
-  // puede repasar el millón de celdas en cada empujón.
-  function recalculaFrontera() {
+  function pierdeCelda(c, conFuerza) {
+    if (juego.est[c] !== 2) return false;
+    juego.est[c] = 1;
+    juego.fuerza[c] = conFuerza || 0;
+    juego.org[c] = 0.4;
+    juego.trinch[c] = 0;
+    juego.mias--;
+    pintaCelda(c);
+    return true;
+  }
+
+  // El color de la celda en la textura que lee el sombreador:
+  //   255 mío · 200 mío sin suministro · 180 enemigo cercado · 120 plaza sitiada
+  function pintaCelda(c) {
+    var v = 0;
+    if (juego.est[c] === 2) v = juego.sum[c] < 0.15 ? 220 : 255;
+    else if (juego.est[c] === 1) {
+      if (juego.sum[c] < 0.05) v = 170;
+      else if (juego.ciudad[c] >= 0 && juego.sum[c] < 0.35) v = 110;
+    }
+    if (mapaBuf[c] !== v) { mapaBuf[c] = v; ensucia(c); }
+  }
+
+  // --- suministro ----------------------------------------------------------
+  //
+  // Se reparte desde la capital hacia fuera, sólo por territorio propio, y se
+  // agota con la distancia. De aquí sale todo lo demás: una bolsa no es una
+  // regla especial, es territorio al que ya no llega la comida.
+  var colaSum = null, distSum = null, selloSum = null, sello = 0;
+  function calculaSuministro(forzar) {
+    if (!colaSum) {
+      colaSum = new Int32Array(NCEL);
+      distSum = new Uint16Array(NCEL);
+      selloSum = new Uint32Array(NCEL);
+    }
+    // Un sello que se incrementa evita tener que borrar un millón de celdas
+    // en cada reparto.
+    sello++;
+    var v = new Int32Array(4);
+
+    function reparte(semilla, mio, ip) {
+      if (semilla < 0) return;
+      var cab = 0, fin = 0;
+      colaSum[fin++] = semilla;
+      distSum[semilla] = 0;
+      selloSum[semilla] = sello;
+      while (cab < fin) {
+        var c = colaSum[cab++];
+        var d = distSum[c];
+        if (d >= ALCANCE_SUM) continue;
+        var n = vecinas(c, v);
+        for (var k = 0; k < n; k++) {
+          var w = v[k];
+          if (selloSum[w] === sello) continue;
+          var suyo = mio ? juego.est[w] === 2
+                         : (juego.est[w] === 1 && juego.paisCel[w] === ip);
+          if (!suyo) continue;
+          selloSum[w] = sello;
+          distSum[w] = d + 1;
+          colaSum[fin++] = w;
+        }
+      }
+    }
+
+    // El mío, desde mi capital; si la he perdido, desde donde empecé.
+    var mia = juego.est[juego.capital] === 2 ? juego.capital : -1;
+    if (mia < 0) {
+      for (var c = 0; c < NCEL && mia < 0; c++) if (juego.est[c] === 2) mia = c;
+      juego.capital = mia;
+    }
+    reparte(mia, true, -1);
+    juego.sinSum = 0;
+    for (var c = 0; c < NCEL; c++) {
+      if (juego.est[c] !== 2) continue;
+      var d = selloSum[c] === sello ? distSum[c] : 65535;
+      var s = d === 65535 ? 0 : Math.max(0.08, 1 - d / ALCANCE_SUM);
+      juego.sum[c] = s;
+      if (s < 0.15) juego.sinSum++;
+      pintaCelda(c);
+    }
+
+    // El de cada país con el que estoy en contacto. Al que deja de estarlo se
+    // le devuelve el suministro: ya no hay quien le corte nada.
+    var enContacto = paisesTocados();
+    var antes = juego.enContacto || [];
+    for (var k = 0; k < antes.length; k++) {
+      if (enContacto.indexOf(antes[k]) >= 0) continue;
+      var suyas0 = juego.celdasDe[antes[k]];
+      for (var q = 0; q < suyas0.length; q++) {
+        var c0 = suyas0[q];
+        if (juego.est[c0] === 1) { juego.sum[c0] = 1; pintaCelda(c0); }
+      }
+    }
+    juego.enContacto = enContacto;
+    for (var k = 0; k < enContacto.length; k++) {
+      var ip = enContacto[k];
+      sello++;
+      reparte(juego.capitalPais[ip], false, ip);
+      var suyas = juego.celdasDe[ip];
+      for (var q = 0; q < suyas.length; q++) {
+        var c = suyas[q];
+        if (juego.est[c] !== 1) continue;
+        var d = selloSum[c] === sello ? distSum[c] : 65535;
+        juego.sum[c] = d === 65535 ? 0 : Math.max(0.08, 1 - d / ALCANCE_SUM);
+        pintaCelda(c);
+      }
+    }
+    subeMapa();
+  }
+
+  // Los países cuyo territorio toca al mío.
+  function paisesTocados() {
+    var vis = {}, out = [];
+    var v = new Int32Array(4);
+    for (var k = 0; k < juego.frente.length; k++) {
+      var n = vecinas(juego.frente[k], v);
+      for (var j = 0; j < n; j++) {
+        var w = v[j];
+        if (juego.est[w] !== 1) continue;
+        var ip = juego.paisCel[w];
+        if (ip !== MAR && !vis[ip]) { vis[ip] = 1; out.push(ip); }
+      }
+    }
+    return out;
+  }
+
+  // --- frente --------------------------------------------------------------
+  function recalculaFrente() {
     var set = new Set();
     var v = new Int32Array(4);
     for (var c = 0; c < NCEL; c++) {
@@ -2631,238 +2859,302 @@ body {
       for (var k = 0; k < n; k++) if (juego.est[v[k]] === 1) { set.add(c); break; }
     }
     juego.frenteSet = set;
-    juego.frontera = Array.from(set);
-    return juego.frontera;
+    juego.frente = Array.from(set);
+    return juego.frente;
   }
 
-  function actualizaFrentePor(c) {
-    var v = new Int32Array(4);
-    var n = vecinas(c, v);
-    var toca = false;
-    for (var k = 0; k < n; k++) if (juego.est[v[k]] === 1) { toca = true; break; }
-    if (toca) juego.frenteSet.add(c); else juego.frenteSet.delete(c);
-    for (var k = 0; k < n; k++) {
-      var w = v[k];
-      if (juego.est[w] !== 2) continue;
-      var m = vecinas(w, v2);
-      var sigue = false;
-      for (var j = 0; j < m; j++) if (juego.est[v2[j]] === 1) { sigue = true; break; }
-      if (sigue) juego.frenteSet.add(w); else juego.frenteSet.delete(w);
+  var vA = new Int32Array(4), vB = new Int32Array(4);
+  function refrescaFrenteCerca(c) {
+    var n = vecinas(c, vA);
+    var lista = [c];
+    for (var k = 0; k < n; k++) lista.push(vA[k]);
+    for (var i = 0; i < lista.length; i++) {
+      var w = lista[i];
+      if (juego.est[w] !== 2) { juego.frenteSet.delete(w); continue; }
+      var m = vecinas(w, vB), toca = false;
+      for (var j = 0; j < m; j++) if (juego.est[vB[j]] === 1) { toca = true; break; }
+      if (toca) juego.frenteSet.add(w); else juego.frenteSet.delete(w);
     }
   }
-  var v2 = new Int32Array(4);
 
-  // Distancia en celdas entre dos, contando la vuelta al mundo.
-  function distCel(a, b) {
-    var ax = a % GW, ay = (a / GW) | 0, bx = b % GW, by = (b / GW) | 0;
-    var dx = Math.abs(ax - bx);
-    if (dx > GW / 2) dx = GW - dx;
-    return Math.hypot(dx, ay - by);
-  }
-
-  // Lo que rinde el territorio ocupado, por segundo.
-  function calculaRenta() {
-    var r = 0;
-    for (var c = 0; c < NCEL; c++) {
-      if (juego.est[c] !== 2) continue;
-      r += 0.9;
-      if (juego.ciudad[c] >= 0) r += Math.sqrt(ciudades[juego.ciudad[c]].pop) / 30;
-    }
-    juego.renta = r;
-    return r;
-  }
-
-  // --- el avance del frente, continuo --------------------------------------
+  // --- combate -------------------------------------------------------------
   //
-  // No hay turnos ni botón de ataque: mientras haya un objetivo señalado y
-  // tropas, el frente muerde terreno cada pocas décimas. Se toma primero lo que
-  // queda de camino hacia donde has señalado y lo que menos resiste, y lo que
-  // no se puede pagar se deja atrás. De esa sola regla salen los salientes, las
-  // ciudades rodeadas y las bolsas.
-  function empujaFrente(presupuesto) {
-    if (!juego || juego.fin || juego.objetivo < 0) return 0;
-    var destino = juego.objetivo;
-    if (juego.est[destino] === 2) { juego.objetivo = -1; return 0; }
-    if (!juego.frontera || !juego.frontera.length) return 0;
-
-    // El frente avanza como una línea, no como una aguja. Se coge el tramo de
-    // frontera más cercano a donde has señalado y se empuja cada celda suya un
-    // paso; donde el terreno resiste, ese punto se queda atrás y el resto sigue
-    // —de ahí los salientes— y lo que se queda encerrado acaba embolsado.
-    var frente = juego.frontera.slice();
-    frente.sort(function (a, b) { return distCel(a, destino) - distCel(b, destino); });
-    var ancho = Math.max(3, Math.min(90, Math.round(Math.sqrt(juego.mias) * 1.6)));
-    var tramo = frente.slice(0, Math.min(frente.length, ancho));
-
-    var v = new Int32Array(4);
-    var impulso = Math.min(presupuesto, juego.tropas);
-    var tomadas = 0, bajas = 0;
-
-    for (var vuelta = 0; vuelta < 3 && impulso > 0; vuelta++) {
-      var algo = false;
-      for (var k = 0; k < tramo.length && impulso > 0; k++) {
-        var origen = tramo[k];
-        if (juego.est[origen] !== 2) continue;
-        // De los vecinos libres, el que más acerca al objetivo y menos resiste.
-        var n = vecinas(origen, v);
-        var mejor = -1, mejorPri = Infinity;
-        for (var j = 0; j < n; j++) {
-          var w = v[j];
-          if (juego.est[w] !== 1) continue;
-          var pri = distCel(w, destino) * 1.4 + juego.def[w] / 260;
-          if (pri < mejorPri) { mejorPri = pri; mejor = w; }
-        }
-        if (mejor < 0) continue;
-        var coste = juego.def[mejor] * COSTE_CELDA;
-        if (coste > impulso) continue;         // ahí no se puede: se queda atrás
-        impulso -= coste;
-        bajas += coste * 0.55;
-        juego.bajasEnemigas += juego.def[mejor];
-        tomaCelda(mejor);
-        actualizaFrentePor(mejor);
-        tramo[k] = mejor;                      // la línea avanza a esa celda
-        tomadas++;
-        algo = true;
-        if (mejor === destino) { juego.objetivo = -1; impulso = 0; break; }
-      }
-      if (!algo) break;
-    }
-
-    if (tomadas) {
-      juego.tropas -= bajas;
-      if (juego.tropas < 0) juego.tropas = 0;
-      juego.bajasPropias += bajas;
-      juego.frontera = Array.from(juego.frenteSet);
-      subeMapa();
-    }
-    return tomadas;
+  // Un asalto no captura la celda: la desgasta. El defensor pierde hombres y
+  // organización, y sólo cuando se rompe cede el terreno. Atacar también
+  // desorganiza al atacante, así que no se puede empujar sin parar.
+  function poderAtaque(c) {
+    return juego.fuerza[c] * juego.org[c] * (0.35 + 0.65 * juego.sum[c]);
   }
 
-  // El latido de la campaña: recluta, empuja y de vez en cuando revisa cercos.
-  function pulsoCampana(dt, now) {
+  function poderDefensa(c, desde) {
+    var t = juego.terreno[c] * juego.fort[c] * (1 + juego.trinch[c] * 0.9);
+    if (juego.rio[c] && desde >= 0 && !juego.rio[desde]) t *= 1.35;   // cruzar el cauce
+    return juego.fuerza[c] * (0.25 + 0.75 * juego.org[c]) *
+           (0.3 + 0.7 * juego.sum[c]) * t;
+  }
+
+  // Un día de combate entre dos celdas. Devuelve true si el defensor cede.
+  function choque(atacante, defensor) {
+    var pa = poderAtaque(atacante);
+    var pd = poderDefensa(defensor, atacante);
+    if (pa <= 0) return false;
+    var razon = pa / Math.max(1, pd);
+
+    // Bajas: proporcionales al poder del contrario, con algo de azar.
+    var azar = 0.75 + Math.random() * 0.5;
+    var bajasAtk = Math.min(juego.fuerza[atacante] * 0.10,
+                            pd * 0.020 * azar / Math.max(0.4, razon));
+    var bajasDef = Math.min(juego.fuerza[defensor] * 0.14, pa * 0.022 * azar);
+
+    juego.fuerza[atacante] = Math.max(0, juego.fuerza[atacante] - bajasAtk);
+    juego.fuerza[defensor] = Math.max(0, juego.fuerza[defensor] - bajasDef);
+    juego.bajas += bajasAtk;
+    juego.bajasEnemigas += bajasDef;
+
+    // Organización: atacar cansa, y al defensor lo rompe la presión.
+    // Aplastar a alguien no cuesta lo mismo que pelear de igual a igual.
+    juego.org[atacante] = Math.max(0, juego.org[atacante] - 0.055 / Math.max(1, razon * 0.7));
+    juego.org[defensor] = Math.max(0, juego.org[defensor] - 0.045 * Math.min(3, razon));
+    juego.trinch[defensor] = Math.max(0, juego.trinch[defensor] - 0.08);
+
+    return juego.org[defensor] < 0.06 || juego.fuerza[defensor] < 25;
+  }
+
+  // --- el tic de un día ----------------------------------------------------
+  function unDia() {
     if (!juego || juego.fin) return;
-    juego.tropas += juego.renta * dt / 1000;
-    if (juego.objetivo >= 0) {
-      // Un mordisco por latido, proporcional al ejército: de lejos se ve
-      // avanzar la mancha; de cerca, celda a celda.
-      empujaFrente(Math.max(60, juego.tropas * 0.06));
+    juego.dia++;
+
+    // 1. Reemplazos. Salen de la quinta de TU país, no del territorio que
+    //    ocupas: una población conquistada no te da soldados. Es lo que impide
+    //    la bola de nieve —antes el mundo caía en cuatro meses— y lo que hace
+    //    que una ofensiva tenga un final.
+    // La quinta se repone despacio —quintas nuevas, heridos que vuelven—, así
+    // que una guerra larga se puede sostener, pero nunca al ritmo de una
+    // ofensiva. Sin esto, gastada la reserva ya no había forma de seguir.
+    juego.gastados = Math.max(0, juego.gastados - juego.movilizables * 0.00022);
+    var quinta = Math.max(0, juego.movilizables - juego.gastados);
+    var reemplazos = Math.min(quinta, quinta * 0.0055 + 4);
+    juego.reserva += reemplazos;
+    juego.gastados += reemplazos;
+
+    // 2. Los míos: descanso, atrincheramiento y desgaste sin suministro.
+    var frente = juego.frente;
+    for (var k = 0; k < frente.length; k++) {
+      var c = frente[k];
+      if (juego.est[c] !== 2) continue;
+      var s = juego.sum[c];
+      if (s < 0.15) {
+        juego.fuerza[c] *= 0.97;
+        juego.org[c] = Math.max(0, juego.org[c] - 0.03);
+      } else {
+        juego.org[c] = Math.min(1, juego.org[c] + 0.035 * s);
+        juego.trinch[c] = Math.min(1, juego.trinch[c] + 0.012 * s);
+      }
     }
-    if (now - juego.ultimoCerco > 1800) {
-      juego.ultimoCerco = now;
-      calculaRenta();
-      revisaCercos();
-      rindeBolsas();
-      subeMapa();
-      compruebaFin();
-      pintaGuerra();
-      renderList(searchEl.value);
+
+    // 3. Refuerzos al frente, con un tope diario: mover un ejército lleva días.
+    if (juego.reserva > 0 && frente.length) {
+      // Lo que la logística puede llevar al frente en un día. Con un cupo corto
+      // se acumulaban 300.000 hombres en retaguardia mientras la línea tenía
+      // 74.000: un ejército de mentira.
+      // El territorio ocupado no da soldados, pero sí carreteras y vías: mueve
+      // más rápido lo que ya tienes.
+      var cupo = Math.min(juego.reserva, 25 + frente.length * 45 + juego.mias * 0.05);
+      var cerca = frente;
+      if (juego.esfuerzo >= 0) {
+        cerca = frente.slice().sort(function (a, b) {
+          return distCel(a, juego.esfuerzo) - distCel(b, juego.esfuerzo);
+        });
+      }
+      // Se concentran donde señalas, no a partes iguales por todo el frente:
+      // la superioridad local es lo que rompe una línea. Repartiendo por igual,
+      // dos años de guerra no movían el frente ni una celda.
+      var cuantas = Math.min(cerca.length, 40);
+      var peso = [], suma = 0;
+      for (var k = 0; k < cuantas; k++) {
+        var w = 1 / (1 + k * 0.35);
+        peso.push(w); suma += w;
+      }
+      for (var k = 0; k < cuantas; k++) {
+        if (juego.sum[cerca[k]] < 0.15) continue;      // no llega a los cercados
+        var da = cupo * peso[k] / suma;
+        juego.fuerza[cerca[k]] += da;
+        juego.reserva -= da;
+      }
     }
+
+    // 4. Mis asaltos, sobre el tramo de frente cercano al esfuerzo.
+    juego.enBatalla = 0;
+    if (juego.objetivo >= 0 && juego.est[juego.objetivo] === 1) {
+      atacaHacia(juego.objetivo);
+    }
+
+    // 5. El enemigo: refuerza, se atrinchera y contraataca.
+    turnoEnemigo();
+
+    // 6. Cada cierto tiempo, el suministro y las bolsas.
+    if (juego.dia - juego.ultimoSum >= 4) {
+      juego.ultimoSum = juego.dia;
+      recalculaFrente();
+      calculaSuministro();
+      rindeCercados();
+    }
+    compruebaFin();
   }
 
-  // Las bolsas se van rindiendo y las plazas sitiadas se apagan.
-  function rindeBolsas() {
+  // Empuja el tramo de frente más cercano al objetivo. Las celdas rotas ceden;
+  // las que aguantan, no. De ahí salen los salientes y las líneas irregulares.
+  function atacaHacia(destino) {
+    var frente = juego.frente;
+    if (!frente.length) return;
+    var orden = frente.slice().sort(function (a, b) {
+      return distCel(a, destino) - distCel(b, destino);
+    });
+    // Cuántas celdas se pueden asaltar a la vez: las que dan los hombres. Con
+    // el ancho atado al territorio, un imperio atacaba por todas partes a la
+    // vez sin tener con qué.
+    var enLinea = 0;
+    for (var q = 0; q < frente.length; q++) enLinea += juego.fuerza[frente[q]];
+    var ancho = Math.max(2, Math.min(40, Math.round(enLinea / 5200)));
+    var v = new Int32Array(4);
+    var caidas = [];
+    for (var k = 0; k < orden.length && k < ancho; k++) {
+      var mio = orden[k];
+      if (juego.est[mio] !== 2 || juego.org[mio] < 0.18 || juego.sum[mio] < 0.15) continue;
+      // El vecino enemigo que más acerca al objetivo.
+      var n = vecinas(mio, v), obj = -1, mejor = Infinity;
+      for (var j = 0; j < n; j++) {
+        var w = v[j];
+        if (juego.est[w] !== 1) continue;
+        var d = distCel(w, destino);
+        if (d < mejor) { mejor = d; obj = w; }
+      }
+      if (obj < 0) continue;
+      juego.enBatalla++;
+      if (choque(mio, obj)) caidas.push([mio, obj]);
+    }
+    for (var k = 0; k < caidas.length; k++) {
+      var mio = caidas[k][0], obj = caidas[k][1];
+      if (juego.est[obj] !== 1 || juego.est[mio] !== 2) continue;
+      // Entra la mitad de la fuerza atacante; el resto queda consolidando.
+      var pasa = juego.fuerza[mio] * 0.5;
+      juego.fuerza[mio] -= pasa;
+      tomaCelda(obj, pasa);
+      juego.sum[obj] = juego.sum[mio] * 0.9;
+      // Al ceder una celda, las de al lado se quedan con el flanco al aire y
+      // pierden cohesión. Es lo que hace que un frente se desmorone en cadena
+      // en vez de resistir eternamente celda a celda.
+      var vv = new Int32Array(4);
+      var nn = vecinas(obj, vv);
+      for (var q = 0; q < nn; q++) {
+        if (juego.est[vv[q]] === 1) juego.org[vv[q]] = Math.max(0, juego.org[vv[q]] - 0.14);
+      }
+      refrescaFrenteCerca(obj);
+      if (obj === juego.objetivo) juego.objetivo = -1;
+    }
+    if (caidas.length) juego.frente = Array.from(juego.frenteSet);
+  }
+
+  // El defensor no se queda mirando: reparte sus reservas donde le aprietas y
+  // contraataca las celdas tuyas que ve flojas o descolgadas.
+  function turnoEnemigo() {
+    var v = new Int32Array(4);
+    var suyas = {};
+    for (var k = 0; k < juego.frente.length; k++) {
+      var n = vecinas(juego.frente[k], v);
+      for (var j = 0; j < n; j++) {
+        var w = v[j];
+        if (juego.est[w] === 1) suyas[w] = 1;
+      }
+    }
+    var lista = Object.keys(suyas);
+    if (!lista.length) return;
+
+    var recuperadas = [];
+    for (var i = 0; i < lista.length; i++) {
+      var c = +lista[i];
+      var ip = juego.paisCel[c];
+      if (ip === MAR) continue;
+      var s = juego.sum[c];
+
+      // Refuerzo desde la reserva nacional, si le llega el suministro.
+      if (s > 0.2 && juego.reservaPais[ip] > 0) {
+        var falta = Math.max(0, juego.movilizable[ip] * 0.45 / 60 - juego.fuerza[c]);
+        var da = Math.min(juego.reservaPais[ip], Math.min(falta, 25));
+        if (da > 0) { juego.fuerza[c] += da; juego.reservaPais[ip] -= da; }
+      }
+      // Descanso y trincheras.
+      if (s > 0.15) {
+        juego.org[c] = Math.min(1, juego.org[c] + 0.03 * s);
+        juego.trinch[c] = Math.min(1, juego.trinch[c] + 0.014 * s);
+      } else {
+        juego.fuerza[c] *= 0.965;
+        juego.org[c] = Math.max(0, juego.org[c] - 0.035);
+      }
+
+      // Contraataque: sólo con organización y con ventaja local clara, y no en
+      // las primeras semanas —quien ataca por sorpresa tiene la iniciativa
+      // mientras el otro moviliza—.
+      if (juego.dia < 18 || juego.org[c] < 0.55 || s < 0.3) continue;
+      var n2 = vecinas(c, v), presa = -1, peor = Infinity;
+      for (var j = 0; j < n2; j++) {
+        var w = v[j];
+        if (juego.est[w] !== 2) continue;
+        var val = juego.fuerza[w] * (0.3 + juego.org[w]) * (0.3 + juego.sum[w]);
+        if (val < peor) { peor = val; presa = w; }
+      }
+      if (presa < 0) continue;
+      if (poderAtaque(c) < poderDefensa(presa, c) * 1.5) continue;
+      juego.enBatalla++;
+      if (choque(c, presa)) {
+        var pasa = juego.fuerza[c] * 0.5;
+        juego.fuerza[c] -= pasa;
+        recuperadas.push([presa, pasa]);
+      }
+    }
+    for (var k = 0; k < recuperadas.length; k++) {
+      pierdeCelda(recuperadas[k][0], recuperadas[k][1]);
+      refrescaFrenteCerca(recuperadas[k][0]);
+    }
+    if (recuperadas.length) juego.frente = Array.from(juego.frenteSet);
+  }
+
+  // Lo que lleva mucho tiempo sin comer se rinde. No hace falta una regla de
+  // «bolsa»: el suministro ya dice quién está cortado.
+  function rindeCercados() {
     var caen = [];
     for (var c = 0; c < NCEL; c++) {
-      if (juego.est[c] !== 1) continue;
-      if (juego.bolsa[c]) {
-        juego.def[c] *= 0.55;
-        if (--juego.bolsa[c] === 0) caen.push(c);
-      } else if (juego.sitiada[c]) {
-        juego.def[c] *= 0.7;
-      }
+      if (juego.est[c] !== 1 || juego.sum[c] > 0.05) continue;
+      juego.fuerza[c] *= 0.94;
+      juego.org[c] = Math.max(0, juego.org[c] - 0.04);
+      if (juego.org[c] < 0.05 && juego.fuerza[c] < 60) caen.push(c);
     }
-    for (var k = 0; k < caen.length; k++) { tomaCelda(caen[k]); actualizaFrentePor(caen[k]); }
-    if (caen.length) juego.frontera = Array.from(juego.frenteSet);
-  }
-
-  // --- cercos y bolsas -----------------------------------------------------
-  //
-  // Una bolsa es un trozo de territorio enemigo que ha quedado separado del
-  // resto y pegado al mío. Se sacan por componentes conexas: la mayor es el
-  // grueso enemigo, las demás que tocan mi territorio están embolsadas. Las
-  // islas no cuentan, porque no tocan a nadie: para ésas hace falta un
-  // desembarco.
-  function revisaCercos() {
-    var visto = new Uint8Array(NCEL);
-    var v = new Int32Array(4);
-    var comps = [];
-    var pila = [];
-    for (var c0 = 0; c0 < NCEL; c0++) {
-      if (juego.est[c0] !== 1 || visto[c0]) continue;
-      var celdas = [];
-      var tocaMio = false;
-      pila.length = 0;
-      pila.push(c0);
-      visto[c0] = 1;
-      while (pila.length) {
-        var c = pila.pop();
-        celdas.push(c);
-        var n = vecinas(c, v);
-        for (var k = 0; k < n; k++) {
-          var w = v[k];
-          if (juego.est[w] === 2) tocaMio = true;
-          else if (juego.est[w] === 1 && !visto[w]) { visto[w] = 1; pila.push(w); }
-        }
-      }
-      comps.push({ celdas: celdas, tocaMio: tocaMio });
+    for (var k = 0; k < caen.length; k++) {
+      tomaCelda(caen[k], 30);
+      refrescaFrenteCerca(caen[k]);
     }
-
-    var mayor = 0, libres = 0;
-    for (var i = 0; i < comps.length; i++) {
-      libres += comps[i].celdas.length;
-      if (comps[i].celdas.length > comps[mayor].celdas.length) mayor = i;
+    if (caen.length) {
+      juego.frente = Array.from(juego.frenteSet);
+      juego.registro.unshift("Se rinden " + fmtNum(caen.length) + " celdas cercadas");
+      if (juego.registro.length > 8) juego.registro.pop();
     }
-
-    // Una bolsa es una fuerza cercada, no «el enemigo del otro lado». Sin un
-    // tope de tamaño, en cuanto el imperio partía Eurasia en dos, medio
-    // continente contaba como embolsado y se rendía solo.
-    var tope = Math.max(400, libres * 0.06);
-    var bolsas = 0;
-    juego.bolsasVivas = 0;
-    for (var i = 0; i < comps.length; i++) {
-      var esBolsa = i !== mayor && comps[i].tocaMio && comps[i].celdas.length <= tope;
-      for (var k = 0; k < comps[i].celdas.length; k++) {
-        var c = comps[i].celdas[k];
-        if (esBolsa) {
-          if (!juego.bolsa[c]) juego.bolsa[c] = 3;
-          if (mapaBuf[c] !== 180) { mapaBuf[c] = 180; ensucia(c); }
-        } else if (juego.bolsa[c]) {
-          juego.bolsa[c] = 0;
-          if (mapaBuf[c] !== 0) { mapaBuf[c] = 0; ensucia(c); }
-        }
-      }
-      if (esBolsa) { bolsas++; juego.bolsasVivas += comps[i].celdas.length; }
-    }
-
-    // Ciudades rodeadas: si todo lo que tienen alrededor es mío, están sitiadas
-    // y su guarnición se va apagando.
-    var sitios = 0;
-    for (var c = 0; c < NCEL; c++) {
-      if (juego.est[c] !== 1 || juego.ciudad[c] < 0) continue;
-      // Rodeada quiere decir que la rodeo yo: sin exigir que haya tropas mías
-      // al lado, cualquier ciudad isleña —sin vecinos por tierra— salía sitiada
-      // desde el primer turno.
-      var n = vecinas(c, v), rodeada = true, tocaMio = false;
-      for (var k = 0; k < n; k++) {
-        if (juego.est[v[k]] === 1) { rodeada = false; break; }
-        if (juego.est[v[k]] === 2) tocaMio = true;
-      }
-      if (rodeada && tocaMio) {
-        juego.sitiada[c] = 1;
-        sitios++;
-        if (!juego.bolsa[c] && mapaBuf[c] !== 120) { mapaBuf[c] = 120; ensucia(c); }
-      } else if (juego.sitiada[c]) {
-        juego.sitiada[c] = 0;
-        if (!juego.bolsa[c] && mapaBuf[c] !== 0) { mapaBuf[c] = 0; ensucia(c); }
-      }
-    }
-    juego.sitios = sitios;
-    return { bolsas: bolsas, sitios: sitios };
+    subeMapa();
   }
 
   function compruebaFin() {
     if (!juego || juego.fin) return;
     if (juego.mias >= juego.tierra) juego.fin = "victoria";
+    else if (juego.mias <= 0) juego.fin = "derrota";
+  }
+
+  // El reloj de la campaña: tantos días como quepan en el tiempo transcurrido.
+  function pulsoCampana(dt, now) {
+    if (!juego || juego.fin) return;
+    juego.reloj += dt;
+    var dias = 0;
+    while (juego.reloj >= DIA && dias < 4) { juego.reloj -= DIA; unDia(); dias++; }
+    if (dias) { subeMapa(); pintaGuerra(); }
   }
 
   function finCampana() {
@@ -2873,18 +3165,6 @@ body {
     renderList(searchEl.value);
   }
 
-  // Lo primero que hay al otro lado del frente, para saber contra quién estás
-  // aunque no hayas marcado objetivo.
-  function primeroEnfrente() {
-    if (!juego || !juego.frontera || !juego.frontera.length) return -1;
-    var v = new Int32Array(4);
-    for (var k = 0; k < juego.frontera.length; k++) {
-      var n = vecinas(juego.frontera[k], v);
-      for (var j = 0; j < n; j++) if (juego.est[v[j]] === 1) return v[j];
-    }
-    return -1;
-  }
-
   function dondeEsta(c) {
     if (c < 0 || !celdaDiv) return null;
     var d = celdaDiv[c];
@@ -2892,22 +3172,33 @@ body {
     return { div: d, pais: divisiones[d].pa };
   }
 
-  // Países que ya tocas, con cuánto llevas tomado de cada uno.
+  function primeroEnfrente() {
+    if (!juego || !juego.frente || !juego.frente.length) return -1;
+    var v = new Int32Array(4);
+    for (var k = 0; k < juego.frente.length; k++) {
+      var n = vecinas(juego.frente[k], v);
+      for (var j = 0; j < n; j++) if (juego.est[v[j]] === 1) return v[j];
+    }
+    return -1;
+  }
+
+  // Países en contacto, con lo tomado y lo que les queda en pie.
   function paisesEnContacto() {
-    var mio = {}, total = {};
+    var mio = {}, total = {}, hombres = {};
     for (var c = 0; c < NCEL; c++) {
-      var d = celdaDiv[c];
-      if (d === MAR) continue;
-      var ip = divisiones[d].pa;
+      var ip = juego.paisCel[c];
+      if (ip === MAR) continue;
       total[ip] = (total[ip] || 0) + 1;
       if (juego.est[c] === 2) mio[ip] = (mio[ip] || 0) + 1;
+      else hombres[ip] = (hombres[ip] || 0) + juego.fuerza[c];
     }
     var out = [];
     for (var ip in mio) {
       var i = +ip;
-      out.push([i, fmtNum(mio[i]) + " de " + fmtNum(total[i]) + " celdas", mio[i] / total[i]]);
+      out.push([i, fmtNum(mio[i]) + " de " + fmtNum(total[i]) + " · " +
+                   fmtNum(Math.round(hombres[i] || 0)) + " en pie",
+                mio[i] / total[i]]);
     }
-    // Delante lo que está en disputa; lo ya tomado entero, al final.
     out.sort(function (a, b) {
       var ka = a[2] >= 1 ? 1 : 0, kb = b[2] >= 1 ? 1 : 0;
       return ka - kb || b[2] - a[2];
@@ -2933,13 +3224,26 @@ body {
       roContra.textContent = "toca dónde empezar";
       return;
     }
-    roFrente.textContent = fmtNum(juego.mias) + " celdas";
-    roTropas.textContent = fmtNum(Math.round(juego.tropas)) +
-      (juego.renta ? " (+" + fmtNum(Math.round(juego.renta)) + "/s)" : "");
+    var enPie = 0, org = 0;
+    for (var k = 0; k < juego.frente.length; k++) {
+      enPie += juego.fuerza[juego.frente[k]];
+      org += juego.org[juego.frente[k]];
+    }
+    org = juego.frente.length ? org / juego.frente.length : 0;
+    var quinta = Math.max(0, juego.movilizables - juego.gastados);
+    roFrente.textContent = "día " + fmtNum(juego.dia) + " · " + fmtNum(juego.mias) + " celdas";
+    roTropas.textContent = fmtNum(Math.round(enPie)) + " en línea · " +
+                           Math.round(org * 100) + "% de fuerza · " +
+                           fmtNum(Math.round(juego.reserva)) + " en reserva" +
+                           (quinta < juego.movilizables * 0.12
+                             ? " · quinta agotándose" : "");
     var donde = dondeEsta(juego.objetivo >= 0 ? juego.objetivo : primeroEnfrente());
-    var extra = juego.bolsasVivas ? " · " + fmtNum(juego.bolsasVivas) + " embolsadas"
-              : juego.sitios ? " · " + fmtNum(juego.sitios) + " sitiadas" : "";
+    var extra = juego.enBatalla ? " · " + fmtNum(juego.enBatalla) + " en combate" : "";
+    if (juego.sinSum) extra += " · " + fmtNum(juego.sinSum) + " sin suministro";
+    extra += " · bajas " + fmtNum(Math.round(juego.bajas)) + " / " +
+             fmtNum(Math.round(juego.bajasEnemigas));
     roContra.textContent = juego.fin === "victoria" ? "el mundo es tuyo"
+                         : juego.fin === "derrota" ? "te han echado"
                          : donde ? paises[donde.pais].n + extra
                          : "sin frente";
   }
@@ -2963,11 +3267,11 @@ body {
 
   // La parte de mi frente más cercana a lo que acabo de señalar.
   function cercanaMia(c) {
-    if (!juego.frontera || !juego.frontera.length) return juego.esfuerzo;
-    var mejor = juego.frontera[0], min = Infinity;
-    for (var k = 0; k < juego.frontera.length; k++) {
-      var d = distCel(juego.frontera[k], c);
-      if (d < min) { min = d; mejor = juego.frontera[k]; }
+    if (!juego.frente || !juego.frente.length) return juego.esfuerzo;
+    var mejor = juego.frente[0], min = Infinity;
+    for (var k = 0; k < juego.frente.length; k++) {
+      var d = distCel(juego.frente[k], c);
+      if (d < min) { min = d; mejor = juego.frente[k]; }
     }
     return mejor;
   }
@@ -3430,7 +3734,9 @@ body {
     // La cifra grande: el ejército con el que empujas, sobre tu territorio.
     var q = celdaEnPantalla(juego.inicio, aspect, t, p);
     if (q && q[0] > 90 && q[0] < W - 90 && q[1] > 24 && q[1] < H - 24) {
-      var cifra = fmtNum(Math.round(juego.tropas));
+      var enLinea = 0;
+      for (var k3 = 0; k3 < juego.frente.length; k3++) enLinea += juego.fuerza[juego.frente[k3]];
+      var cifra = fmtNum(Math.round(enLinea));
       ctx.font = "700 26px " + fuente;
       ctx.lineWidth = 5;
       ctx.strokeStyle = "rgba(0,0,0,.72)";
@@ -3462,9 +3768,9 @@ body {
         ctx.stroke();
 
         var cerca = -1, mejor = Infinity;
-        for (var k = 0; k < juego.frontera.length; k++) {
-          var dd = distCel(juego.frontera[k], juego.objetivo);
-          if (dd < mejor) { mejor = dd; cerca = juego.frontera[k]; }
+        for (var k = 0; k < juego.frente.length; k++) {
+          var dd = distCel(juego.frente[k], juego.objetivo);
+          if (dd < mejor) { mejor = dd; cerca = juego.frente[k]; }
         }
         if (cerca >= 0) {
           var o = celdaEnPantalla(cerca, aspect, t, p);
@@ -3486,14 +3792,15 @@ body {
 
     // Las plazas sitiadas se rotulan: son el premio de un cerco y hay que
     // poder verlas sin buscarlas.
-    if (juego.sitios && view.dist < 1.9) {
+    if (view.dist < 1.9) {
       ctx.font = "600 11px " + fuente;
       var puestos = 0;
       for (var c = 0; c < NCEL && puestos < 12; c++) {
-        if (!juego.sitiada[c] || juego.ciudad[c] < 0) continue;
+        // Una ciudad enemiga a la que ya no llega el suministro está cercada.
+        if (juego.ciudad[c] < 0 || juego.est[c] !== 1 || juego.sum[c] > 0.3) continue;
         var s = celdaEnPantalla(c, aspect, t, p);
         if (!s || s[0] < 40 || s[0] > W - 40 || s[1] < 20 || s[1] > H - 20) continue;
-        var nom = ciudades[juego.ciudad[c]].n + " · sitiada";
+        var nom = ciudades[juego.ciudad[c]].n + (juego.sum[c] < 0.05 ? " · cercada" : " · aislada");
         ctx.lineWidth = 3;
         ctx.strokeStyle = scene.halo;
         ctx.strokeText(nom, s[0], s[1] - 12);
@@ -3837,6 +4144,9 @@ body {
       gl.uniform3f(progLand.u.uMio, 0.86, 0.16, 0.10);
       gl.uniform3f(progLand.u.uBolsa, 0.86, 0.62, 0.16);
       gl.uniform3f(progLand.u.uCerco, 0.90, 0.83, 0.42);
+      // Lo mío sin suministro va en un rojo apagado, no en el amarillo de las
+      // bolsas enemigas: son cosas distintas y se estaban pintando igual.
+      gl.uniform3f(progLand.u.uSinSum, 0.52, 0.26, 0.30);
       gl.activeTexture(gl.TEXTURE0);
     }
     gl.uniformMatrix4fv(progLand.u.uVP, false, mVP);
@@ -4075,11 +4385,12 @@ body {
     },
     empiezaEn: empiezaEn,
     tocaCelda: tocaCelda,
-    empuja: function (n) {
-      var r = empujaFrente(n); pintaGuerra(); renderList(searchEl.value); return r;
+    dias: function (n) {
+      for (var i = 0; i < (n || 1); i++) unDia();
+      pintaGuerra(); renderList(searchEl.value); return juego;
     },
     pulso: function (dt, now) { pulsoCampana(dt, now); },
-    revisaCercos: function () { return revisaCercos(); },
+    suministro: function () { calculaSuministro(true); },
     selectCiudad: function (i) { seleccionar(i >= 0 ? { tipo: "ciudad", i: i } : null); },
     divisionEn: divisionEn,
     areaEn: areaEn,
