@@ -3298,21 +3298,31 @@ body {
       if (cu[i].mio) mios.push(cu[i]);
       else (suyos[cu[i].ip] || (suyos[cu[i].ip] = [])).push(cu[i]);
     }
-    // Cada celda va al cuerpo más cercano, pero contando lo que ese cuerpo ya
-    // lleva: dos puestos de mando que se juntan no se quedan uno con todo el
-    // sector y el otro sin nada —eso disolvía cuerpos enteros por estar cerca
-    // de otro—. Un ejército reparte la línea, no la amontona.
-    function asigna(c, lista) {
+    // Cada celda va al cuerpo más cercano que aún tenga sitio. El cupo es la
+    // parte de línea que le toca a cada mando, con holgura; cuando lo llena, la
+    // celda pasa al siguiente más cercano.
+    //
+    // Antes esto era un castigo blando por sector lleno, y el reparto se hacía
+    // en el orden en que salieran las celdas: un cuerpo que llegaba a un tramo
+    // ya cubierto por otros tres no cogía ni una celda, y a los diez días se le
+    // daba por deshecho y aparecía uno nuevo en la otra punta del país. Eso es
+    // lo que se veía como «va a la posición y se vuelve a otra frontera».
+    function asigna(c, lista, cupo) {
       if (!lista || !lista.length) return;
-      var mejor = null, min = Infinity, real = Infinity;
+      var mejor = null, min = Infinity, lleno = null, minLleno = Infinity;
       for (var j = 0; j < lista.length; j++) {
         var d0 = distCel(c, lista[j].x);
-        var d = d0 + lista[j].sector.length * 0.2;
-        if (d < min) { min = d; real = d0; mejor = lista[j]; }
+        if (lista[j].sector.length < cupo) {
+          if (d0 < min) { min = d0; mejor = lista[j]; }
+        } else if (d0 < minLleno) { minLleno = d0; lleno = lista[j]; }
       }
-      if (mejor && real <= celdasEsc(70)) mejor.sector.push(c);
+      var elegido = mejor || lleno;
+      if (elegido && (mejor ? min : minLleno) <= celdasEsc(70)) elegido.sector.push(c);
     }
-    for (k = 0; k < juego.frente.length; k++) asigna(juego.frente[k], mios);
+    var cupoMio = Math.max(2, Math.ceil(juego.frente.length / Math.max(1, mios.length) * 1.5));
+    var cupoSuyo = Math.max(3, Math.ceil(juego.frente.length /
+                                         Math.max(1, cu.length - mios.length) * 1.5));
+    for (k = 0; k < juego.frente.length; k++) asigna(juego.frente[k], mios, cupoMio);
 
     // La línea enemiga: las celdas suyas que tocan la mía.
     juego.lineaSet = new Set();
@@ -3327,7 +3337,7 @@ body {
         if (ip === MAR || !juego.enGuerra[ip]) continue;
         juego.lineaSet.add(w);
         juego.linea.push(w);
-        asigna(w, suyos[ip]);
+        asigna(w, suyos[ip], cupoSuyo);
       }
     }
 
@@ -3357,7 +3367,7 @@ body {
       u.sum = u.sector.length ? s / u.sector.length : 0;
       u.cortado = u.sector.length && u.sum < 0.2 ? u.cortado + 1 : 0;
       u.vacio = u.sector.length ? 0 : u.vacio + 1;
-      if (u.vacio > 10) {
+      if (u.vacio > 10 && !u.quieto) {
         // Un cuerpo que lleva días sin un palmo de línea que sostener es un
         // cuerpo desbordado. Sólo se da parte de los que tenían algo que
         // perder: al que se queda sin sector porque el vecino se lo absorbe no
@@ -3392,6 +3402,24 @@ body {
     juego.cuerpos = vivos;
   }
 
+  // ¿Tiene este cuerpo enemigo delante donde está? Es lo que decide si le hace
+  // falta ir a buscar otro tramo de frente o puede pelear desde aquí.
+  var vC = new Int32Array(4);
+  function tieneContacto(u) {
+    for (var k = 0; k < u.sector.length; k++) {
+      var c = u.sector[k];
+      if (juego.est[c] !== 2) continue;
+      var n = vecinas(c, vC);
+      for (var j = 0; j < n; j++) {
+        var w = vC[j];
+        if (juego.est[w] !== 1) continue;
+        var ip = juego.paisCel[w];
+        if (ip !== MAR && juego.enGuerra[ip]) return true;
+      }
+    }
+    return false;
+  }
+
   // El sitio del frente desde el que un cuerpo puede atacar hacia un punto: el
   // tramo más cercano al objetivo que no esté ya cubierto por otro cuerpo. Sin
   // esa segunda condición todos los cuerpos con la misma orden se amontonaban
@@ -3407,7 +3435,7 @@ body {
         var o = juego.cuerpos[i];
         if (o === yo || !o.mio) continue;
         var dd = distCel(c, o.x);
-        var roce = celdasEsc(5);
+        var roce = celdasEsc(3);
         if (dd < roce) d += (roce - dd) * 7;
       }
       if (d < min) { min = d; mejor = c; }
@@ -3481,7 +3509,12 @@ body {
           u.quieto = 20;
         } else meta = u.destino;
       }
-      if (meta < 0 && u.mio && u.obj >= 0) {
+      if (meta < 0 && u.mio && u.obj >= 0 && !u.quieto && !tieneContacto(u)) {
+        // Sólo se busca otro tramo del frente cuando desde donde está no hay a
+        // quién atacar. Si lo has llevado a un sitio donde tiene enemigo
+        // delante, ahí se queda: el que manda eres tú, y concentrar cuatro
+        // cuerpos en un punto es media doctrina militar.
+        //
         // El puesto se revisa cada pocos días, no a diario: un cuerpo no cambia
         // de sector cada mañana, y recalcularlo siempre salía caro.
         if (u.puesto < 0 || !juego.frenteSet.has(u.puesto) || juego.dia % 6 === u.id % 6) {
@@ -4360,7 +4393,9 @@ body {
   // bandera enemiga no se coge, se ataca. El radio es generoso a propósito,
   // que una bandera son veinte píxeles y un dedo, cuarenta.
   function cuerpoEnPantalla(px, py, dedo) {
-    var radio = dedo ? 30 : 22, mejor = -1, min = Infinity;
+    var radio = dedo ? 30 : 22;
+    if (juego && juego.sel >= 0) radio *= 0.55;
+    var mejor = -1, min = Infinity;
     for (var k = 0; k < marcasCuerpo.length; k++) {
       var m = marcasCuerpo[k];
       if (!m[3]) continue;

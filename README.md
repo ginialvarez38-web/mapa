@@ -223,6 +223,36 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3n. Concentrar sin que el ejército te lo deshaga.** Traer un cuerpo a un
+tramo donde ya hay otros dos o tres —que es media doctrina militar— salía mal de
+tres maneras distintas, y las tres eran automatismos peleándose con la orden del
+jugador.
+
+*El cuerpo llegaba y se le daba por deshecho.* El reparto de la línea era un
+castigo blando por sector lleno, aplicado en el orden en que salieran las
+celdas: las locales ya estaban repartidas entre los que llevaban allí semanas, y
+el recién llegado no cogía ni una. A los diez días sin sector se le daba por
+desbordado y **aparecía uno nuevo en la otra punta del país** — eso es
+exactamente lo que se ve como «va a la posición y se vuelve a otra frontera».
+Ahora cada mando tiene un **cupo** de línea —su parte, con holgura— y la celda
+va al más cercano que aún tenga sitio; con el cupo, un cuerpo que llega a un
+tramo cubierto le quita su parte a los vecinos, que es lo que pasa de verdad
+cuando un ejército mete otro cuerpo en un sector.
+
+*El recolocador lo echaba.* Un cuerpo con orden de atacar se iba solo al tramo
+de frente más cercano a su objetivo **que no cubriera ya otro**, con diez celdas
+de separación forzada. Eso está bien cuando mandas a todos a la vez contra el
+mismo sitio —así se despliegan en línea en vez de amontonarse—, y está mal justo
+después de haber traído uno a mano. Ahora un cuerpo sólo busca otro tramo si
+donde está **no tiene a quién atacar**, nunca en los días siguientes a una orden
+tuya, y la separación forzada baja de diez celdas a seis.
+
+*Y el toque cogía la bandera de al lado.* Para mandar un cuerpo junto a otros
+hay que tocar donde están, y ahí lo que hay son banderas: el toque salía como
+«cambiar de cuerpo». Ahora, **con un cuerpo ya en la mano el radio de la bandera
+se encoge a la mitad**: tocarla de lleno sigue cambiando de mando, y el resto
+del mapa es orden.
+
 **3m. Llevar un cuerpo de un frente a otro, y celdas la mitad de grandes.**
 Dos cosas que se pedían a la vez y que resultaron ser la misma clase de
 problema: el tablero.
@@ -694,8 +724,12 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   índice 0 ms y un fotograma 14 ms; abrir la campaña, 1,1 s —rasterizar el mundo
   y calcular las travesías marítimas—, y el conjunto ocupa 149 MB.
 - **Traslados**: un cuerpo puesto en el frente polaco recibe orden de ir al Rin,
-  cruza Alemania entera —de 18,7° E a 7,8° E, unos novecientos kilómetros— y
-  sigue allí dos meses después.
+  cruza Alemania entera —de 20,6° E a 7,8° E, unos mil kilómetros— y sigue allí
+  dos meses después.
+- **Concentración**: con cuatro cuerpos ya juntos en el frente polaco, se toma el
+  mando de uno que está en la frontera del oeste tocando su bandera, se le manda
+  al grupo tocando junto a la suya, marcha de 6,2° E a 16,1° E, se queda con un
+  sector de 24 celdas allí y sigue en su sitio 140 días después.
 - **Épocas**: la misma invasión, con la misma orden y el mismo eje, en las ocho.
   Dos años de guerra, desde 741 celdas:
 
