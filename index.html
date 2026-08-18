@@ -307,11 +307,11 @@ body {
   font-size: 12px;
 }
 .guerra[hidden] { display: none; }
-.guerra > div { display: flex; flex-direction: column; gap: 2px; }
+.guerra > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .guerra span {
   font-size: 8.5px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase;
 }
-.guerra b { font-weight: 600; letter-spacing: .01em; }
+.guerra b { font-weight: 600; letter-spacing: .01em; overflow-wrap: anywhere; }
 .guerra .btn { padding: 4px 9px; font-size: 10.5px; }
 .guerra select {
   font-family: var(--font-data);
@@ -321,8 +321,29 @@ body {
   padding: 1px 4px;
 }
 .guerra select:disabled { opacity: 1; border-color: transparent; padding-left: 0; }
+/* Plegada deja lo imprescindible: la fecha y el cuerpo que llevas en la mano.
+   Con seis bloques desplegados, en un teléfono la tira tapaba media pantalla y
+   con ella las banderas que hay que tocar. */
+.guerra.mini .oculta-mini { display: none; }
+.guerra .plegar {
+  border: 1px solid var(--line); border-radius: 3px; background: transparent;
+  color: var(--muted); font: inherit; font-size: 11px; line-height: 1;
+  padding: 5px 7px; cursor: pointer;
+}
+.guerra .plegar:hover { color: var(--ink); }
 @media (max-width: 900px) {
-  .guerra { top: auto; bottom: 104px; right: 12px; left: 12px; justify-content: space-between; }
+  /* El «100vw - 360px» dejaba la tira en treinta píxeles de ancho en un
+     teléfono: cada bloque caía en su propia línea y salía una columna de medio
+     metro encima del mapa. */
+  .guerra {
+    top: auto; bottom: 104px; right: 8px; left: 8px;
+    max-width: none; align-items: flex-start; justify-content: flex-start;
+    gap: 4px 12px; padding: 6px 10px; font-size: 11px;
+  }
+  /* Cada bloque pide 140 px y se reparte el resto; el texto largo parte de
+     línea dentro de su bloque en vez de empujar la tira fuera de la pantalla. */
+  .guerra > div { flex: 1 1 140px; }
+  .guerra .btn, .guerra .plegar { flex: 0 0 auto; }
 }
 }
 }
@@ -563,10 +584,12 @@ body {
 <div class="guerra" id="guerra" hidden aria-live="polite">
   <div><span>Época</span><select id="g-epoca" aria-label="Época de la guerra"></select></div>
   <div><span>Frente</span><b id="ro-frente">—</b></div>
-  <div><span>Tropas</span><b id="ro-tropas">—</b></div>
-  <div><span>En guerra con</span><b id="ro-contra">—</b></div>
+  <div class="oculta-mini"><span>Tropas</span><b id="ro-tropas">—</b></div>
+  <div class="oculta-mini"><span>En guerra con</span><b id="ro-contra">—</b></div>
   <div><span>Mando</span><b id="ro-cuerpo">—</b></div>
-  <div><span>Parte</span><b id="ro-parte">—</b></div>
+  <div class="oculta-mini"><span>Parte</span><b id="ro-parte">—</b></div>
+  <button class="plegar" id="g-mini" type="button" aria-expanded="true"
+          title="Plegar o desplegar el parte">▾</button>
   <button class="btn" id="g-salir" type="button">Terminar</button>
 </div>
 
@@ -1884,6 +1907,12 @@ body {
       var ll = pickLonLat(px, py);
       // En campaña el clic es una orden militar antes que una consulta, y va
       // sobre la división concreta que se toca.
+      if (juego && !eligiendo) {
+        // Primero, las banderas: tocar la tuya es tomar el mando de ese cuerpo,
+        // y eso gana a cualquier otra cosa que haya debajo.
+        var elMando = cuerpoEnPantalla(px, py, toqueDedo);
+        if (elMando >= 0 && tomaElMando(elMando)) return;
+      }
       if ((eligiendo || juego) && ll) {
         var cel = celdaDe(ll.lon, ll.lat);
         if (eligiendo) {
@@ -4058,6 +4087,7 @@ body {
     juego = null;
     eligiendo = false;
     cuentaCuerpo = null;
+    marcasCuerpo.length = 0;
     if (guerraBtn) guerraBtn.setAttribute("aria-pressed", "false");
     pintaGuerra();
     renderList(searchEl.value);
@@ -4130,6 +4160,21 @@ body {
     pintaGuerra();
   });
 
+  // En pantalla estrecha la tira nace plegada: lo que importa es ver el mapa y
+  // poder tocar las banderas.
+  var gMini = document.getElementById("g-mini");
+  if (matchMedia("(max-width: 900px)").matches) gEl.classList.add("mini");
+  function pintaPlegar() {
+    var mini = gEl.classList.contains("mini");
+    gMini.textContent = mini ? "▸" : "▾";
+    gMini.setAttribute("aria-expanded", String(!mini));
+  }
+  gMini.addEventListener("click", function () {
+    gEl.classList.toggle("mini");
+    pintaPlegar();
+  });
+  pintaPlegar();
+
   function pintaGuerra() {
     if (!juego && !eligiendo) { gEl.hidden = true; return; }
     gEl.hidden = false;
@@ -4196,13 +4241,36 @@ body {
     roParte.textContent = juego.registro.length ? juego.registro[0] : "sin novedad";
   }
 
+  // El cuerpo cuya bandera cae bajo el dedo. Se mira sólo entre los míos: la
+  // bandera enemiga no se coge, se ataca. El radio es generoso a propósito,
+  // que una bandera son veinte píxeles y un dedo, cuarenta.
+  function cuerpoEnPantalla(px, py, dedo) {
+    var radio = dedo ? 30 : 22, mejor = -1, min = Infinity;
+    for (var k = 0; k < marcasCuerpo.length; k++) {
+      var m = marcasCuerpo[k];
+      if (!m[3]) continue;
+      var d = Math.hypot(m[0] - px, m[1] - py);
+      if (d < min && d <= radio) { min = d; mejor = m[2]; }
+    }
+    return mejor;
+  }
+
+  function tomaElMando(id) {
+    if (!juego || id < 0) return false;
+    juego.sel = id;
+    pintaGuerra();
+    return true;
+  }
+
   // Un toque en el mapa es la orden, y no hay nada más que tocar:
   //   · sobre una bandera mía → tomas el mando de ese cuerpo
   //   · terreno enemigo       → ese cuerpo ataca hacia ahí
   //   · terreno mío           → ese cuerpo se traslada
   function tocaCelda(c) {
     if (!juego || juego.fin || c < 0) return false;
-    var sobre = cuerpoCerca(c, 5, true);
+    // Por si el toque no llegó por pantalla —desde el índice, o en las pruebas—:
+    // una bandera muy cerca de la celda tocada también se coge.
+    var sobre = cuerpoCerca(c, 2, true);
     if (sobre && sobre.id !== juego.sel) { juego.sel = sobre.id; pintaGuerra(); return true; }
     var mando = cuerpoSel() || cuerpoCerca(c, undefined, true);
     if (!mando) return false;
@@ -4609,6 +4677,7 @@ body {
   // --- capa de campaña: el frente, el objetivo y los cercos ----------------
 
   // Proyecta una celda a pantalla, o null si cae del otro lado del globo.
+  var marcasCuerpo = [];
   function celdaEnPantalla(c, aspect, t, p) {
     unit(p, lonDeCelda(c) * DEG, latDeCelda(c) * DEG);
     rotateModel(p, mRot, p[0], p[1], p[2]);
@@ -4630,8 +4699,13 @@ body {
     // El orden de batalla sobre el mapa: una bandera por cuerpo de ejército con
     // los hombres que tiene, los míos y los suyos. Es como se lee un mapa de
     // guerra —quién tiene qué y con cuánto— sin mirar ninguna leyenda.
-    var w = view.dist < 1.2 ? 22 : 17, h = w * 0.66;
+    var w = view.dist < 1.2 ? 24 : 19, h = w * 0.66;
     var flechas = [];
+    // Dónde queda cada bandera en la pantalla: es contra esto contra lo que se
+    // resuelve el toque. Antes se buscaba el cuerpo por la celda tocada, y en
+    // una vista de lejos una celda es un píxel: tocabas la bandera y no cogía
+    // nada, o peor, lo tomaba por una orden de marcha.
+    marcasCuerpo.length = 0;
     for (var i = 0; i < juego.cuerpos.length; i++) {
       var u = juego.cuerpos[i];
       var q = celdaEnPantalla(u.x, aspect, t, p);
@@ -4642,14 +4716,16 @@ body {
       if (!bd) continue;
 
       var caja = [sx - w / 2 - 4, sy - h / 2 - 4, sx + w / 2 + 4, sy + h / 2 + 14];
+      // En campaña el orden de batalla manda sobre los rótulos: una bandera no
+      // desaparece porque le estorbe el nombre de un pueblo —si desaparece, ese
+      // cuerpo se queda sin poder recibir órdenes—. Sólo se apartan entre ellas.
       var choca = false;
-      for (var k2 = 0; k2 < boxes.length; k2++) {
-        var ob = boxes[k2];
-        if (caja[0] < ob[2] && caja[2] > ob[0] && caja[1] < ob[3] && caja[3] > ob[1]) {
-          choca = true; break;
-        }
+      for (var k2 = 0; k2 < marcasCuerpo.length; k2++) {
+        var ob = marcasCuerpo[k2];
+        if (Math.abs(ob[0] - sx) < w + 4 && Math.abs(ob[1] - sy) < h + 12) { choca = true; break; }
       }
       if (choca) continue;
+      marcasCuerpo.push([sx, sy, u.id, u.mio ? 1 : 0]);
       boxes.push(caja);
 
       // El cuerpo que llevas en la mano va con su marco: es el que recibe la
@@ -5322,6 +5398,8 @@ body {
     epocas: function () { return EPOCAS; },
     tocaCelda: tocaCelda,
     cuerpos: function () { return juego ? juego.cuerpos : []; },
+    marcasCuerpo: function () { return marcasCuerpo; },
+    pinta: function () { frame(performance.now()); },
     parte: function () { return juego ? parteDeGuerra() : []; },
     dias: function (n) {
       for (var i = 0; i < (n || 1); i++) unDia();

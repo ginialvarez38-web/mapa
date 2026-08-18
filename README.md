@@ -222,6 +222,28 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3l. Que la bandera se pueda tocar.** El mando se toma tocando la bandera del
+cuerpo, y no funcionaba por dos razones que se tapaban entre sí. La primera: la
+bandera se descartaba si su recuadro chocaba con **cualquier** rótulo ya
+dibujado —un pueblo, un río, una cumbre—, así que en media Europa central
+sencillamente no había bandera que tocar. La segunda: el toque se resolvía
+buscando el cuerpo más cercano **a la celda** tocada, y una celda vista desde
+lejos ocupa un píxel, de modo que el dedo caía a diez celdas del puesto de mando
+y aquello no se leía como «coge este cuerpo» sino como «marcha hasta aquí».
+
+Ahora la bandera de un cuerpo sólo se aparta de otra bandera, nunca de un
+rótulo —en campaña el orden de batalla manda sobre los nombres—, y el toque se
+resuelve **en la pantalla**, contra el recuadro donde se acaba de dibujar cada
+bandera, con 30 píxeles de margen para el dedo y 22 para el ratón. Tocar la
+bandera propia toma el mando; la enemiga no se coge, se ataca.
+
+Y había una tercera razón, que sólo se ve mirando la pantalla de un teléfono: la
+tira de campaña tenía `max-width: calc(100vw - 360px)`, pensado para dejar sitio
+al índice en un escritorio. En 390 píxeles de ancho eso son **treinta píxeles**,
+así que sus seis bloques caían uno debajo de otro y salía una columna que tapaba
+media pantalla, banderas incluidas. En pantalla estrecha la tira ocupa ahora todo
+el ancho, nace plegada —fecha y cuerpo al mando— y se despliega con un botón.
+
 **3k. Ocho épocas, ocho guerras.** El motor ya se comportaba como una guerra,
 pero como una guerra de 1942: la única que sabía pelear. La historia militar
 lleva tres mil años diciendo que eso cambia, y cambia de maneras que se pueden
@@ -658,7 +680,10 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 - La campaña no toca los ajustes del mapa: el relieve, las divisiones y las
   ciudades siguen como estuvieran, y al terminar no queda nada encendido.
 - **Toque**: un toque con hasta 16 px de temblor selecciona; un arrastre de 40
-  no. Antes se sumaba el recorrido entero del dedo y cinco eventos de un píxel
+  no. En campaña, tocar la bandera de un cuerpo toma su mando: se comprueba
+  sobre las catorce banderas de una ofensiva, tocando el centro y tocando a 18
+  píxeles de él, y en los dos casos el mando pasa al cuerpo tocado; el toque
+  siguiente sobre terreno ajeno sale como orden para ese mismo cuerpo. Antes se sumaba el recorrido entero del dedo y cinco eventos de un píxel
   ya contaban como arrastre, así que en una pantalla táctil no había forma de
   tocar nada. La costa se clasifica bien en los 30 países
   comprobados, y las travesías dan 86 km entre Japón y Corea, 122 entre el
