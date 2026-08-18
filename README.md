@@ -23,25 +23,45 @@ index.html      → abre esto en el navegador
   ciudades siguen ahí— y sobre una rejilla de cuarto de grado, 342.730 cuadros
   de tierra de unos 28 km. Eliges un país y a partir de ahí:
 
-  - **el defensor responde**. Cada país tiene su reserva de hombres, refuerza lo
-    que le atacas, se atrinchera y contraataca donde te ve flojo;
+  - **hay un orden de batalla**. Cada bando reparte a sus hombres en **cuerpos
+    de ejército** —uno por cada cuarto de millón, con el ancho del frente como
+    techo—, y cada cuerpo sostiene su tramo de línea, nivela su propio sector,
+    marcha dos celdas al día y ataca por su cuenta hacia donde le mandas. Como
+    cada uno lleva su objetivo, hay varias ofensivas a la vez;
+  - **el defensor responde**. Tiene sus propios cuerpos, saca al frente las
+    guarniciones del interior, se atrinchera y contraataca por donde te ve el
+    flanco descolgado o la línea rota;
   - **hay suministro**, repartido desde cada capital por territorio propio. Lo
     que queda cortado se queda sin comer, pierde organización y acaba
     rindiéndose: los cercos no son una regla aparte, salen de aquí;
   - **las unidades se rompen antes de morir**. La organización baja al atacar y
-    se recupera descansando; una división rota no toma nada, así que las
-    ofensivas culminan;
-  - **los hombres se acaban**. La quinta de tu país es finita y el territorio
-    conquistado no da soldados, sólo carreteras. Es lo que impide la bola de
-    nieve y lo que le pone final a una campaña;
+    la rehacen el descanso y los reemplazos; una ofensiva sin relevos culmina
+    sola. Y una posición sólo se pierde cuando el que asalta tiene además con
+    qué entrar: los números cuentan;
+  - **quien cede se retira**, no se evapora: los supervivientes se repliegan a
+    la celda de al lado y refuerzan la siguiente línea. Si no hay por dónde
+    salir, se rinden enteros —así es como una bolsa se vuelve prisioneros—;
+  - **manda el calendario**. El deshielo y el invierno frenan las ofensivas y
+    desgastan a la tropa, cada hemisferio va por su lado y el efecto crece con
+    la latitud: en el trópico da igual el mes;
+  - **los hombres se acaban**. La quinta de cada país sale de su población, se
+    llama despacio y se repone con una clase al año; el territorio conquistado
+    no da soldados, sólo carreteras;
+  - **hay política**. Se empieza en paz: señalar territorio ajeno es declarar la
+    guerra. La moral de un país baja con el terreno perdido, con su capital y
+    con su ejército, y cuando toca fondo **capitula** y entrega lo que le
+    quedaba. Y cuanto más creces, más probable es que el vecino se te eche
+    encima antes de que le llegue el turno;
   - **el terreno cuenta**, con los datos del mapa: la altura real, los ríos como
     línea de defensa y las ciudades como plazas fuertes.
 
   Un tic es un día. No hay turnos ni botón de ataque: **se juega tocando el
-  mapa** —terreno ajeno, el frente empuja hacia allí; terreno tuyo, ahí se pone
-  el peso del ataque— y una tira arriba dice el día, las celdas, los hombres en
-  línea, la organización, la reserva y las bajas de los dos bandos. Cada
-  división lleva **la bandera de quien la tiene**.
+  mapa** —una bandera tuya, tomas el mando de ese cuerpo; terreno ajeno, ese
+  cuerpo ataca hacia allí; terreno tuyo, se traslada—. Cada **cuerpo de
+  ejército** se dibuja con la bandera de su país y los hombres que tiene, con
+  una flecha hacia su objetivo, y una tira arriba dice la fecha, la estación,
+  las celdas, los hombres en línea, la organización, la reserva, contra quién
+  estás, las bajas de los dos bandos y el último parte.
 - **Capitales y ciudades**: 7.358 poblaciones con su nombre en español, de
   las que **265 son capitales** —redondel con anillo, como en cualquier atlas—
   y 2.324, capitales de provincia. Van por importancia: desde el espacio solo
@@ -189,6 +209,51 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3j. De pintar el frente a mandar un ejército.** La versión anterior ya
+simulaba suministro, organización y desgaste, pero seguía teniendo un solo
+ejército sin forma: se señalaba un punto y «el frente» empujaba hacia allí.
+Poner encima un **orden de batalla** —cuerpos con su sector, su puesto de mando
+y sus órdenes— destapó, uno detrás de otro, cinco fallos que sólo se ven
+dejando correr la simulación y mirando los números.
+
+*Los cuerpos no cumplían las órdenes.* Se les mandaba atacar Varsovia y ninguno
+tenía delante al enemigo: `atac=0` en los once. Al mandarlos todos al mismo
+sitio, sus puestos de mando se amontonaban en la misma celda y el reparto de la
+línea les tocaba a trozos sueltos por toda Alemania. Ahora cada cuerpo busca el
+tramo más cercano al objetivo **que no cubra ya otro**, y la línea se reparte
+contando lo que cada uno lleva encima: un ejército que concentra pone a sus
+cuerpos uno al lado del otro sobre el eje, no unos encima de otros.
+
+*Ninguna ofensiva rompía nada.* Altura, plaza fuerte y trinchera se multiplicaban
+sin tope: una cota atrincherada salía a cinco veces su fuerza y era inexpugnable
+con cualquier proporción. Ahora el producto tiene tope, y aparece lo contrario:
+una posición atacada **por varios lados a la vez** pierde parte de lo que la
+hacía fuerte. Rodear pasa a valer la pena, que es de donde salen las bolsas.
+
+*El que atacaba se apagaba y no volvía.* La organización de una celda que
+asaltaba caía a cero y ahí se quedaba para siempre: el descanso no daba ni para
+las bajas del día. Faltaba lo evidente —los reemplazos no son sólo hombres, son
+unidades de refresco—, así que ahora reponer levanta también la cohesión. Una
+ofensiva se sostiene relevando.
+
+*El defensor picaba los puntos flojos.* Con el frente medio a 13.000 hombres por
+celda, las que se perdían tenían **1.400 y organización 0,01**: el enemigo iba a
+por las celdas quemadas mientras el grueso del ejército miraba desde la de al
+lado. Dos reglas lo arreglan: cada cuerpo **nivela su propio sector** todos los
+días —con los hombres va la cohesión, y eso es relevar—, y una posición ya no se
+pierde ante quien no tiene con qué entrar.
+
+*Faltaba un millón y medio de hombres.* Cada celda tomada borraba del mundo a su
+guarnición. Ahora **quien cede se retira** a la celda de al lado dejando uno de
+cada cinco, y si está rodeado se rinde entero: la bolsa se convierte en
+prisioneros y las cuentas cuadran.
+
+Con todo junto, una invasión de Polonia se comporta como se espera de una: 70
+celdas el primer trimestre, 250 al segundo año, 1,6 bajas propias por cada una
+enemiga, ofensivas que culminan en invierno y se reanudan en primavera, y —en
+una de las partidas de prueba— nueve países en guerra contigo al cuarto año
+porque el vecindario no se queda mirando.
 
 **3i. Que la guerra se comporte como una guerra.** Las tres primeras versiones
 jugables eran mapas de pintar casillas: el enemigo no existía. Al ponerlo a
@@ -428,17 +493,21 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
   Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
 - **Campaña**: la rejilla de celdas reproduce las superficies reales con un
-  error del 1% en los países comprobados. Una partida automática desde Viena
-  pasa de 37 a 142.154 celdas en 265 turnos, formando bolsas y cercos por el
-  camino. Entrar, elegir el punto de partida tocando el mapa, señalar objetivo,
-  lanzar la ofensiva, terminar turno, plegar el panel y salir funcionan con el
-  dedo, y salir deja el mapa como estaba.
-- **Guerra**: una ofensiva desde Austria hacia Liubliana pasa de 155 a 302
-  celdas en un año, con 188.788 bajas propias y 67.299 ajenas, la organización
-  del frente cayendo del 75% al 60% y la reserva agotada al final. Por el
-  camino se forman bolsas sin suministro y quedan ciudades cercadas —Innsbruck,
-  Trieste—, y el defensor recupera terreno: de las 155 celdas austríacas
-  iniciales, 21 vuelven a manos enemigas.
+  error del 1% en los países comprobados. Entrar, elegir país tocando el mapa,
+  tomar el mando de un cuerpo tocando su bandera, mandarlo a atacar o a
+  trasladarse y salir funcionan con el dedo, y salir deja el mapa como estaba.
+- **Guerra**: una invasión de Polonia desde Alemania —once cuerpos, eje único,
+  objetivos renovados cada mes— pasa de 741 a 1.202 celdas en cuatro años:
+  71 celdas polacas el primer trimestre, 247 al segundo año, moral polaca del
+  95% al 74%, 1,8 millones de bajas propias por 948.000 ajenas, ofensivas que
+  culminan en invierno y se reanudan en primavera, ciudades que caen y se
+  recuperan —Poznań, Breslavia—, bolsas sin suministro y prisioneros. Al cuarto
+  año hay nueve países en guerra contigo: Francia, Italia, Austria, Bélgica,
+  Países Bajos, Dinamarca, Suiza, Luxemburgo y Polonia. En otra partida, Polonia
+  capitula hacia el día 900 y entrega lo que le quedaba.
+- **Simulación**: 200 días de guerra cuestan 3,4 s en el navegador de pruebas
+  por software —17 ms de reloj por día simulado—, con el mapa de un millón de
+  celdas y el suministro de los dos bandos recalculándose cada cuatro días.
 - **Banderas**: los 249 países tienen una, y las 249 se dibujan sin fallar.
 - La campaña no toca los ajustes del mapa: el relieve, las divisiones y las
   ciudades siguen como estuvieran, y al terminar no queda nada encendido.
