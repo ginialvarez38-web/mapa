@@ -20,8 +20,9 @@ index.html      → abre esto en el navegador
   selecciona la división o el país, según lo que esté a la vista.
 - **Campaña**: el botón `Campaña` abre una **simulación operacional de guerra**
   sobre el mapa político de siempre —los colores de cada país, el relieve y las
-  ciudades siguen ahí— y sobre una rejilla de cuarto de grado, 342.730 cuadros
-  de tierra de unos 28 km. Eliges un país y a partir de ahí:
+  ciudades siguen ahí— y sobre una rejilla de **octavo de grado: 1.370.696
+  cuadros de tierra de unos 14 km**, que es lo que permite acercarse y leer el
+  frente escalón a escalón. Eliges un país y a partir de ahí:
 
   - **hay un orden de batalla**. Cada bando reparte a sus hombres en formaciones
     de campaña —legiones, huestes, cuerpos o ejércitos, según el siglo, con el
@@ -221,6 +222,45 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3m. Llevar un cuerpo de un frente a otro, y celdas la mitad de grandes.**
+Dos cosas que se pedían a la vez y que resultaron ser la misma clase de
+problema: el tablero.
+
+*El cuerpo no llegaba nunca.* Para trasladarlo se le daba el destino y cada día
+se movía a la celda vecina que más acercara **en línea recta**. Eso funciona en
+campo abierto y se encalla en el primer recodo: un golfo, una cordillera, una
+lengua de territorio ajeno, y el cuerpo se quedaba clavado dando vueltas en el
+mismo sitio. Ahora se busca el camino de verdad —una anchura desde el destino
+por territorio propio hasta dar con el cuerpo, con un tope de celdas para que un
+destino inalcanzable no cueste el tablero entero— y se anda por él. Y había un
+segundo motivo, más tonto: al llegar, el puesto de mando **saltaba** al centro
+de su sector, que seguía siendo el de antes, así que deshacía el traslado en
+cuanto lo terminaba. Ahora el puesto de mando también anda —una celda al día— y
+se queda quieto veinte días donde lo pones. En la prueba, un cuerpo cruza
+Alemania de Polonia al Rin, novecientos kilómetros, y sigue allí dos meses
+después.
+
+*Las celdas eran demasiado grandes para acercarse.* Se pasa de 0,25° a 0,125°:
+de 1440×720 a **2880×1440 celdas**, de 28 a 14 kilómetros de lado, cuatro veces
+más resolución de conquista. Con eso el frente se lee al acercarse —los
+salientes, los escalones, las bolsas— en vez de aparecer como una escalera de
+bloques. Los números de cada época siguen escritos en celdas de cuarto de grado
+y se convierten con un factor: las distancias se multiplican por él y los
+hombres por celda se dividen por su cuadrado, así que el tablero fino no cambia
+el equilibrio de ninguna guerra.
+
+Cuadruplicar las celdas cuesta memoria y tiempo, y hubo que pagarlo en tres
+sitios: **las ciudades pasan de un array de una casilla por celda a un mapa**
+—son siete mil entre cuatro millones—, lo que de paso quitó un barrido del
+tablero entero **en cada fotograma** para rotular las plazas sitiadas; **el
+terreno y las plazas fuertes se calculan al vuelo** en vez de guardarse, porque
+sólo los mira el combate unas cuantas veces al día; y el parte del índice, que
+también recorría el tablero para contar lo tomado de cada país, ahora lleva la
+cuenta al día. Con eso, un día de guerra cuesta **7,2 ms** en el navegador de
+pruebas por software, abrir la campaña 1,1 s y el conjunto ocupa 149 MB. Donde
+no quepa —o donde la GPU no admita una textura de 2.880— se vuelve solo al
+tablero de cuarto de grado: mejor celdas gordas que una pantalla en blanco.
 
 **3l. Que la bandera se pueda tocar.** El mando se toma tocando la bandera del
 cuerpo, y no funcionaba por dos razones que se tapaban entre sí. La primera: la
@@ -649,11 +689,13 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   año hay nueve países en guerra contigo: Francia, Italia, Austria, Bélgica,
   Países Bajos, Dinamarca, Suiza, Luxemburgo y Polonia. En otra partida, Polonia
   capitula hacia el día 900 y entrega lo que le quedaba.
-- **Simulación**: 200 días de guerra cuestan 3,4 s en el navegador de pruebas
-  por software —17 ms de reloj por día simulado—, con el mapa de un millón de
-  celdas y el suministro de los dos bandos recalculándose cada cuatro días.
-  Abrir una campaña cuesta entre 0,2 y 0,7 s según la época, que es lo que tarda
-  en calcularse el mapa de travesías marítimas.
+- **Simulación**: sobre el tablero fino de 4,1 millones de celdas, un día de
+  guerra cuesta **7,2 ms** en el navegador de pruebas por software, el parte del
+  índice 0 ms y un fotograma 14 ms; abrir la campaña, 1,1 s —rasterizar el mundo
+  y calcular las travesías marítimas—, y el conjunto ocupa 149 MB.
+- **Traslados**: un cuerpo puesto en el frente polaco recibe orden de ir al Rin,
+  cruza Alemania entera —de 18,7° E a 7,8° E, unos novecientos kilómetros— y
+  sigue allí dos meses después.
 - **Épocas**: la misma invasión, con la misma orden y el mismo eje, en las ocho.
   Dos años de guerra, desde 741 celdas:
 
