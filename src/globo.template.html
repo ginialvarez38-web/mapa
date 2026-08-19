@@ -3394,6 +3394,42 @@ body {
       }
     }
 
+    // Un mando sin un palmo de línea no existe: en el índice salía «0 hombres ·
+    // 0 %» y en el mapa una bandera con un cero encima, y a los diez días se le
+    // daba por deshecho. Pasaba cuando el cupo se lo llevaban los vecinos —una
+    // celda va siempre al más cercano con sitio— y el reparto dejaba a uno sin
+    // nada. Así que al que se queda vacío se le da tramo a costa del vecino más
+    // ancho, que es lo que hace un cuartel general cuando encaja un mando nuevo
+    // en el frente: no se inventa línea, se reparte la que hay.
+    function daTramo(lista) {
+      if (!lista || lista.length < 2) return;
+      for (var a = 0; a < lista.length; a++) {
+        var pobre = lista[a];
+        if (pobre.sector.length) continue;
+        var rico = null;
+        for (var b = 0; b < lista.length; b++) {
+          if (lista[b] === pobre || lista[b].sector.length < 4) continue;
+          if (!rico || lista[b].sector.length > rico.sector.length) rico = lista[b];
+        }
+        if (!rico) continue;
+        // Se le pasan las celdas del vecino más cercanas al mando huérfano, que
+        // es por donde los dos sectores se tocan.
+        var refs = rico.sector.slice();
+        refs.sort(function (p, q) { return distCel(p, pobre.x) - distCel(q, pobre.x); });
+        // Un tramo corto, el justo para que el mando exista: partir el sector
+        // del vecino por la mitad le rompía la ofensiva a quien más empujaba.
+        var cuantas = Math.max(1, Math.min(4, refs.length >> 2));
+        pobre.sector = refs.slice(0, cuantas);
+        rico.sector = refs.slice(cuantas);
+        // El puesto de mando pasa al borde del tramo que le acaban de dar —la
+        // celda más cercana a donde ya estaba—, salvo que vaya de camino a otro
+        // sitio: una orden de marcha manda más que un reparto de línea.
+        if (!pobre.marcha && !pobre.quieto) pobre.x = pobre.sector[0];
+      }
+    }
+    daTramo(mios);
+    for (var ipS in suyos) daTramo(suyos[ipS]);
+
     // Fuerza y organización del cuerpo: las de su sector, sumadas. Los hombres
     // están en las celdas; el cuerpo es quien manda sobre ellas.
     var vivos = [];
@@ -4624,14 +4660,22 @@ body {
   // que una bandera son veinte píxeles y un dedo, cuarenta.
   function cuerpoEnPantalla(px, py, dedo) {
     var radio = dedo ? 30 : 22;
-    if (juego && juego.sel >= 0) radio *= 0.55;
-    var mejor = -1, min = Infinity;
+    var mejor = -1, min = Infinity, mio = Infinity;
     for (var k = 0; k < marcasCuerpo.length; k++) {
       var m = marcasCuerpo[k];
       if (!m[3]) continue;
       var d = Math.hypot(m[0] - px, m[1] - py);
+      // La bandera del cuerpo que ya llevas no se coge otra vez, pero sí cuenta:
+      // marca la frontera entre coger otro mando y dar una orden.
+      if (juego && m[2] === juego.sel) { mio = d; continue; }
       if (d < min && d <= radio) { min = d; mejor = m[2]; }
     }
+    // Con un mando ya cogido, el toque pasa a otra formación sólo si su bandera
+    // está más cerca del dedo que la tuya; si lo que tienes más cerca es la
+    // tuya, lo que estás haciendo es mandarla a ese sitio. Antes esto se
+    // resolvía encogiendo el radio de todas a la mitad, y entonces pasar el
+    // mando pedía una puntería de ratón que un dedo no tiene.
+    if (mejor >= 0 && min >= mio) return -1;
     return mejor;
   }
 

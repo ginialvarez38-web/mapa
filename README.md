@@ -227,6 +227,34 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3q. Ni banderas con un cero encima ni banderas que no se dejan tocar.**
+Dos cosas que se veían en cuanto jugabas un rato.
+
+*Ningún mando sin tramo de frente.* En el índice aparecía de vez en cuando una
+formación con «0 hombres · 0 %», y en el mapa su bandera con un cero. No era una
+formación deshecha: era un mando al que el reparto de sectores no le había dado
+ni una celda —cada celda va al cuerpo más cercano que tenga sitio, y con el cupo
+lleno el que llegaba tarde se quedaba a cero—, y a los diez días se le daba por
+deshecho y se levantaba otro. En una campaña de doscientos días pasaba **catorce
+veces**. Ahora, terminado el reparto, al que se queda vacío se le da tramo **a
+costa del vecino más ancho**: se le pasan las celdas de ese vecino más cercanas
+a su puesto de mando, que es por donde los dos sectores se tocan. No se inventa
+línea, se reparte la que hay, que es lo que hace un cuartel general cuando
+encaja un mando nuevo en el frente. La misma campaña, ahora: **una** vez, y por
+una razón de verdad —un cuerpo con una celda y diez hombres, que es un cuerpo
+gastado, no un fantasma de contabilidad—.
+
+*Y el dedo.* Con un cuerpo ya cogido, el radio de toque de **todas** las
+banderas se encogía a la mitad —dieciséis píxeles— para que tocar al lado de la
+tuya fuera una orden y no volver a cogerla. El efecto colateral era que pasar el
+mando a otra formación pedía una puntería de ratón: a dieciocho píxeles de una
+bandera despejada no la cogía. Ahora la regla no es de radio sino de
+**proximidad relativa**: el toque pasa a otra formación sólo si su bandera está
+más cerca del dedo que la tuya; si lo que tienes más cerca es la tuya, lo que
+estás haciendo es mandarla a ese sitio. Las dos cosas funcionan a la vez —coger
+la bandera de al lado con el dedo temblón, y dar una orden a diez píxeles de la
+propia— sin que una le quite sitio a la otra.
+
 **3p. Mandar el ejército entero, y que la bandera vaya con lo que toma.**
 La campaña tenía buena simulación y mal mando: se llevaba de una en una, y el
 motor movía formaciones por su cuenta.
@@ -852,6 +880,12 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 - **Fusión**: mandar una formación encima de otra las funde —«el XI Ejército se
   funde en el V Ejército»—, la superviviente hereda su sector y asciende de
   escalón.
+- **Toque**: tocar la bandera de otra formación le pasa el mando aunque el dedo
+  caiga 18 px del centro, y tocar a 10 px de la bandera del cuerpo que ya llevas
+  no se lo quita: se le da la orden y sigue siendo el mismo cuerpo el que manda.
+- **Sin fantasmas**: en doscientos días de campaña, ninguna formación se queda
+  sin sector; antes eran catorce días con una formación a «0 hombres · 0 %» en
+  el índice y su bandera con un cero en el mapa.
 - **Zoom**: a 19 km de altitud siguen dibujándose las ciudades, las banderas y
   las cumbres; antes, por debajo de 64 km desaparecían todas de golpe.
 - **Ciudades**: al acercarse, cada una se dibuja con la superficie que le da su
