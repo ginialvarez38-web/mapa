@@ -1620,6 +1620,13 @@ body {
     return out;
   }
 
+  // Lo que hay que dejar delante de la cámara para que un punto cuente como
+  // visible. Era fijo en una centésima de radio —unos sesenta y cuatro
+  // kilómetros—, así que al bajar de esa altura desaparecían de golpe las
+  // ciudades, las banderas de los cuerpos y las cumbres: todo lo que se dibuja
+  // como marca sobre el globo. Ahora se mide contra lo alto que esté la cámara.
+  function zMin() { return Math.min(0.01, (view.dist - 1) * 0.08); }
+
   function unit(out, lon, lat) {
     var cl = Math.cos(lat);
     out[0] = cl * Math.sin(lon);
@@ -1961,7 +1968,10 @@ body {
   function clampPitch(p) { return Math.max(-88 * DEG, Math.min(88 * DEG, p)); }
   // 1,02 radios ~ 130 km de altitud: la escala a la que se sigue el curso de
   // un río o la forma de un lago.
-  function clampDist(d) { return Math.max(1.02, Math.min(7.5, d)); }
+  // Hasta 38 km de altitud: a esa altura el campo de visión son unos treinta
+  // kilómetros, el tamaño de una ciudad con su cinturón. Es donde se ve cómo un
+  // cuerpo se come el terreno celda a celda y por dónde entra en la plaza.
+  function clampDist(d) { return Math.max(1.006, Math.min(7.5, d)); }
 
   // Radianes de giro por píxel arrastrado. Sale de la geometría de la vista,
   // así que a 130 km de altitud el globo ya no se dispara con un gesto corto.
@@ -2598,42 +2608,42 @@ body {
   //                Sicilia y Cerdeña salían siempre sin abastecer y Roma no
   //                podía sostener lo que sostuvo durante siete siglos.
   var EPOCAS = [
-    { id: "antigua", n: "Antigüedad", unidad: "Legión", anio: -350, ac: true,
+    { id: "antigua", n: "Antigüedad", unidad: "Legión", mayor: "Ejército", anio: -350, ac: true,
       movil: 0.010, cuerpo: 15000, anchoCel: 2600, mov: 0.72, sum: 12,
       trinch: 0.15, fort: 2.6, k: 1.00, ritmo: 1.9, cava: 0.006, mandos: 5, aguante: 2.2, mar: 11, persec: 0.55, explota: 2,
       invierno: true, mando: 6, friccion: 0.30, recon: 2, aire: 0,
       nota: "falanges y legiones · se vive del país · las plazas se rinden de hambre" },
-    { id: "medieval", n: "Edad Media", unidad: "Hueste", anio: 1200, ac: false,
+    { id: "medieval", n: "Edad Media", unidad: "Hueste", mayor: "Gran Hueste", anio: 1200, ac: false,
       movil: 0.008, cuerpo: 12000, anchoCel: 2200, mov: 0.70, sum: 10,
       trinch: 0.20, fort: 3.2, k: 1.02, ritmo: 1.5, cava: 0.008, mandos: 5, aguante: 2.0, mar: 11, persec: 0.45, explota: 2,
       invierno: true, mando: 7, friccion: 0.34, recon: 2, aire: 0,
       nota: "hueste feudal · el castillo manda · la guerra es de asedios" },
-    { id: "polvora", n: "Pólvora", unidad: "Cuerpo", anio: 1700, ac: false,
+    { id: "polvora", n: "Pólvora", unidad: "Cuerpo", mayor: "Ejército", anio: 1700, ac: false,
       movil: 0.015, cuerpo: 18000, anchoCel: 3400, mov: 0.80, sum: 16,
       trinch: 0.35, fort: 2.8, k: 1.08, ritmo: 0.70, cava: 0.014, mandos: 6, aguante: 1.6, mar: 12, persec: 0.32, explota: 1,
       invierno: true, mando: 5, friccion: 0.26, recon: 3, aire: 0,
       nota: "magazines y fortalezas de Vauban · se maniobra para sitiar" },
-    { id: "napoleonica", n: "Napoleónica", unidad: "Cuerpo", anio: 1805, ac: false,
+    { id: "napoleonica", n: "Napoleónica", unidad: "Cuerpo", mayor: "Ejército", anio: 1805, ac: false,
       movil: 0.025, cuerpo: 25000, anchoCel: 4200, mov: 1.15, sum: 20,
       trinch: 0.30, fort: 2.2, k: 1.12, ritmo: 1.5, cava: 0.010, mandos: 8, aguante: 1.4, mar: 13, persec: 0.45, explota: 2,
       invierno: false, mando: 4, friccion: 0.20, recon: 3, aire: 0,
       nota: "sistema de cuerpos · marchas largas · se busca la batalla decisiva" },
-    { id: "industrial", n: "Industrial", unidad: "Cuerpo", anio: 1870, ac: false,
+    { id: "industrial", n: "Industrial", unidad: "Cuerpo", mayor: "Ejército", anio: 1870, ac: false,
       movil: 0.040, cuerpo: 30000, anchoCel: 6500, mov: 0.95, sum: 30,
       trinch: 0.55, fort: 2.0, k: 1.20, ritmo: 0.85, cava: 0.020, mandos: 10, aguante: 1.1, mar: 14, persec: 0.28, explota: 1,
       invierno: false, mando: 2, friccion: 0.14, recon: 4, aire: 0,
       nota: "ferrocarril y fusil de retrocarga · movilización de masas" },
-    { id: "gran-guerra", n: "Gran Guerra", unidad: "Ejército", anio: 1916, ac: false,
+    { id: "gran-guerra", n: "Gran Guerra", unidad: "Ejército", mayor: "Grupo de Ejércitos", anio: 1916, ac: false,
       movil: 0.090, cuerpo: 40000, anchoCel: 14000, mov: 0.75, sum: 34,
       trinch: 1.10, fort: 1.9, k: 1.25, ritmo: 0.45, cava: 0.032, mandos: 12, aguante: 0.8, mar: 15, persec: 0.12, explota: 0,
       invierno: false, mando: 2, friccion: 0.12, recon: 5, aire: 0.03,
       nota: "frente continuo · la brecha no se explota · desgaste" },
-    { id: "mecanizada", n: "Mecanizada", unidad: "Ejército", anio: 1942, ac: false,
+    { id: "mecanizada", n: "Mecanizada", unidad: "Ejército", mayor: "Grupo de Ejércitos", anio: 1942, ac: false,
       movil: 0.100, cuerpo: 60000, anchoCel: 8500, mov: 2.00, sum: 46,
       trinch: 0.70, fort: 1.7, k: 1.35, ritmo: 1.0, cava: 0.016, mandos: 14, aguante: 0.7, mar: 16, persec: 0.50, explota: 3,
       invierno: false, mando: 1, friccion: 0.08, recon: 7, aire: 0.18,
       nota: "batalla en profundidad · se rompe y se explota · embolsamientos" },
-    { id: "moderna", n: "Moderna", unidad: "Cuerpo", anio: 2000, ac: false,
+    { id: "moderna", n: "Moderna", unidad: "Cuerpo", mayor: "Ejército", anio: 2000, ac: false,
       movil: 0.030, cuerpo: 35000, anchoCel: 4500, mov: 2.60, sum: 60,
       trinch: 0.60, fort: 1.6, k: 1.45, ritmo: 1.5, cava: 0.020, mandos: 10, aguante: 1.3, mar: 18, persec: 0.55, explota: 3,
       invierno: false, mando: 0, friccion: 0.05, recon: 12, aire: 0.35,
@@ -2887,6 +2897,7 @@ body {
       bajas: 0, bajasEnemigas: 0,
       mias: 0, miasIni: 0, tierra: 0, sinSum: 0, enBatalla: 0,
       ganadas: 0, perdidas: 0, rendidas: 0, anexadas: 0, cambios: 0, repasado: -1,
+      sinRelevo: 0,
       objetivo: -1, fin: null,
       frente: null, frenteSet: null, linea: [], lineaSet: new Set(),
       // El orden de batalla: cuerpos de ejército con su sector y sus órdenes.
@@ -3263,9 +3274,12 @@ body {
         id: juego.proximoId++, ip: ip, mio: !!mio, x: semillas[k],
         hombres: 0, org: 0.75, obj: -1, destino: -1, sector: [], cortado: 0,
         vacio: 0, marcha: false, sum: 1, puesto: -1, ultimos: 0, paso: 0,
-        pendObj: -1, pendDest: -1, pendDia: 0, quieto: 0,
-        nom: romano(++cuentaCuerpo[ip]) + " " + E().unidad
+        pendObj: -1, pendDest: -1, pendDia: 0, quieto: 0, fundirCon: -1,
+        num: romano(++cuentaCuerpo[ip]), pegado: 0,
+        nom: ""                          // se pone justo debajo
       });
+      var recien = juego.cuerpos[juego.cuerpos.length - 1];
+      recien.nom = recien.num + " " + E().unidad;
     }
   }
 
@@ -3443,6 +3457,24 @@ body {
     return mejor;
   }
 
+  // La celda propia más cercana a un punto, buscando en cuadrados concéntricos.
+  function cercaMia(c, radio) {
+    if (juego.est[c] === 2) return c;
+    var x = c % GW, y = (c / GW) | 0;
+    for (var rr = 1; rr <= radio; rr++) {
+      for (var dy = -rr; dy <= rr; dy++) {
+        var yy = y + dy;
+        if (yy < 0 || yy >= GH) continue;
+        for (var dx = -rr; dx <= rr; dx++) {
+          if (Math.abs(dx) !== rr && Math.abs(dy) !== rr) continue;   // sólo el borde
+          var w = yy * GW + ((x + dx + GW) % GW);
+          if (juego.est[w] === 2) return w;
+        }
+      }
+    }
+    return -1;
+  }
+
   // El siguiente paso de una marcha, buscando el camino de verdad: una anchura
   // desde el destino por territorio propio hasta dar con el cuerpo. Antes se
   // bajaba por la distancia en línea recta, y eso se encalla en el primer
@@ -3500,13 +3532,26 @@ body {
       if (u.quieto > 0) u.quieto--;
       var meta = -1;
       if (u.destino >= 0) {
-        if (juego.est[u.destino] !== 2) u.destino = -1;
-        else if (distCel(u.x, u.destino) < celdasEsc(1.5)) {
+        // Si el sitio al que iba ha cambiado de manos, la orden no se tira: se
+        // reapunta a la celda propia más cercana. Una orden tuya no debe
+        // evaporarse porque el frente se haya movido mientras el cuerpo marcha.
+        if (juego.est[u.destino] !== 2) u.destino = cercaMia(u.destino, celdasEsc(6));
+        if (u.destino < 0) { /* no queda nada nuestro cerca: se cancela */ }
+        else if (juego.est[u.destino] !== 2) u.destino = -1;
+        else if (distCel(u.x, u.destino) < celdasEsc(1.2)) {
           // Ha llegado adonde se le mandó: ahí se queda una temporada. Si no,
           // el puesto de mando volvía solo al centro de su viejo sector y era
           // imposible juntar dos cuerpos en un punto.
           u.destino = -1;
-          u.quieto = 20;
+          u.quieto = 30;
+          if (u.fundirCon >= 0) {
+            var otro = cuerpoPorId(u.fundirCon);
+            u.fundirCon = -1;
+            if (otro && otro !== u && otro.mio === u.mio && otro.ip === u.ip) {
+              fundir(otro, u);
+              continue;             // uno de los dos ya no existe
+            }
+          }
         } else meta = u.destino;
       }
       if (meta < 0 && u.mio && u.obj >= 0 && !u.quieto && !tieneContacto(u)) {
@@ -4169,6 +4214,44 @@ body {
     juego.reservaPais[ip] += mueve;
   }
 
+  // Dos formaciones del mismo bando que acaban en el mismo sitio se funden en
+  // una mayor. Es lo que hace un ejército cuando concentra —dos cuerpos en un
+  // sector son un ejército—, y es la respuesta a querer meter cuatro cuerpos en
+  // un punto: o caben todos, o se juntan en uno grande. Hace falta que lleven
+  // dos días encima del mismo palmo, para que no se fundan dos que se cruzan.
+  // Fundir dos formaciones del mismo bando en una mayor. Es lo que hace un
+  // ejército cuando concentra —dos cuerpos en un sector son un ejército— y es la
+  // respuesta a querer meter cuatro cuerpos en un punto: o caben todos, que
+  // ahora caben, o se juntan en uno grande.
+  //
+  // No se dispara por cercanía, que es imposible de calibrar —dos puestos de
+  // mando se mueven todos los días—, sino por lo que has mandado: si le dices a
+  // un cuerpo que vaya donde está otro, al llegar se funden. Dos que se juntan
+  // solos sosteniendo la línea siguen siendo dos, que para eso los levantó el
+  // país.
+  function fundir(a, b) {
+    var mayor = a.hombres >= b.hombres ? a : b;
+    var menor = mayor === a ? b : a;
+    for (var k = 0; k < menor.sector.length; k++) mayor.sector.push(menor.sector[k]);
+    mayor.hombres += menor.hombres;
+    mayor.quieto = Math.max(mayor.quieto, 20);
+    mayor.fundirCon = -1;
+    if (juego.sel === menor.id) juego.sel = mayor.id;
+    anota(paises[mayor.ip].n + ": el " + menor.nom + " se funde en el " + mayor.nom);
+    var i = juego.cuerpos.indexOf(menor);
+    if (i >= 0) juego.cuerpos.splice(i, 1);
+    asciende(mayor);
+    // Y no se levanta otro en su lugar durante una temporada: si has
+    // concentrado, es porque querías concentrar.
+    juego.sinRelevo = juego.dia + 90;
+  }
+
+  // Una formación que se ha comido a otra deja de llamarse como se llamaba:
+  // dos cuerpos juntos son un ejército, y dos ejércitos, un grupo de ejércitos.
+  function asciende(u) {
+    if (u.nom.indexOf(E().mayor) < 0) u.nom = u.num + " " + E().mayor;
+  }
+
   // Un frente que se ensancha pide más mandos: al conquistar se abren nuevos
   // sectores y hay que darles cuerpo. Al revés no hace falta: los que se quedan
   // sin sector ya desaparecen solos.
@@ -4178,6 +4261,7 @@ body {
     for (var i = 0; i < juego.cuerpos.length; i++) if (juego.cuerpos[i].mio) mios++;
     var quiero = cuantosCuerpos(juego.pais, juego.frente.length);
     if (mios >= quiero - 1 || !juego.frente.length) return;
+    if (juego.sinRelevo && juego.dia < juego.sinRelevo) return;
     var antes = juego.cuerpos.length;
     creaCuerpos(juego.pais, true, juego.frente, quiero - mios);
     // Los cuerpos nuevos no se quedan mirando: siguen el eje de la ofensiva que
@@ -4420,7 +4504,10 @@ body {
     if (!juego || juego.fin || c < 0) return false;
     // Por si el toque no llegó por pantalla —desde el índice, o en las pruebas—:
     // una bandera muy cerca de la celda tocada también se coge.
-    var sobre = cuerpoCerca(c, celdasEsc(1), true);
+    // Sólo se coge la bandera tocando su celda: para el toque de verdad ya está
+    // el radio de pantalla, y con más margen era imposible mandar un cuerpo a
+    // concentrarse junto a otro sin cambiar de mando por el camino.
+    var sobre = cuerpoCerca(c, celdasEsc(0.6), true);
     if (sobre && sobre.id !== juego.sel) { juego.sel = sobre.id; pintaGuerra(); return true; }
     var mando = cuerpoSel() || cuerpoCerca(c, undefined, true);
     if (!mando) return false;
@@ -4429,9 +4516,14 @@ body {
     // Antigüedad, ninguno hoy.
     var tarda = E().mando;
     if (juego.est[c] === 2) {
+      // ¿Le estás mandando encima de otro cuerpo tuyo? Entonces la orden es de
+      // concentrar: al llegar se funden en uno mayor.
+      var conQuien = cuerpoCerca(c, celdasEsc(4), true);
+      mando.fundirCon = conQuien && conQuien.id !== mando.id ? conQuien.id : -1;
       if (tarda) { mando.pendDest = c; mando.pendObj = -1; mando.pendDia = juego.dia + tarda; }
       else { mando.destino = c; mando.obj = -1; }
     } else if (juego.est[c] === 1) {
+      mando.fundirCon = -1;
       var ip = juego.paisCel[c];
       if (ip !== MAR && !juego.enGuerra[ip] && !juego.capitulado[ip]) declaraGuerra(ip, true);
       if (tarda) { mando.pendObj = c; mando.pendDest = -1; mando.pendDia = juego.dia + tarda; }
@@ -4650,7 +4742,7 @@ body {
       var facing = (p[2] - horizon) / (1 - horizon);
       if (facing < 0.05) continue;
       var z = view.dist - p[2];
-      if (z <= 0.01) continue;
+      if (z <= zMin()) continue;
       var sx = (p[0] / (z * t * aspect)) * 0.5 * W + W / 2;
       var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
       if (sx < 26 || sx > W - 26 || sy < 18 || sy > H - 18) continue;
@@ -4852,7 +4944,7 @@ body {
     rotateModel(p, mRot, p[0], p[1], p[2]);
     if ((p[2] - 1 / view.dist) / (1 - 1 / view.dist) < 0.04) return null;
     var z = view.dist - p[2];
-    if (z <= 0.01) return null;
+    if (z <= zMin()) return null;
     return [(p[0] / (z * t * aspect)) * 0.5 * W + W / 2,
             H / 2 - (p[1] / (z * t)) * 0.5 * H];
   }
@@ -4884,18 +4976,35 @@ body {
       var bd = paises[u.ip] && paises[u.ip].bd;
       if (!bd) continue;
 
-      var caja = [sx - w / 2 - 4, sy - h / 2 - 4, sx + w / 2 + 4, sy + h / 2 + 14];
       // En campaña el orden de batalla manda sobre los rótulos: una bandera no
-      // desaparece porque le estorbe el nombre de un pueblo —si desaparece, ese
-      // cuerpo se queda sin poder recibir órdenes—. Sólo se apartan entre ellas.
-      var choca = false;
-      for (var k2 = 0; k2 < marcasCuerpo.length; k2++) {
-        var ob = marcasCuerpo[k2];
-        if (Math.abs(ob[0] - sx) < w + 4 && Math.abs(ob[1] - sy) < h + 12) { choca = true; break; }
+      // desaparece porque le estorbe el nombre de un pueblo. Y tampoco
+      // desaparece porque le estorbe otra bandera: cuando varios cuerpos están
+      // en el mismo punto se abren en abanico, cada uno con su cifra y su sitio
+      // donde tocarlo. Antes se descartaban las que chocaban, y por eso parecía
+      // que en un sitio sólo cabían dos.
+      var ox = q[0], oy = q[1], intento = 0;
+      while (intento < 9) {
+        var libre = true;
+        for (var k2 = 0; k2 < marcasCuerpo.length; k2++) {
+          var ob = marcasCuerpo[k2];
+          if (Math.abs(ob[0] - sx) < w + 3 && Math.abs(ob[1] - sy) < h + 13) { libre = false; break; }
+        }
+        if (libre) break;
+        intento++;
+        sx = ox + ((intento % 3) - 1) * (w + 5);
+        sy = oy + (Math.floor((intento - 1) / 3) + 1) * (h + 15);
       }
-      if (choca) continue;
       marcasCuerpo.push([sx, sy, u.id, u.mio ? 1 : 0]);
-      boxes.push(caja);
+      boxes.push([sx - w / 2 - 4, sy - h / 2 - 4, sx + w / 2 + 4, sy + h / 2 + 14]);
+      // Si la bandera se ha corrido, un hilo la ata a su sitio de verdad.
+      if (intento) {
+        ctx.beginPath();
+        ctx.moveTo(ox, oy);
+        ctx.lineTo(sx, sy - h / 2 - 2);
+        ctx.strokeStyle = u.mio ? "rgba(224,106,90,.5)" : "rgba(140,160,180,.5)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
 
       // El cuerpo que llevas en la mano va con su marco: es el que recibe la
       // próxima orden.
@@ -5011,7 +5120,7 @@ body {
       var facing = (p[2] - horizon) / (1 - horizon);
       if (facing < 0.06) return false;
       var z = view.dist - p[2];
-      if (z <= 0.01) return false;
+      if (z <= zMin()) return false;
       var sx = (p[0] / (z * t * aspect)) * 0.5 * W + W / 2;
       var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
       if (sx < 30 || sx > W - 30 || sy < 20 || sy > H - 20) return false;
@@ -5129,7 +5238,7 @@ body {
       if (facing < 0.05 && !force) continue;
 
       var z = view.dist - p[2];
-      if (z <= 0.01) continue;
+      if (z <= zMin()) continue;
       var sx = (p[0] / (z * t * aspect)) * 0.5 * W + W / 2;
       var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
       if (sx < 40 || sx > W - 40 || sy < 26 || sy > H - 26) continue;
@@ -5234,7 +5343,10 @@ body {
 
     var scene = SCENES[opts.scene];
 
-    perspective(mProj, FOV, W / H, Math.max(0.002, (view.dist - 1) * 0.2), 100);
+    // El plano lejano se ajusta a lo que de verdad puede verse: con 100 fijo, a
+    // treinta y ocho kilómetros de altitud la relación entre planos se disparaba
+    // y el buffer de profundidad no daba para tanto.
+    perspective(mProj, FOV, W / H, Math.max(0.0006, (view.dist - 1) * 0.2), view.dist + 2.2);
     vpMatrix(mVP, mProj, view.dist);
     rotation(mRot, view.yaw, view.pitch);
 
@@ -5257,7 +5369,9 @@ body {
     var shade = opts.night ? 1 : scene.shade;
     var verRelieve = opts.relieve && !!relieve;
     // El paso a 3D se hace suave: el terreno crece en vez de saltar.
-    var cerca = Math.max(0.10, Math.min(1, (view.dist - 1) / 0.5));
+    // Y la exageración del relieve se recoge del todo al acercarse: a ×16 la
+    // cámara acabaría dentro de la montaña.
+    var cerca = Math.max(0.04, Math.min(1, (view.dist - 1) / 0.5));
     var meta = (opts.tresd && relieve && relieve.hv) ? EXAG * cerca : 0;
     exag += (meta - exag) * Math.min(1, dt / 220);
     if (Math.abs(meta - exag) < 0.02) exag = meta;
@@ -5386,6 +5500,16 @@ body {
     gl.useProgram(progLine);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    // Las líneas van sobre una cáscara un poco por encima del terreno para que
+    // no peleen con él por la profundidad. De cerca esa cáscara tiene que
+    // encoger a la vez que baja la cámara: a treinta y ocho kilómetros de
+    // altitud, una cáscara de cuarenta dejaría la cámara por debajo de las
+    // fronteras y el mapa se vería del revés. Se encoge conservando el orden
+    // —ríos, divisiones, costa, fronteras, retícula—, que es lo que evita que
+    // se pisen entre ellas.
+    var kCascara = Math.max(0.22, Math.min(1, (view.dist - 1) / 0.02));
+    function cascara(base) { return 1 + (base - 1) * kCascara; }
+
     gl.uniformMatrix4fv(progLine.u.uVP, false, mVP);
     gl.uniformMatrix3fv(progLine.u.uRot, false, mRot);
     gl.uniform3fv(progLine.u.uLight, lightWorld);
@@ -5396,7 +5520,7 @@ body {
       disableAll();
       bindAttrib(progLine, "aPos", grid.pos, 3);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, grid.idx);
-      gl.uniform1f(progLine.u.uR, 1.0068);
+      gl.uniform1f(progLine.u.uR, cascara(1.0068));
       gl.uniform4fv(progLine.u.uColor, scene.grid);
       gl.drawElements(gl.LINES, grid.count, gl.UNSIGNED_INT, 0);
     }
@@ -5412,7 +5536,7 @@ body {
       bindAttrib(progLine, "aPos", relieve.bufRioPos, 3);
       bindAttrib(progLine, "aH", relieve.bufRioAlt, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, relieve.bufRioIdx);
-      gl.uniform1f(progLine.u.uR, 1.0042);
+      gl.uniform1f(progLine.u.uR, cascara(1.0042));
       gl.uniform4fv(progLine.u.uColor, scene.rio);
       gl.drawElements(gl.LINES, medio, gl.UNSIGNED_INT, 0);
       if (hasta > medio) {          // los afluentes, más tenues
@@ -5429,7 +5553,7 @@ body {
       bindAttrib(progLine, "aPos", bufPos, 3);
       bindAttrib(progLine, "aH", bufAlt, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufLine);
-      gl.uniform1f(progLine.u.uR, 1.0050);
+      gl.uniform1f(progLine.u.uR, cascara(1.0050));
       gl.uniform4fv(progLine.u.uColor, scene.divs);
       gl.drawElements(gl.LINES, nLine, gl.UNSIGNED_INT, 0);
     }
@@ -5439,14 +5563,14 @@ body {
       bindAttrib(progLine, "aPos", bufFrontPos, 3);
       bindAttrib(progLine, "aH", bufFrontAlt, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufFrontIdx);
-      gl.uniform1f(progLine.u.uR, 1.0060);
+      gl.uniform1f(progLine.u.uR, cascara(1.0060));
       // La costa perfila la tierra y se dibuja siempre; el límite entre dos
       // países va aparte, en otro color y por encima, y es lo que apaga el
       // botón: sin él queda un mapa físico, sin líneas políticas.
       gl.uniform4fv(progLine.u.uColor, scene.border);
       gl.drawElements(gl.LINES, front.nCosta, gl.UNSIGNED_INT, 0);
       if (opts.front && nFront > front.nCosta) {
-        gl.uniform1f(progLine.u.uR, 1.0064);
+        gl.uniform1f(progLine.u.uR, cascara(1.0064));
         gl.uniform4fv(progLine.u.uColor, scene.frontera);
         gl.drawElements(gl.LINES, nFront - front.nCosta, gl.UNSIGNED_INT,
                         front.nCosta * 4);
@@ -5571,6 +5695,7 @@ body {
     tocaCelda: tocaCelda,
     cuerpos: function () { return juego ? juego.cuerpos : []; },
     marcasCuerpo: function () { return marcasCuerpo; },
+    vista: function () { return view; },
     pinta: function () { frame(performance.now()); },
     parte: function () { return juego ? parteDeGuerra() : []; },
     dias: function (n) {

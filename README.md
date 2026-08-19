@@ -117,8 +117,9 @@ index.html      → abre esto en el navegador
   solo en el limbo iluminado.
 - **Dos estilos**: `Noche` (globo sobre fondo estrellado) y `Carta` (aspecto de
   atlas político impreso). Por defecto sigue el tema claro u oscuro del visor.
-- **Zoom hasta 127 km de altitud**, la escala a la que se sigue el curso de un
-  río o se reconoce la forma de un lago: 1.270 lagos y 2.442 tramos de río a
+- **Zoom hasta 38 km de altitud**, la escala de una ciudad con su cinturón: se
+  sigue el curso de un río, se reconoce la forma de un lago y se ve entrar a un
+  cuerpo de ejército en una plaza celda a celda: 1.270 lagos y 2.442 tramos de río a
   1:10 M, con los afluentes apareciendo a medida que te acercas. El arrastre
   es de agarre exacto en corto —el punto se queda bajo el cursor— y se acelera
   en las vistas lejanas.
@@ -222,6 +223,44 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3ñ. Bajar hasta la ciudad, y que quepan todas las banderas.** Dos peticiones
+que descubrieron el mismo tipo de límite escrito a mano cuando el zoom no
+bajaba de 127 km.
+
+*El tope de altura.* Ahora se puede bajar hasta **38 km** —el campo de visión
+son unos treinta kilómetros, una ciudad con su cinturón—, y para eso hubo que
+tocar tres cosas que daban por hecho que la cámara nunca estaría tan cerca. El
+plano lejano estaba fijo en 100 radios, lo que a esa altura deja una relación
+entre planos que ningún buffer de profundidad aguanta: ahora se ajusta a lo que
+de verdad puede verse. Las líneas —costa, fronteras, divisiones, ríos,
+retícula— se dibujan sobre cáscaras a cuarenta o setenta kilómetros sobre el
+terreno para no pelearse con él por la profundidad, y a 38 km de altitud **la
+cámara se habría quedado por debajo de las fronteras**: ahora las cáscaras
+encogen con la cámara, conservando su orden. Y la exageración del relieve, que
+ya se recogía al acercarse, se recoge del todo, porque a ×16 la cámara acaba
+dentro de la montaña.
+
+*Y el que de verdad se notaba*: todo lo que se dibuja como marca sobre el globo
+—las ciudades, las banderas de los cuerpos, las cumbres— se descartaba con un
+`z <= 0.01`, una centésima de radio, **unos sesenta y cuatro kilómetros**. Por
+debajo de esa altura desaparecían de golpe, justo cuando más falta hacen: se
+podía bajar a ver el terreno conquistado y no había ni una ciudad en pantalla.
+Ese umbral va ahora con la altura de la cámara.
+
+*Y las banderas.* Cuando varios cuerpos ocupaban el mismo punto, las que
+chocaban **se descartaban**: de cinco formaciones concentradas se veían dos, y
+las otras tres no existían para el dedo. Ahora se abren en abanico —cada una con
+su cifra, su sitio donde tocarla y un hilo que la ata a su posición de verdad—,
+así que se ven todas las que haya. Y si de verdad quieres una sola grande, se la
+mandas encima de otra y **se funden**: la mayor absorbe a la menor, hereda su
+sector y asciende de escalón —dos cuerpos son un ejército; dos ejércitos, un
+grupo de ejércitos—, con el parte dando cuenta de ello. Durante los tres meses
+siguientes no se levanta ninguna formación nueva en su lugar: si has
+concentrado, es porque querías concentrar.
+
+De paso, una orden de traslado ya no se evapora si el frente se come la celda de
+destino mientras el cuerpo marcha: se reapunta a la celda propia más cercana.
 
 **3n. Concentrar sin que el ejército te lo deshaga.** Traer un cuerpo a un
 tramo donde ya hay otros dos o tres —que es media doctrina militar— salía mal de
@@ -730,6 +769,14 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   mando de uno que está en la frontera del oeste tocando su bandera, se le manda
   al grupo tocando junto a la suya, marcha de 6,2° E a 16,1° E, se queda con un
   sector de 24 celdas allí y sigue en su sitio 140 días después.
+- **Banderas**: con cinco formaciones concentradas en el mismo punto se dibujan
+  las catorce del ejército sin que ninguna tape a otra —cero pares encimados—, y
+  siguen apareciendo con la cámara a veinte kilómetros del suelo.
+- **Fusión**: mandar una formación encima de otra las funde —«el XI Ejército se
+  funde en el V Ejército»—, la superviviente hereda su sector y asciende de
+  escalón.
+- **Zoom**: a 38 km de altitud siguen dibujándose las ciudades, las banderas y
+  las cumbres; antes, por debajo de 64 km desaparecían todas de golpe.
 - **Épocas**: la misma invasión, con la misma orden y el mismo eje, en las ocho.
   Dos años de guerra, desde 741 celdas:
 
