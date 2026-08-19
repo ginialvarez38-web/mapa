@@ -588,6 +588,8 @@ body {
   <div class="oculta-mini"><span>En guerra con</span><b id="ro-contra">—</b></div>
   <div><span>Mando</span><b id="ro-cuerpo">—</b></div>
   <div class="oculta-mini"><span>Parte</span><b id="ro-parte">—</b></div>
+  <button class="btn" id="g-todos" type="button" aria-pressed="false"
+          title="Las órdenes van a todas tus formaciones a la vez">Todos</button>
   <button class="plegar" id="g-mini" type="button" aria-expanded="true"
           title="Plegar o desplegar el parte">▾</button>
   <button class="btn" id="g-salir" type="button">Terminar</button>
@@ -2193,6 +2195,10 @@ body {
 
   function marcarLista() {
     Array.prototype.forEach.call(listEl.querySelectorAll("button"), function (b) {
+      if (b.dataset.tipo === "cuerpo") {
+        b.setAttribute("aria-current", juego && Number(b.dataset.i) === juego.sel ? "true" : "false");
+        return;
+      }
       b.setAttribute("aria-current",
         String(b.dataset.tipo === sel.tipo && Number(b.dataset.i) === sel.i));
     });
@@ -2279,7 +2285,21 @@ body {
       // guerra, con las divisiones que puedes atacar ahora delante, luego las
       // tuyas del frente y al final las demás.
       if (juego) {
-        // El parte de guerra: los países que ya tocas, con lo que llevas tomado
+        // Primero, tu orden de batalla: todas tus formaciones, con lo que
+        // llevan y lo que están haciendo. Tocar una es tomar su mando y volar
+        // hasta ella, que es la única forma de llegar a la que se te ha
+        // quedado en la otra punta del mapa.
+        var orden = juego.cuerpos.filter(function (u) { return u.mio; });
+        orden.sort(function (a, b) { return b.hombres - a.hombres; });
+        for (var k = 0; k < orden.length; k++) {
+          var u = orden[k];
+          fila("cuerpo", u.id, u.nom,
+               fmtNum(Math.round(u.hombres)) + " · " + Math.round(u.org * 100) + "% · " +
+               (u.pendObj >= 0 || u.pendDest >= 0 ? "orden en camino"
+                : u.cortado > 2 ? "sin suministro"
+                : u.obj >= 0 ? "al ataque" : u.destino >= 0 ? "en marcha" : "sostiene"));
+        }
+        // Y después el parte: los países que ya tocas, con lo que llevas tomado
         // de cada uno.
         var enJuego = parteDeGuerra();
         for (var k = 0; k < enJuego.length && k < MAX_RESULTADOS; k++) {
@@ -2353,6 +2373,16 @@ body {
     // Con la campaña abierta el índice manda divisiones, no fichas: sirve para
     // elegir con cuál empiezas y para buscar objetivos por nombre.
     if (juego && r) {
+      // Una formación de la lista: se toma su mando y se vuela hasta ella.
+      if (r.tipo === "cuerpo") {
+        var quien = cuerpoPorId(r.i);
+        if (quien) {
+          tomaElMando(quien.id);
+          flyTo(lonDeCelda(quien.x), latDeCelda(quien.x), clampDist(Math.min(view.dist, 1.5)));
+          marcarLista();
+        }
+        return;
+      }
       // Con la campaña abierta el índice lleva al sitio y marca el objetivo,
       // no abre fichas.
       var pt = r.tipo === "pais" ? paises[r.i].c
@@ -2907,7 +2937,7 @@ body {
       mias: 0, miasIni: 0, tierra: 0, sinSum: 0, enBatalla: 0,
       ganadas: 0, perdidas: 0, rendidas: 0, anexadas: 0, cambios: 0, repasado: -1,
       sinRelevo: 0,
-      objetivo: -1, fin: null,
+      objetivo: -1, fin: null, todos: false,
       frente: null, frenteSet: null, linea: [], lineaSet: new Set(),
       // El orden de batalla: cuerpos de ejército con su sector y sus órdenes.
       cuerpos: [], sel: -1, proximoId: 1,
@@ -3388,7 +3418,11 @@ body {
       }
       u.org = u.sector.length ? o / u.sector.length : 0;
       u.sum = u.sector.length ? s / u.sector.length : 0;
-      u.cortado = u.sector.length && u.sum < 0.2 ? u.cortado + 1 : 0;
+      // Cortado es estar sin camino a casa, no estar lejos: el suministro tiene
+      // un suelo de 0,18 para el territorio conectado, así que con el umbral en
+      // 0,2 cualquier cuerpo más allá del alcance salía «sin suministro»
+      // estando perfectamente abastecido por una carretera larga.
+      u.cortado = u.sector.length && u.sum < 0.14 ? u.cortado + 1 : 0;
       u.vacio = u.sector.length ? 0 : u.vacio + 1;
       if (u.vacio > 10 && !u.quieto) {
         // Un cuerpo que lleva días sin un palmo de línea que sostener es un
@@ -3401,9 +3435,24 @@ body {
       }
       if (u.hombres > u.ultimos) u.ultimos = u.hombres;
       if (!u.sector.length) { vivos.push(u); continue; }
-      // El puesto de mando se queda en el centro de su sector, salvo que lleve
-      // orden de trasladarse: entonces marcha y el sector le sigue.
-      if (!u.marcha && u.obj < 0 && !u.quieto && !tieneContacto(u)) {
+
+      // Con orden de atacar, el puesto de mando se pone en la punta de lanza:
+      // la celda de su sector más cerca del objetivo. Así la bandera va con lo
+      // que su cuerpo conquista, celda a celda, en vez de quedarse atrás en el
+      // centro del sector mientras el terreno cambiaba de color solo.
+      if (!u.marcha && u.obj >= 0) {
+        var punta = u.sector[0], cerca = Infinity;
+        for (k = 0; k < u.sector.length; k++) {
+          var d = distCel(u.sector[k], u.obj);
+          if (d < cerca) { cerca = d; punta = u.sector[k]; }
+        }
+        u.x = punta;
+        vivos.push(u);
+        continue;
+      }
+
+      // Sin orden, el puesto de mando se queda en el centro de su sector.
+      if (!u.marcha && !u.quieto && !tieneContacto(u)) {
         // El puesto de mando se va al centro de su sector, pero andando: una
         // celda al día. Saltando de golpe deshacía cualquier concentración que
         // hubieras ordenado en cuanto el cuerpo llegaba.
@@ -3782,11 +3831,16 @@ body {
       var by = Math.max(0, Math.min(GH - 1, Math.round(y1 + dy / n * salto)));
       meta = by * GW + ((bx % GW) + GW) % GW;
     }
-    u.obj = celdaCerca(meta, Math.round(celdasEsc(12)), function (w) {
+    function hayEnemigo(w) {
       if (juego.est[w] !== 1) return false;
       var ip = juego.paisCel[w];
       return ip !== MAR && juego.enGuerra[ip];
-    });
+    }
+    u.obj = celdaCerca(meta, Math.round(celdasEsc(12)), hayEnemigo);
+    // Y si por ese rumbo ya no queda nadie —el país cayó, el frente se fue—, se
+    // busca el enemigo más cercano a donde está. Mientras haya guerra, un
+    // ejército no se queda parado esperando que le vuelvan a decir algo.
+    if (u.obj < 0) u.obj = celdaCerca(u.x, Math.round(celdasEsc(40)), hayEnemigo);
   }
 
   // Tomada una celda, la brecha se explota o no se explota, y en eso se resume
@@ -3829,7 +3883,14 @@ body {
 
   function atacaCuerpo(u) {
     if (u.obj < 0 || !u.sector.length) return;
-    if (juego.est[u.obj] === 2) { u.obj = -1; return; }
+    // Si el sitio señalado ya es mío —normalmente porque lo ha tomado otro—,
+    // este cuerpo no se queda parado: sigue por su propio eje. Mandabas a todo
+    // el ejército contra un punto, lo tomaba uno y los otros trece se quedaban
+    // sin orden mirando al frente.
+    if (juego.est[u.obj] === 2) {
+      sigueElEje(u, u.obj);
+      if (u.obj < 0 || juego.est[u.obj] === 2) { u.obj = -1; return; }
+    }
     var ipObj = juego.paisCel[u.obj];
     if (ipObj !== MAR && !juego.enGuerra[ipObj]) { u.obj = -1; return; }
     // La fricción de Clausewitz: lo sencillo es difícil. Un día de cada tres, en
@@ -4316,11 +4377,21 @@ body {
     if (mios >= quiero - 1 || !juego.frente.length) return;
     if (juego.sinRelevo && juego.dia < juego.sinRelevo) return;
     var antes = juego.cuerpos.length;
-    creaCuerpos(juego.pais, true, juego.frente, quiero - mios);
+    // Se levantan en la capital, que es donde se instruye a la quinta: antes
+    // aparecían en el punto del frente más lejano a los demás, que desde fuera
+    // parecía que un cuerpo se hubiera teletransportado a otra frontera.
+    var cuna = juego.est[juego.capital] === 2 ? juego.capital
+             : celdaCerca(juego.capital, Math.round(celdasEsc(30)),
+                          function (w) { return juego.est[w] === 2; });
+    if (cuna < 0) cuna = juego.frente[0];
+    creaCuerpos(juego.pais, true, [cuna], quiero - mios);
     // Los cuerpos nuevos no se quedan mirando: siguen el eje de la ofensiva que
     // les has marcado, que es lo que hace un ejército cuando releva un mando.
     if (juego.objetivo >= 0 && juego.est[juego.objetivo] === 1) {
       for (var k = antes; k < juego.cuerpos.length; k++) juego.cuerpos[k].obj = juego.objetivo;
+    }
+    for (var k = antes; k < juego.cuerpos.length; k++) {
+      anota(paises[juego.pais].n + ": se levanta el " + juego.cuerpos[k].nom);
     }
     reparteSectores();
   }
@@ -4363,7 +4434,16 @@ body {
     juego.reloj += dt;
     var dias = 0;
     while (juego.reloj >= DIA && dias < 4) { juego.reloj -= DIA; unDia(); dias++; }
-    if (dias) { subeMapa(); pintaGuerra(); }
+    if (dias) {
+      subeMapa();
+      pintaGuerra();
+      // El orden de batalla del índice se refresca de vez en cuando: si no, la
+      // lista de formaciones se queda en lo que había al abrirla.
+      if (!searchEl.value && juego.dia - (juego.ultimaLista || -99) >= 10) {
+        juego.ultimaLista = juego.dia;
+        renderList("");
+      }
+    }
   }
 
   function finCampana() {
@@ -4429,6 +4509,16 @@ body {
   var roParte = document.getElementById("ro-parte");
   var gSalir = document.getElementById("g-salir");
   var gEpoca = document.getElementById("g-epoca");
+  var gTodos = document.getElementById("g-todos");
+
+  // Mando general: con esto puesto, la orden va a todas tus formaciones a la
+  // vez. Es la diferencia entre llevar un cuerpo y llevar un ejército.
+  gTodos.addEventListener("click", function () {
+    if (!juego) return;
+    juego.todos = !juego.todos;
+    gTodos.setAttribute("aria-pressed", String(juego.todos));
+    pintaGuerra();
+  });
 
   // El selector de época. Se elige antes de empezar; una vez abierta la guerra
   // ya no se cambia de siglo a mitad de campaña.
@@ -4514,7 +4604,10 @@ body {
     var u = cuerpoSel();
     var mios = 0;
     for (var i = 0; i < juego.cuerpos.length; i++) if (juego.cuerpos[i].mio) mios++;
-    roCuerpo.textContent = u
+    if (gTodos) gTodos.setAttribute("aria-pressed", String(!!juego.todos));
+    if (juego.todos) {
+      roCuerpo.textContent = mios + " formaciones · mando general";
+    } else roCuerpo.textContent = u
       ? u.nom + " · " + fmtNum(Math.round(u.hombres)) + " · " +
         Math.round(u.org * 100) + "% · " +
         (u.pendObj >= 0 || u.pendDest >= 0
@@ -4545,8 +4638,25 @@ body {
   function tomaElMando(id) {
     if (!juego || id < 0) return false;
     juego.sel = id;
+    // Coger una bandera es volver a llevar ese cuerpo, no el ejército entero.
+    if (juego.todos) { juego.todos = false; gTodos.setAttribute("aria-pressed", "false"); }
     pintaGuerra();
     return true;
+  }
+
+  // La misma orden, para todo el ejército. Cada formación la interpreta desde
+  // donde está: las que tienen enemigo delante atacan hacia allí, las que no,
+  // van a buscarlo.
+  function ordenaATodos(c) {
+    var alguna = false;
+    for (var i = 0; i < juego.cuerpos.length; i++) {
+      var u = juego.cuerpos[i];
+      if (!u.mio) continue;
+      juego.sel = u.id;
+      if (ordenaA(u, c)) alguna = true;
+    }
+    if (alguna) pintaGuerra();
+    return alguna;
   }
 
   // Un toque en el mapa es la orden, y no hay nada más que tocar:
@@ -4562,11 +4672,22 @@ body {
     // concentrarse junto a otro sin cambiar de mando por el camino.
     var sobre = cuerpoCerca(c, celdasEsc(0.6), true);
     if (sobre && sobre.id !== juego.sel) { juego.sel = sobre.id; pintaGuerra(); return true; }
+    // Con el mando general puesto, la orden es para todas las formaciones.
+    if (juego.todos) return ordenaATodos(c);
     var mando = cuerpoSel() || cuerpoCerca(c, undefined, true);
     if (!mando) return false;
     // La orden no está en el frente en cuanto la piensas: tarda lo que tarde el
     // correo de su siglo en llegar al puesto de mando. Seis días en la
     // Antigüedad, ninguno hoy.
+    if (!ordenaA(mando, c)) return false;
+    juego.sel = mando.id;
+    pintaGuerra();
+    return true;
+  }
+
+  // Dar una orden a una formación concreta. La orden tarda lo que tarde el
+  // correo de su siglo en llegar al puesto de mando.
+  function ordenaA(mando, c) {
     var tarda = E().mando;
     if (juego.est[c] === 2) {
       // ¿Le estás mandando encima de otro cuerpo tuyo? Entonces la orden es de
@@ -4583,8 +4704,6 @@ body {
       else { mando.obj = c; mando.destino = -1; }
       juego.objetivo = c;
     } else return false;
-    juego.sel = mando.id;
-    pintaGuerra();
     return true;
   }
 

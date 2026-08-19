@@ -70,7 +70,10 @@ index.html      → abre esto en el navegador
 
   Un tic es un día. No hay turnos ni botón de ataque: **se juega tocando el
   mapa** —una bandera tuya, tomas el mando de ese cuerpo; terreno ajeno, ese
-  cuerpo ataca hacia allí; terreno tuyo, se traslada—. Cada **cuerpo de
+  cuerpo ataca hacia allí; terreno tuyo, se traslada; encima de otra formación,
+  se funden en una mayor—. Con **`Todos`** la orden va al ejército entero, y el
+  índice lateral es el orden de batalla: cada formación con lo que lleva y lo
+  que hace, y se toma su mando tocándola. Cada **cuerpo de
   ejército** se dibuja con la bandera de su país y los hombres que tiene, con
   una flecha hacia su objetivo, y una tira arriba dice la fecha, la estación,
   las celdas, los hombres en línea, la organización, la reserva, contra quién
@@ -223,6 +226,40 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3p. Mandar el ejército entero, y que la bandera vaya con lo que toma.**
+La campaña tenía buena simulación y mal mando: se llevaba de una en una, y el
+motor movía formaciones por su cuenta.
+
+*La bandera va en la punta de lanza.* El puesto de mando se ponía en el centro
+de su sector, así que la bandera se quedaba atrás mientras el terreno cambiaba
+de color solo, unas celdas más allá. Ahora, con orden de atacar, el puesto de
+mando se coloca en **la celda de su sector más cercana al objetivo**: la bandera
+va donde su cuerpo está mordiendo, celda a celda. Sin orden, vuelve al centro.
+
+*El ejército entero de una vez.* Un botón de **mando general**: con él puesto,
+la orden va a todas las formaciones a la vez, y cada una la interpreta desde
+donde está —la que tiene enemigo delante ataca, la que no, va a buscarlo—.
+Tocar una bandera vuelve a poner esa sola en la mano.
+
+*Y todas las formaciones, a mano.* El índice lateral pasa a ser el **orden de
+batalla**: cada formación con sus hombres, su organización y lo que está
+haciendo —al ataque, en marcha, sostiene, orden en camino, sin suministro—.
+Tocar una toma su mando y vuela hasta ella, que es la única forma de llegar a la
+que se te ha quedado en la otra punta del mapa.
+
+*Y tres cosas que el motor hacía a tus espaldas.* Cuando **un** cuerpo tomaba el
+punto señalado, los otros trece se quedaban sin orden mirando al frente: se
+mandaba al ejército contra un sitio, lo tomaba uno y la ofensiva se paraba sola.
+Ahora, si el objetivo ya es tuyo, cada cuerpo **sigue por su propio eje**; en la
+prueba, la misma orden pasa de ganar 571 celdas a ganar 2.550. Las formaciones
+nuevas se levantaban en el punto del frente más lejano a las demás, que desde
+fuera parecía que un cuerpo se hubiera teletransportado: ahora se levantan **en
+la capital**, que es donde se instruye a la quinta, y el parte lo dice. Y seis
+formaciones aparecían marcadas «sin suministro» estando perfectamente
+abastecidas: el suministro tiene un suelo de 0,18 para el territorio conectado y
+el aviso saltaba por debajo de 0,2, así que cualquier cuerpo más allá del alcance
+—no cortado, sólo lejos— salía en rojo.
 
 **3o. Las ciudades tienen tamaño, y la división deja de retroceder sola.**
 
@@ -808,6 +845,10 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 - **Banderas**: con cinco formaciones concentradas en el mismo punto se dibujan
   las catorce del ejército sin que ninguna tape a otra —cero pares encimados—, y
   siguen apareciendo con la cámara a veinte kilómetros del suelo.
+- **Mando**: el índice lista las catorce formaciones; tocar una toma su mando;
+  con `Todos` las catorce reciben la misma orden y las catorce la conservan cien
+  días después, sin ninguna marcada falsamente sin suministro; tocar una bandera
+  devuelve el mando a esa sola.
 - **Fusión**: mandar una formación encima de otra las funde —«el XI Ejército se
   funde en el V Ejército»—, la superviviente hereda su sector y asciende de
   escalón.
