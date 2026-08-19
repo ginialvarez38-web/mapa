@@ -705,6 +705,9 @@ body {
       marca:  "#F0D6A8",
       capital: "#FFD98A",
       ciudad:  "#DCE6F2",
+      // La mancha urbana, que aparece al acercarse: el casco iluminado de noche.
+      mancha:       "rgba(255,224,170,.16)",
+      manchaBorde:  "rgba(255,224,170,.38)",
       halo:   "rgba(4,8,16,.82)"
     },
     carta: {
@@ -730,6 +733,9 @@ body {
       marca:  "#7A5322",
       capital: "#8C2F16",
       ciudad:  "#2A3644",
+      // En la carta, la mancha urbana va como en un plano: gris cálido tramado.
+      mancha:       "rgba(120,95,80,.17)",
+      manchaBorde:  "rgba(110,80,66,.40)",
       halo:   "rgba(255,255,255,.85)"
     }
   };
@@ -1595,6 +1601,8 @@ body {
 
   var mVP = new Float32Array(16);
   var mProj = new Float32Array(16);
+  var mVPLejos = new Float32Array(16);      // para las estrellas, que están lejos
+  var mProjLejos = new Float32Array(16);
   var mRot = new Float32Array(9);
 
   function vpMatrix(out, proj, dist) {
@@ -1968,10 +1976,11 @@ body {
   function clampPitch(p) { return Math.max(-88 * DEG, Math.min(88 * DEG, p)); }
   // 1,02 radios ~ 130 km de altitud: la escala a la que se sigue el curso de
   // un río o la forma de un lago.
-  // Hasta 38 km de altitud: a esa altura el campo de visión son unos treinta
-  // kilómetros, el tamaño de una ciudad con su cinturón. Es donde se ve cómo un
-  // cuerpo se come el terreno celda a celda y por dónde entra en la plaza.
-  function clampDist(d) { return Math.max(1.006, Math.min(7.5, d)); }
+  // Hasta 19 km de altitud —el suelo se dibuja a 1,0016 y por debajo de eso la
+  // cámara se metería dentro del mapa—. A esa altura el campo de visión son
+  // catorce kilómetros: el casco de una ciudad. Es donde se ve por dónde entra
+  // un cuerpo en la plaza y hasta dónde llega la mancha urbana.
+  function clampDist(d) { return Math.max(1.003, Math.min(7.5, d)); }
 
   // Radianes de giro por píxel arrastrado. Sale de la geometría de la vista,
   // así que a 130 km de altitud el globo ya no se dispara con un gesto corto.
@@ -3394,7 +3403,7 @@ body {
       if (!u.sector.length) { vivos.push(u); continue; }
       // El puesto de mando se queda en el centro de su sector, salvo que lleve
       // orden de trasladarse: entonces marcha y el sector le sigue.
-      if (!u.marcha && u.obj < 0 && !u.quieto) {
+      if (!u.marcha && u.obj < 0 && !u.quieto && !tieneContacto(u)) {
         // El puesto de mando se va al centro de su sector, pero andando: una
         // celda al día. Saltando de golpe deshacía cualquier concentración que
         // hubieras ordenado en cuanto el cuerpo llegaba.
@@ -3457,24 +3466,6 @@ body {
     return mejor;
   }
 
-  // La celda propia más cercana a un punto, buscando en cuadrados concéntricos.
-  function cercaMia(c, radio) {
-    if (juego.est[c] === 2) return c;
-    var x = c % GW, y = (c / GW) | 0;
-    for (var rr = 1; rr <= radio; rr++) {
-      for (var dy = -rr; dy <= rr; dy++) {
-        var yy = y + dy;
-        if (yy < 0 || yy >= GH) continue;
-        for (var dx = -rr; dx <= rr; dx++) {
-          if (Math.abs(dx) !== rr && Math.abs(dy) !== rr) continue;   // sólo el borde
-          var w = yy * GW + ((x + dx + GW) % GW);
-          if (juego.est[w] === 2) return w;
-        }
-      }
-    }
-    return -1;
-  }
-
   // El siguiente paso de una marcha, buscando el camino de verdad: una anchura
   // desde el destino por territorio propio hasta dar con el cuerpo. Antes se
   // bajaba por la distancia en línea recta, y eso se encalla en el primer
@@ -3535,23 +3526,14 @@ body {
         // Si el sitio al que iba ha cambiado de manos, la orden no se tira: se
         // reapunta a la celda propia más cercana. Una orden tuya no debe
         // evaporarse porque el frente se haya movido mientras el cuerpo marcha.
-        if (juego.est[u.destino] !== 2) u.destino = cercaMia(u.destino, celdasEsc(6));
+        if (juego.est[u.destino] !== 2) {
+          u.destino = celdaCerca(u.destino, Math.round(celdasEsc(6)),
+                                 function (w) { return juego.est[w] === 2; });
+        }
         if (u.destino < 0) { /* no queda nada nuestro cerca: se cancela */ }
         else if (juego.est[u.destino] !== 2) u.destino = -1;
         else if (distCel(u.x, u.destino) < celdasEsc(1.2)) {
-          // Ha llegado adonde se le mandó: ahí se queda una temporada. Si no,
-          // el puesto de mando volvía solo al centro de su viejo sector y era
-          // imposible juntar dos cuerpos en un punto.
-          u.destino = -1;
-          u.quieto = 30;
-          if (u.fundirCon >= 0) {
-            var otro = cuerpoPorId(u.fundirCon);
-            u.fundirCon = -1;
-            if (otro && otro !== u && otro.mio === u.mio && otro.ip === u.ip) {
-              fundir(otro, u);
-              continue;             // uno de los dos ya no existe
-            }
-          }
+          if (llegaDestino(u)) continue;   // se ha fundido: uno de los dos ya no está
         } else meta = u.destino;
       }
       if (meta < 0 && u.mio && u.obj >= 0 && !u.quieto && !tieneContacto(u)) {
@@ -3574,6 +3556,12 @@ body {
       var pasos = Math.floor(u.paso);
       u.paso -= pasos;
       for (var paso = 0; paso < pasos; paso++) {
+        // Si ya ha llegado, se para aquí. Un cuerpo anda cuatro celdas al día y
+        // la llegada se comprobaba sólo al empezar la jornada: cuando pisaba el
+        // destino a media marcha, los pasos que le quedaban no encontraban
+        // adónde ir y daban la orden por imposible, justo encima del sitio al
+        // que iba. Por eso la fusión salía unas veces sí y otras no.
+        if (distCel(u.x, meta) < celdasEsc(1.2)) break;
         var sig = pasoHacia(u.x, meta);
         if (sig < 0) {
           // Sin camino por tierra propia: se acerca lo que pueda en línea recta
@@ -3590,7 +3578,27 @@ body {
         }
         u.x = sig;
       }
+      // Y si la marcha del día ha terminado encima del destino, se da por
+      // llegado sin esperar a mañana.
+      if (u.destino >= 0 && distCel(u.x, u.destino) < celdasEsc(1.2)) llegaDestino(u);
     }
+  }
+
+  // Llegar adonde se le mandó: ahí se queda una temporada —si no, el puesto de
+  // mando volvía solo al centro de su viejo sector y era imposible juntar dos
+  // cuerpos en un punto— y, si la orden era de concentrarse sobre otro, se
+  // funden. Devuelve true si de los dos ha quedado uno.
+  function llegaDestino(u) {
+    u.destino = -1;
+    u.quieto = 30;
+    if (u.fundirCon < 0) return false;
+    var otro = cuerpoPorId(u.fundirCon);
+    u.fundirCon = -1;
+    if (otro && otro !== u && otro.mio === u.mio && otro.ip === u.ip) {
+      fundir(otro, u);
+      return true;
+    }
+    return false;
   }
 
   // --- combate -------------------------------------------------------------
@@ -3736,6 +3744,51 @@ body {
   // Cada cuerpo empuja hacia donde le has mandado, con el ancho de ataque que
   // le dan sus hombres. Las celdas rotas ceden y las que aguantan no: de ahí
   // salen los salientes, las líneas irregulares y los cercos.
+  // La celda más cercana a un punto que cumpla algo, buscando en cuadrados
+  // concéntricos. Sirve para reapuntar una orden cuando el frente se mueve.
+  function celdaCerca(c, radio, vale) {
+    if (vale(c)) return c;
+    var x = c % GW, y = (c / GW) | 0;
+    for (var rr = 1; rr <= radio; rr++) {
+      for (var dy = -rr; dy <= rr; dy++) {
+        var yy = y + dy;
+        if (yy < 0 || yy >= GH) continue;
+        for (var dx = -rr; dx <= rr; dx++) {
+          if (Math.abs(dx) !== rr && Math.abs(dy) !== rr) continue;
+          var w = yy * GW + ((x + dx + GW) % GW);
+          if (vale(w)) return w;
+        }
+      }
+    }
+    return -1;
+  }
+
+  // Tomado el objetivo, la ofensiva no se para: el cuerpo sigue por el mismo
+  // eje, buscando enemigo más allá de lo que acaba de tomar. Antes se quedaba
+  // sin orden en cuanto entraba en la celda señalada, y entonces el puesto de
+  // mando se iba solo al centro de su sector —muchas veces hacia atrás—: eso es
+  // lo que se veía como que la división retrocede sin tocar nada.
+  function sigueElEje(u, tomada) {
+    var x0 = u.x % GW, y0 = (u.x / GW) | 0;
+    var x1 = tomada % GW, y1 = (tomada / GW) | 0;
+    var dx = x1 - x0, dy = y1 - y0;
+    if (dx > GW / 2) dx -= GW;
+    if (dx < -GW / 2) dx += GW;
+    var n = Math.hypot(dx, dy);
+    var meta = tomada;
+    if (n > 0.5) {
+      var salto = celdasEsc(8);
+      var bx = Math.round(x1 + dx / n * salto);
+      var by = Math.max(0, Math.min(GH - 1, Math.round(y1 + dy / n * salto)));
+      meta = by * GW + ((bx % GW) + GW) % GW;
+    }
+    u.obj = celdaCerca(meta, Math.round(celdasEsc(12)), function (w) {
+      if (juego.est[w] !== 1) return false;
+      var ip = juego.paisCel[w];
+      return ip !== MAR && juego.enGuerra[ip];
+    });
+  }
+
   // Tomada una celda, la brecha se explota o no se explota, y en eso se resume
   // media historia militar del siglo XX. En 1916 el que rompía la línea no tenía
   // con qué seguir —el defensor traía sus reservas en tren y el atacante avanzaba
@@ -3747,7 +3800,7 @@ body {
     var ciu = juego.ciudad.get(celda);
     ocupa(desde, celda, true);
     if (ciu !== undefined && ciudades[ciu].pop > 250000) anota("Cae " + ciudades[ciu].n);
-    if (celda === u.obj) u.obj = -1;
+    if (celda === u.obj) sigueElEje(u, celda);
     if (celda === juego.objetivo) juego.objetivo = -1;
 
     var puedo = epExplota();
@@ -3768,7 +3821,7 @@ body {
       var ciu2 = juego.ciudad.get(sig);
       ocupa(punta, sig, true);
       if (ciu2 !== undefined && ciudades[ciu2].pop > 250000) anota("Cae " + ciudades[ciu2].n);
-      if (sig === u.obj) u.obj = -1;
+      if (sig === u.obj) sigueElEje(u, sig);
       if (sig === juego.objetivo) juego.objetivo = -1;
       punta = sig;
     }
@@ -4707,6 +4760,22 @@ body {
 
   // Las ciudades aparecen por rango: de lejos solo las capitales y las grandes
   // aglomeraciones; cada acercamiento destapa el siguiente escalón.
+  // El contorno de una mancha urbana: un círculo abollado, siempre igual para
+  // la misma ciudad. Con doce lados basta a cualquier tamaño de pantalla.
+  function manchaUrbana(cx, cy, rad, semilla) {
+    var a1 = (semilla % 7) * 0.9, a2 = (semilla % 11) * 0.57, a3 = (semilla % 5) * 1.3;
+    var d1 = 0.12 + (semilla % 3) * 0.05, d2 = 0.09, d3 = 0.06;
+    ctx.beginPath();
+    for (var k = 0; k <= 12; k++) {
+      var an = k / 12 * Math.PI * 2;
+      var f = 1 + d1 * Math.sin(an * 2 + a1) + d2 * Math.sin(an * 3 + a2) +
+                  d3 * Math.sin(an * 5 + a3);
+      var x = cx + Math.cos(an) * rad * f, y = cy + Math.sin(an) * rad * f * 0.9;
+      if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
   function dibujaCiudades(scene, boxes, aspect, t, soloCapitales) {
     if (!NC || !opts.ciudades) return;
     var d = view.dist;
@@ -4719,6 +4788,9 @@ body {
 
     var p = [0, 0, 0];
     var horizon = 1 / view.dist;
+    // Cuántos píxeles mide un kilómetro a la altura actual. De ahí sale el
+    // tamaño con el que se dibuja cada ciudad.
+    var kmPx = W / (2 * Math.max(1e-6, view.dist - 1) * Math.tan(FOV / 2) * 6371);
     // El tope de rótulos es holgado: la detección de solapes ya impide que se
     // pisen, así que sobra sitio antes de que estorben.
     var tope = d < 1.3 ? 52 : d < 2.2 ? 42 : 26;
@@ -4747,10 +4819,33 @@ body {
       var sy = H / 2 - (p[1] / (z * t)) * 0.5 * H;
       if (sx < 26 || sx > W - 26 || sy < 18 || sy > H - 18) continue;
 
-      // El punto se dibuja siempre; el rótulo, solo si cabe. Así una ciudad
-      // apretada contra el nombre de su provincia se sigue viendo y se sigue
-      // pudiendo pinchar, que es lo que se espera al ver el punto.
+      // De cerca, la ciudad deja de ser un punto y pasa a tener su tamaño: la
+      // mancha urbana, con el radio que le da su población. La superficie de una
+      // ciudad crece algo menos que su gente —el casco se densifica—, así que el
+      // radio va con la potencia 0,42: un pueblo de diez mil son dos kilómetros,
+      // un millón son doce y diez millones, treinta.
       var capital = c.cl === 0;
+      if (kmPx > 0.35) {
+        var rKm = 0.035 * Math.pow(Math.max(500, c.pop), 0.42);
+        var rPx = rKm * kmPx;
+        if (rPx > 2.2) {
+          // Ninguna ciudad es un círculo: la mancha se deforma con tres
+          // armónicos sacados del propio índice de la ciudad, así que cada una
+          // tiene su forma y siempre la misma.
+          manchaUrbana(sx, sy, rPx, i);
+          ctx.fillStyle = scene.mancha || "rgba(150,120,110,.22)";
+          ctx.fill();
+          ctx.strokeStyle = scene.manchaBorde || "rgba(120,90,80,.45)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          // El casco viejo, más denso, para que se lea el centro.
+          if (rPx > 14) {
+            manchaUrbana(sx, sy, rPx * 0.45, i + 7);
+            ctx.fillStyle = scene.mancha || "rgba(150,120,110,.22)";
+            ctx.fill();
+          }
+        }
+      }
       ctx.globalAlpha = elegida ? 1 : Math.min(1, 0.42 + facing * 1.6);
       var tinta = elegida ? acentoCSS() : capital ? scene.capital : scene.ciudad;
       // Capital: círculo con anillo, el signo de siempre. Ciudad: punto.
@@ -5343,11 +5438,18 @@ body {
 
     var scene = SCENES[opts.scene];
 
-    // El plano lejano se ajusta a lo que de verdad puede verse: con 100 fijo, a
-    // treinta y ocho kilómetros de altitud la relación entre planos se disparaba
-    // y el buffer de profundidad no daba para tanto.
-    perspective(mProj, FOV, W / H, Math.max(0.0006, (view.dist - 1) * 0.2), view.dist + 2.2);
+    // El plano lejano se ajusta a lo que de verdad puede verse —el horizonte de
+    // la esfera—: con 100 fijo, a diez kilómetros de altitud la relación entre
+    // planos se dispara y el buffer de profundidad no da para tanto. Las
+    // estrellas van a cuarenta radios, así que llevan su propia proyección: con
+    // la del globo se quedaban fuera y el cielo de la vista nocturna
+    // desaparecía.
+    var horizonte = Math.sqrt(Math.max(0, view.dist * view.dist - 1));
+    var cerca0 = Math.max(0.00015, (view.dist - 1) * 0.2);
+    perspective(mProj, FOV, W / H, cerca0, Math.max(view.dist + 0.05, horizonte * 1.2 + 0.05));
     vpMatrix(mVP, mProj, view.dist);
+    perspective(mProjLejos, FOV, W / H, Math.max(0.01, cerca0), 100);
+    vpMatrix(mVPLejos, mProjLejos, view.dist);
     rotation(mRot, view.yaw, view.pitch);
 
     camPos[0] = 0; camPos[1] = 0; camPos[2] = view.dist;
@@ -5389,7 +5491,7 @@ body {
       disableAll();
       bindAttrib(progStars, "aPos", stars.pos, 3);
       bindAttrib(progStars, "aMag", stars.mag, 1);
-      gl.uniformMatrix4fv(progStars.u.uVP, false, mVP);
+      gl.uniformMatrix4fv(progStars.u.uVP, false, mVPLejos);
       gl.uniform1f(progStars.u.uScale, dpr * 1.15);
       gl.uniform1f(progStars.u.uAlpha, scene.stars);
       gl.drawArrays(gl.POINTS, 0, stars.count);
@@ -5507,8 +5609,17 @@ body {
     // fronteras y el mapa se vería del revés. Se encoge conservando el orden
     // —ríos, divisiones, costa, fronteras, retícula—, que es lo que evita que
     // se pisen entre ellas.
-    var kCascara = Math.max(0.22, Math.min(1, (view.dist - 1) / 0.02));
-    function cascara(base) { return 1 + (base - 1) * kCascara; }
+    // Las líneas van por encima del terreno —que se dibuja a 1,0016— y por
+    // debajo de la cámara. Al bajar, ese hueco se estrecha, así que se
+    // comprimen dentro de él conservando el orden: ríos, divisiones, costa,
+    // fronteras, retícula. Sin esto, o se hundían bajo el mapa o la cámara se
+    // quedaba por debajo de las fronteras.
+    var SUELO = 1.0016;
+    var margen = Math.min(0.0052, Math.max(0.00012, (view.dist - SUELO) * 0.55));
+    function cascara(base) {
+      var t = (base - 1.0042) / 0.0026;              // 0 en los ríos, 1 en la retícula
+      return SUELO + margen * (0.25 + 0.75 * t);
+    }
 
     gl.uniformMatrix4fv(progLine.u.uVP, false, mVP);
     gl.uniformMatrix3fv(progLine.u.uRot, false, mRot);

@@ -117,7 +117,7 @@ index.html      → abre esto en el navegador
   solo en el limbo iluminado.
 - **Dos estilos**: `Noche` (globo sobre fondo estrellado) y `Carta` (aspecto de
   atlas político impreso). Por defecto sigue el tema claro u oscuro del visor.
-- **Zoom hasta 38 km de altitud**, la escala de una ciudad con su cinturón: se
+- **Zoom hasta 19 km de altitud**, la escala de un casco urbano: se
   sigue el curso de un río, se reconoce la forma de un lago y se ve entrar a un
   cuerpo de ejército en una plaza celda a celda: 1.270 lagos y 2.442 tramos de río a
   1:10 M, con los afluentes apareciendo a medida que te acercas. El arrastre
@@ -223,6 +223,42 @@ cabe**. Al principio una ciudad cuyo nombre chocaba con el de su provincia
 desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
+
+**3o. Las ciudades tienen tamaño, y la división deja de retroceder sola.**
+
+*La mancha urbana.* Una ciudad era un punto igual para Tokio que para un pueblo
+de tres mil. Ahora, al acercarse, cada una se dibuja con **su superficie**: el
+radio sale de la población con exponente 0,42 —la superficie de una ciudad crece
+algo menos que su gente, porque el casco se densifica—, así que un pueblo de diez
+mil son dos kilómetros, un millón son doce y diez millones, treinta. Poznań sale
+con nueve kilómetros de radio, que es lo que mide. La mancha no es un círculo:
+se deforma con tres armónicos sacados del propio índice de la ciudad, así que
+cada una tiene su forma y siempre la misma, con el casco viejo más denso en el
+centro. Aparece sola cuando pasa de dos píxeles y de noche se lee como el
+resplandor de las capitales.
+
+*Y el zoom baja a 19 km*, el límite real: el terreno se dibuja sobre una cáscara
+a 1,0016 radios y por debajo de eso la cámara se metería dentro del mapa. Las
+líneas se comprimen en el hueco que queda entre el suelo y la cámara conservando
+su orden.
+
+*La división que retrocedía sola.* Dos causas, y la segunda llevaba tiempo
+rompiendo cosas en silencio. La primera: al tomar la celda señalada, el cuerpo se
+quedaba **sin orden**, y entonces el puesto de mando se iba solo al centro de su
+sector, muchas veces hacia atrás. Ahora, tomado el objetivo, la ofensiva sigue
+por el mismo eje —se busca enemigo más allá de lo que se acaba de tomar— y el
+puesto de mando no se mueve mientras tenga a alguien delante. La segunda: un
+cuerpo anda cuatro celdas al día y la llegada al destino sólo se comprobaba **al
+empezar la jornada**; si pisaba el destino a media marcha, los pasos que le
+quedaban no encontraban adónde ir y **daban la orden por imposible justo encima
+del sitio al que iba**, sin fijarlo. De ahí que un traslado a veces se
+deshiciera solo nada más llegar, y que la fusión de dos cuerpos saliera unas
+veces sí y otras no. La llegada se comprueba ahora también a media marcha y al
+final del día.
+
+*Y una regresión propia*: al recortar el plano lejano para poder bajar tanto,
+las estrellas —que están a cuarenta radios— se quedaron fuera del frustum y la
+vista nocturna perdió el cielo. Llevan ahora su propia proyección.
 
 **3ñ. Bajar hasta la ciudad, y que quepan todas las banderas.** Dos peticiones
 que descubrieron el mismo tipo de límite escrito a mano cuando el zoom no
@@ -775,8 +811,11 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 - **Fusión**: mandar una formación encima de otra las funde —«el XI Ejército se
   funde en el V Ejército»—, la superviviente hereda su sector y asciende de
   escalón.
-- **Zoom**: a 38 km de altitud siguen dibujándose las ciudades, las banderas y
+- **Zoom**: a 19 km de altitud siguen dibujándose las ciudades, las banderas y
   las cumbres; antes, por debajo de 64 km desaparecían todas de golpe.
+- **Ciudades**: al acercarse, cada una se dibuja con la superficie que le da su
+  población —Poznań, nueve kilómetros de radio—, y la vista nocturna conserva
+  sus estrellas.
 - **Épocas**: la misma invasión, con la misma orden y el mismo eje, en las ocho.
   Dos años de guerra, desde 741 celdas:
 
