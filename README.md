@@ -227,6 +227,44 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3r. Una división sólo cede terreno cuando ya no puede pelear.**
+El fallo que quedaba era el más feo de todos: la bandera de un cuerpo se iba
+hacia atrás sin que nadie se lo mandara. Medido, en trescientos días de campaña
+pasaba **sesenta veces**, y no eran retiradas: eran **saltos**, de hasta siete
+grados en un día —quinientos kilómetros— con el cuerpo entero, la organización
+al cien por cien y el suministro llegando.
+
+*Por qué saltaba.* El puesto de mando se colocaba de golpe en la celda de su
+sector más cercana al objetivo. Pero el reparto de sectores se rehace cada día
+—cada celda del frente va al cuerpo más cercano que tenga cupo—, y el alcance de
+ese reparto era de setenta celdas: a un cuerpo podía tocarle un tramo de línea a
+diecisiete grados de distancia, y su bandera aparecía allí a la mañana
+siguiente. Dos arreglos: un sector es ahora **lo que un mando puede recorrer**
+—veinticinco celdas—, y el puesto de mando **anda, nunca salta**: hace al día lo
+que hace su cuerpo, con el paso de su época, por el mismo camino de tierra
+propia que sigue una marcha.
+
+*Y adónde va.* Tres sitios, por este orden: con orden de atacar, la punta de
+lanza; sosteniendo, **el borde donde toca al enemigo** —con la tropa que está
+peleando, no en la retaguardia del sector—; y el centro del sector sólo si no
+tiene a nadie delante y se le ha quedado lejos de su gente. Encima, mientras
+pueda pelear —organización, suministro y hombres— **no se retira**: si lo que le
+tocaría es alejarse de aquello contra lo que está, se queda donde está. Ceder
+terreno vuelve a ser lo que era en la simulación: una posición que se rompe en
+combate, o una bolsa que se queda sin comer.
+
+*Y las divisiones se llevan a su gente.* Trasladar un cuerpo de un frente a otro
+movía el puesto de mando y nada más: los hombres se quedaban en las celdas que
+dejaba y al llegar tomaba el mando de lo que hubiera allí, así que juntar dos
+cuerpos no sumaba un solo fusil. Ahora, cuando le mandas un traslado de verdad,
+**levanta el campo**: se lleva algo más de la mitad de su tropa —el resto queda
+de guarnición, que un sector no se abandona— y la mete en la línea al llegar,
+primero donde más falta hace. En la prueba, un cuerpo del oeste se lleva 44.604
+hombres de los 80.694 que mandaba, cruza Alemania de 6,2° E a 17,7° E y los
+descarga allí, sin que la cuenta de la nación pierda a nadie por el camino. Y
+sí: sacar un cuerpo de la línea deja esa línea más floja, que es exactamente lo
+que pasa cuando un ejército desguarnece un frente para reforzar otro.
+
 **3q. Ni banderas con un cero encima ni banderas que no se dejan tocar.**
 Dos cosas que se veían en cuanto jugabas un rato.
 
@@ -880,6 +918,16 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 - **Fusión**: mandar una formación encima de otra las funde —«el XI Ejército se
   funde en el V Ejército»—, la superviviente hereda su sector y asciende de
   escalón.
+- **Nadie salta y nadie se retira solo**: en trescientos días de campaña con las
+  catorce formaciones atacando, ninguna bandera se mueve más de **0,50° en un
+  día** —la jornada de marcha de su época— y ninguna se aleja de su objetivo tres
+  días seguidos teniendo con qué pelear. Antes había sesenta retrocesos, con
+  saltos de hasta siete grados en una noche.
+- **Traslado con la tropa**: un cuerpo del oeste recibe orden de ir al frente
+  del este; se lleva 44.604 hombres de los 80.694 que mandaba, cruza de 6,2° E a
+  17,7° E y los descarga en la línea al llegar. La cuenta de hombres de la
+  nación —los del mapa, los de los depósitos y los que van en columna— no pierde
+  a nadie por el camino.
 - **Toque**: tocar la bandera de otra formación le pasa el mando aunque el dedo
   caiga 18 px del centro, y tocar a 10 px de la bandera del cuerpo que ya llevas
   no se lo quita: se le da la orden y sigue siendo el mismo cuerpo el que manda.

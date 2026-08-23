@@ -2290,11 +2290,14 @@ body {
         // hasta ella, que es la única forma de llegar a la que se te ha
         // quedado en la otra punta del mapa.
         var orden = juego.cuerpos.filter(function (u) { return u.mio; });
-        orden.sort(function (a, b) { return b.hombres - a.hombres; });
+        // Los que van de marcha llevan su tropa en la columna, no en el mapa:
+        // se cuenta igual, que si no una formación en traslado parecía deshecha.
+        function suGente(u) { return u.hombres + u.lleva; }
+        orden.sort(function (a, b) { return suGente(b) - suGente(a); });
         for (var k = 0; k < orden.length; k++) {
           var u = orden[k];
           fila("cuerpo", u.id, u.nom,
-               fmtNum(Math.round(u.hombres)) + " · " + Math.round(u.org * 100) + "% · " +
+               fmtNum(Math.round(suGente(u))) + " · " + Math.round(u.org * 100) + "% · " +
                (u.pendObj >= 0 || u.pendDest >= 0 ? "orden en camino"
                 : u.cortado > 2 ? "sin suministro"
                 : u.obj >= 0 ? "al ataque" : u.destino >= 0 ? "en marcha" : "sostiene"));
@@ -3314,6 +3317,7 @@ body {
         hombres: 0, org: 0.75, obj: -1, destino: -1, sector: [], cortado: 0,
         vacio: 0, marcha: false, sum: 1, puesto: -1, ultimos: 0, paso: 0,
         pendObj: -1, pendDest: -1, pendDia: 0, quieto: 0, fundirCon: -1,
+        lleva: 0,                        // los hombres que van con él de marcha
         num: romano(++cuentaCuerpo[ip]), pegado: 0,
         nom: ""                          // se pone justo debajo
       });
@@ -3370,7 +3374,12 @@ body {
         } else if (d0 < minLleno) { minLleno = d0; lleno = lista[j]; }
       }
       var elegido = mejor || lleno;
-      if (elegido && (mejor ? min : minLleno) <= celdasEsc(70)) elegido.sector.push(c);
+      // Y no se le cuelga a un cuerpo un tramo del otro extremo del frente: el
+      // alcance era de setenta celdas —diecisiete grados— y con él un cuerpo
+      // podía recibir un pedazo de línea a quinientos kilómetros, que es de
+      // donde salían los saltos de la bandera. Un sector es lo que un mando
+      // puede recorrer, no lo que le sobra a los demás.
+      if (elegido && (mejor ? min : minLleno) <= celdasEsc(25)) elegido.sector.push(c);
     }
     var cupoMio = Math.max(2, Math.ceil(juego.frente.length / Math.max(1, mios.length) * 1.5));
     var cupoSuyo = Math.max(3, Math.ceil(juego.frente.length /
@@ -3421,10 +3430,8 @@ body {
         var cuantas = Math.max(1, Math.min(4, refs.length >> 2));
         pobre.sector = refs.slice(0, cuantas);
         rico.sector = refs.slice(cuantas);
-        // El puesto de mando pasa al borde del tramo que le acaban de dar —la
-        // celda más cercana a donde ya estaba—, salvo que vaya de camino a otro
-        // sitio: una orden de marcha manda más que un reparto de línea.
-        if (!pobre.marcha && !pobre.quieto) pobre.x = pobre.sector[0];
+        // El puesto de mando no se teletransporta al tramo nuevo: va andando,
+        // como todo lo demás. De eso se encarga colocaMando.
       }
     }
     daTramo(mios);
@@ -3466,45 +3473,20 @@ body {
         // perder: al que se queda sin sector porque el vecino se lo absorbe no
         // lo ha deshecho nadie, y llenaba el parte de bajas que no eran tales.
         if (u.ultimos > 8000) anota(paises[u.ip].n + ": deshecho el " + u.nom);
+        // Lo que llevara consigo no se pierde con el mando: entra donde esté o
+        // vuelve a la reserva del país.
+        descargaTropa(u);
         if (juego.sel === u.id) juego.sel = -1;
         continue;
       }
       if (u.hombres > u.ultimos) u.ultimos = u.hombres;
       if (!u.sector.length) { vivos.push(u); continue; }
 
-      // Con orden de atacar, el puesto de mando se pone en la punta de lanza:
-      // la celda de su sector más cerca del objetivo. Así la bandera va con lo
-      // que su cuerpo conquista, celda a celda, en vez de quedarse atrás en el
-      // centro del sector mientras el terreno cambiaba de color solo.
-      if (!u.marcha && u.obj >= 0) {
-        var punta = u.sector[0], cerca = Infinity;
-        for (k = 0; k < u.sector.length; k++) {
-          var d = distCel(u.sector[k], u.obj);
-          if (d < cerca) { cerca = d; punta = u.sector[k]; }
-        }
-        u.x = punta;
-        vivos.push(u);
-        continue;
-      }
-
-      // Sin orden, el puesto de mando se queda en el centro de su sector.
-      if (!u.marcha && !u.quieto && !tieneContacto(u)) {
-        // El puesto de mando se va al centro de su sector, pero andando: una
-        // celda al día. Saltando de golpe deshacía cualquier concentración que
-        // hubieras ordenado en cuanto el cuerpo llegaba.
-        var muestra = [], pasoM = Math.max(1, (u.sector.length / 12) | 0);
-        for (k = 0; k < u.sector.length; k += pasoM) muestra.push(u.sector[k]);
-        var centro = u.sector[0], min = Infinity;
-        for (k = 0; k < u.sector.length; k += pasoM) {
-          var suma = 0;
-          for (var q = 0; q < muestra.length; q++) suma += distCel(u.sector[k], muestra[q]);
-          if (suma < min) { min = suma; centro = u.sector[k]; }
-        }
-        if (distCel(u.x, centro) > celdasEsc(1)) {
-          var sig = pasoHacia(u.x, centro);
-          u.x = sig >= 0 ? sig : centro;
-        }
-      }
+      // Un cuerpo que ya no va a ninguna parte suelta lo que llevaba: si le
+      // cambias la orden a media marcha, su gente entra en la línea donde esté,
+      // no se queda dando vueltas en la columna.
+      if (u.lleva > 0 && u.destino < 0 && !u.marcha) descargaTropa(u);
+      if (!u.marcha) colocaMando(u);
       vivos.push(u);
     }
     juego.cuerpos = vivos;
@@ -3526,6 +3508,169 @@ body {
       }
     }
     return false;
+  }
+
+  // ¿Está este cuerpo en condiciones de pelear? Es la única razón por la que
+  // una formación cede terreno por su cuenta: mientras tenga organización y le
+  // llegue el suministro, se queda donde está aunque le llueva encima. Si se
+  // rompe o se queda sin comer, se repliega, que es lo que hace un ejército de
+  // verdad y no lo que hacía éste —irse hacia atrás sin motivo—.
+  function puedePelear(u) {
+    return u.org > 0.12 && u.sum > 0.12 && u.hombres > porCelda(40);
+  }
+
+  // Dónde va la bandera de un cuerpo que no está de marcha. Tres sitios, por
+  // este orden: la punta de lanza si tiene orden de atacar, el borde donde toca
+  // al enemigo si está sosteniendo, y el centro de su sector sólo si no tiene a
+  // nadie delante.
+  //
+  // Y siempre **andando**. Antes la bandera se colocaba de un salto en la celda
+  // de su sector más cercana al objetivo, y como el reparto de sectores se
+  // rehace todos los días, un cuerpo al que le tocaba un tramo lejano veía su
+  // bandera aparecer a quinientos kilómetros de donde estaba la víspera. Eso es
+  // lo que se veía como que la división retrocede sin que nadie se lo mande: en
+  // trescientos días de campaña pasaba sesenta veces.
+  function colocaMando(u) {
+    var meta = -1, k;
+    if (u.obj >= 0) {
+      // Punta de lanza: la celda de su sector más cerca del objetivo. Se busca
+      // primero entre las que tiene a mano, para que un tramo suelto al otro
+      // lado del frente no se lleve la bandera.
+      meta = celdaDelSector(u, u.obj, celdasEsc(30));
+      if (meta < 0) meta = celdaDelSector(u, u.obj, Infinity);
+    } else if (tieneContacto(u)) {
+      // Sosteniendo: la bandera se queda en el borde, con la tropa que tiene al
+      // enemigo delante, no en la retaguardia del sector.
+      meta = bordeDeContacto(u);
+    } else if (!u.quieto) {
+      // Sin orden y sin nadie delante, la bandera se queda donde está: sólo va
+      // a buscar el centro de su sector si se le ha quedado lejos de la tropa
+      // que manda. Que un cuerpo en calma se pasee hacia atrás por su cuenta es
+      // exactamente lo que no debe pasar.
+      var centro = centroSector(u);
+      if (distCel(u.x, centro) > celdasEsc(10)) meta = centro;
+    }
+    if (meta < 0 || meta === u.x) return;
+
+    // Mientras pueda pelear no se retira: si lo que le proponen es irse hacia
+    // atrás —alejarse de aquello contra lo que está—, se queda donde está.
+    if (u.obj >= 0 && puedePelear(u) &&
+        distCel(meta, u.obj) > distCel(u.x, u.obj) + celdasEsc(1)) return;
+
+    // Y anda: nunca salta. Un puesto de mando hace al día lo que hace su cuerpo.
+    var pasos = Math.max(1, Math.round(epMov()));
+    for (k = 0; k < pasos; k++) {
+      if (distCel(u.x, meta) < celdasEsc(1.2)) break;
+      var sig = pasoHacia(u.x, meta);
+      if (sig < 0) break;
+      u.x = sig;
+    }
+  }
+
+  // La celda del sector de un cuerpo más cercana a un punto, mirando sólo las
+  // que estén a un radio del puesto de mando.
+  function celdaDelSector(u, meta, radio) {
+    var mejor = -1, cerca = Infinity;
+    for (var k = 0; k < u.sector.length; k++) {
+      var c = u.sector[k];
+      if (radio !== Infinity && distCel(c, u.x) > radio) continue;
+      var d = distCel(c, meta);
+      if (d < cerca) { cerca = d; mejor = c; }
+    }
+    return mejor;
+  }
+
+  // La celda de su sector que toca al enemigo y está más cerca del puesto de
+  // mando: el sitio donde la formación está peleando ahora mismo.
+  var vBc = new Int32Array(4);
+  function bordeDeContacto(u) {
+    var mejor = -1, cerca = Infinity;
+    for (var k = 0; k < u.sector.length; k++) {
+      var c = u.sector[k];
+      if (juego.est[c] !== 2) continue;
+      var toca = false, n = vecinas(c, vBc);
+      for (var j = 0; j < n; j++) {
+        var w = vBc[j];
+        if (juego.est[w] !== 1) continue;
+        var ip = juego.paisCel[w];
+        if (ip !== MAR && juego.enGuerra[ip]) { toca = true; break; }
+      }
+      if (!toca) continue;
+      var d = distCel(c, u.x);
+      if (d < cerca) { cerca = d; mejor = c; }
+    }
+    return mejor;
+  }
+
+  // El centro de su sector, por muestreo: sirve para el cuerpo que no tiene a
+  // nadie delante y no está yendo a ninguna parte.
+  function centroSector(u) {
+    var muestra = [], pasoM = Math.max(1, (u.sector.length / 12) | 0), k;
+    for (k = 0; k < u.sector.length; k += pasoM) muestra.push(u.sector[k]);
+    var centro = u.sector[0], min = Infinity;
+    for (k = 0; k < u.sector.length; k += pasoM) {
+      var suma = 0;
+      for (var q = 0; q < muestra.length; q++) suma += distCel(u.sector[k], muestra[q]);
+      if (suma < min) { min = suma; centro = u.sector[k]; }
+    }
+    return centro;
+  }
+
+  // Un cuerpo que se traslada no es una bandera que se pasea: se lleva a su
+  // gente. Antes, mandar una formación de un frente a otro movía el puesto de
+  // mando y nada más —los hombres se quedaban en las celdas que dejaba, y al
+  // llegar tomaba el mando de lo que hubiera allí—, así que juntar dos cuerpos
+  // no sumaba un solo fusil. Ahora se lleva algo más de la mitad de su tropa
+  // —el resto queda de guarnición, que un sector no se abandona— y la descarga
+  // donde termina la marcha. Y sí: sacar un cuerpo de la línea la debilita,
+  // como debe ser.
+  function cargaTropa(u) {
+    if (u.lleva > 0 || !u.sector.length) return;
+    var piso = porCelda(90), llevado = 0;
+    for (var k = 0; k < u.sector.length; k++) {
+      var c = u.sector[k];
+      if (juego.fuerza[c] <= piso) continue;
+      var da = (juego.fuerza[c] - piso) * 0.55;
+      juego.fuerza[c] -= da;
+      llevado += da;
+    }
+    u.lleva = llevado;
+  }
+
+  // Al llegar, la tropa entra en la línea: primero donde más falta hace. Si no
+  // hay nada nuestro alrededor —el destino se ha perdido mientras marchaba—,
+  // vuelve a la reserva nacional en vez de evaporarse.
+  function descargaTropa(u) {
+    if (!(u.lleva > 0)) return;
+    var suyo = u.mio ? 2 : 1;
+    var cerca = [], x = u.x % GW, y = (u.x / GW) | 0;
+    var radio = Math.round(celdasEsc(6));
+    for (var rr = 0; rr <= radio && cerca.length < 40; rr++) {
+      for (var dy = -rr; dy <= rr; dy++) {
+        var yy = y + dy;
+        if (yy < 0 || yy >= GH) continue;
+        for (var dx = -rr; dx <= rr; dx++) {
+          if (rr && Math.abs(dx) !== rr && Math.abs(dy) !== rr) continue;
+          var w = yy * GW + ((x + dx + GW) % GW);
+          if (juego.est[w] === suyo && juego.paisCel[w] !== MAR) cerca.push(w);
+        }
+      }
+    }
+    if (!cerca.length) {
+      juego.reservaPais[u.ip] += u.lleva;
+      u.lleva = 0;
+      return;
+    }
+    cerca.sort(function (a, b) { return juego.fuerza[a] - juego.fuerza[b]; });
+    var cuantas = Math.min(cerca.length, Math.round(celdasEsc(10))), suma = 0, peso = [];
+    for (var k = 0; k < cuantas; k++) { var w2 = 1 / (1 + k * 0.35); peso.push(w2); suma += w2; }
+    for (var k = 0; k < cuantas; k++) {
+      var c2 = cerca[k], da = u.lleva * peso[k] / suma;
+      juego.fuerza[c2] += da;
+      // Una tropa que llega de refresco levanta la cohesión del tramo.
+      juego.org[c2] = Math.min(1, juego.org[c2] + 0.5 * da / (juego.fuerza[c2] + 1));
+    }
+    u.lleva = 0;
   }
 
   // El sitio del frente desde el que un cuerpo puede atacar hacia un punto: el
@@ -3636,6 +3781,10 @@ body {
       }
       if (meta < 0) continue;
       u.marcha = true;
+      // Si lo que empieza es un traslado de verdad —no un ajuste de dos celdas
+      // dentro de su propio tramo—, el cuerpo levanta el campo y se lleva a su
+      // gente. La descarga es cosa de llegaDestino.
+      if (meta === u.destino && distCel(u.x, meta) > celdasEsc(5)) cargaTropa(u);
       // La velocidad es fraccionaria: se acumula y se anda cuando cuadra.
       u.paso = (u.paso || 0) + epMov();
       var pasos = Math.floor(u.paso);
@@ -3676,6 +3825,8 @@ body {
   function llegaDestino(u) {
     u.destino = -1;
     u.quieto = 30;
+    // La tropa que venía con él entra en la línea aquí.
+    descargaTropa(u);
     if (u.fundirCon < 0) return false;
     var otro = cuerpoPorId(u.fundirCon);
     u.fundirCon = -1;
@@ -4384,6 +4535,8 @@ body {
     var menor = mayor === a ? b : a;
     for (var k = 0; k < menor.sector.length; k++) mayor.sector.push(menor.sector[k]);
     mayor.hombres += menor.hombres;
+    mayor.lleva += menor.lleva;
+    menor.lleva = 0;
     mayor.quieto = Math.max(mayor.quieto, 20);
     mayor.fundirCon = -1;
     if (juego.sel === menor.id) juego.sel = mayor.id;
@@ -4644,7 +4797,7 @@ body {
     if (juego.todos) {
       roCuerpo.textContent = mios + " formaciones · mando general";
     } else roCuerpo.textContent = u
-      ? u.nom + " · " + fmtNum(Math.round(u.hombres)) + " · " +
+      ? u.nom + " · " + fmtNum(Math.round(u.hombres + u.lleva)) + " · " +
         Math.round(u.org * 100) + "% · " +
         (u.pendObj >= 0 || u.pendDest >= 0
            ? "orden en camino, " + Math.max(0, u.pendDia - juego.dia) + " d"
@@ -5285,7 +5438,7 @@ body {
       }
 
       // Lo tuyo se sabe; lo del otro se estima.
-      var cifra = u.mio ? fmtNum(Math.round(u.hombres))
+      var cifra = u.mio ? fmtNum(Math.round(u.hombres + u.lleva))
                         : "≈" + fmtNum(Math.round((u.visto || u.hombres) / 100) * 100);
       ctx.font = "700 11px " + fuente;
       ctx.lineWidth = 3;
