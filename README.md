@@ -227,6 +227,26 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3t. Que se vea de quién es el avance.**
+Con veintiocho cuerpos en línea, veinte banderas iguales con un número debajo no
+dicen nada: el terreno cambiaba de color y no había forma de saber qué formación
+lo había tomado. Ahora cada formación tiene **su distintivo**, y va en los tres
+sitios donde hace falta:
+
+- en **su bandera**, como filo de color en el asta y con su ordinal —«XIV»—
+  delante de los hombres, en ese mismo color;
+- en el **índice**, como filo del renglón —pintado dentro del botón, así que no
+  ocupa ni un píxel de la línea y el nombre no parte en dos—;
+- y sobre el mapa, punteando **las celdas del frente que ese cuerpo sostiene**.
+  Eso es lo que hace que el avance se lea: esta cuña la abrió el IX, ese
+  saliente lo sostiene el II, esa bolsa la ha cerrado el VI.
+
+Los tonos se reparten por el ángulo áureo sobre el identificador de la
+formación, así que dos formaciones seguidas nunca salen del mismo color. Las
+celdas de cada cuerpo se pintan en un solo trazo —veintiocho rellenos por
+fotograma, no mil ochocientos—, y sólo por debajo de cierta altura: de lejos
+sería confeti.
+
 **3s. Celdas más pequeñas y un ejército de verdad.**
 Dos cosas que se piden solas al acercarse: que lo conquistado se lea con más
 detalle y que haya más formaciones que llevar.

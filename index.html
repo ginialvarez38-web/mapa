@@ -252,6 +252,10 @@ body {
   color: var(--muted);
   white-space: nowrap;
 }
+/* El distintivo de una formación —el mismo color que lleva su bandera en el
+   mapa y el que tiñe el tramo de frente que sostiene— va como filo del renglón:
+   pintado dentro, no ocupa ni un píxel de la línea, y el nombre no parte en
+   dos como pasaba con un cuadradito delante. */
 .list p { margin: 0; padding: 14px; color: var(--muted); font-size: 12.5px; }
 
 .list h3 {
@@ -2268,11 +2272,14 @@ body {
     return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   }
 
-  function fila(tipo, i, nombre, sub) {
+  function fila(tipo, i, nombre, sub, color) {
     var b = document.createElement("button");
     b.type = "button";
     b.dataset.i = i;
     b.dataset.tipo = tipo;
+    // El distintivo de la formación, igual que en el mapa: sin él, veinte
+    // renglones iguales no dicen cuál es cuál.
+    if (color) b.style.boxShadow = "inset 4px 0 0 " + color;
     b.appendChild(document.createTextNode(nombre));
     var em = document.createElement("i");
     em.textContent = sub;
@@ -2307,6 +2314,7 @@ body {
         // hasta ella, que es la única forma de llegar a la que se te ha
         // quedado en la otra punta del mapa.
         var orden = juego.cuerpos.filter(function (u) { return u.mio; });
+        // Cada formación con su distintivo, el mismo del mapa.
         // Los que van de marcha llevan su tropa en la columna, no en el mapa:
         // se cuenta igual, que si no una formación en traslado parecía deshecha.
         function suGente(u) { return u.hombres + u.lleva; }
@@ -2317,7 +2325,8 @@ body {
                fmtNum(Math.round(suGente(u))) + " · " + Math.round(u.org * 100) + "% · " +
                (u.pendObj >= 0 || u.pendDest >= 0 ? "orden en camino"
                 : u.cortado > 2 ? "sin suministro"
-                : u.obj >= 0 ? "al ataque" : u.destino >= 0 ? "en marcha" : "sostiene"));
+                : u.obj >= 0 ? "al ataque" : u.destino >= 0 ? "en marcha" : "sostiene"),
+               colorCuerpo(u, 1));
         }
         // Y después el parte: los países que ya tocas, con lo que llevas tomado
         // de cada uno.
@@ -5417,6 +5426,17 @@ body {
             H / 2 - (p[1] / (z * t)) * 0.5 * H];
   }
 
+  // El distintivo de cada formación: un color propio que es el mismo en el
+  // índice, en su bandera y en el tramo de frente que sostiene. Con veintiocho
+  // cuerpos, veinte banderas iguales con un número debajo no dicen quién ha
+  // tomado qué; con el distintivo, el avance se lee: ese saliente es del XIV y
+  // esa bolsa la ha cerrado el VI. Los tonos se reparten por el ángulo áureo
+  // para que dos formaciones seguidas no salgan del mismo color.
+  function colorCuerpo(u, a) {
+    var tono = Math.round((u.id * 137.508) % 360);
+    return "hsla(" + tono + ",72%,54%," + a + ")";
+  }
+
   function dibujaCampana(scene, boxes, aspect, t) {
     if (!juego) return;
     var p = [0, 0, 0];
@@ -5434,6 +5454,32 @@ body {
     // resuelve el toque. Antes se buscaba el cuerpo por la celda tocada, y en
     // una vista de lejos una celda es un píxel: tocabas la bandera y no cogía
     // nada, o peor, lo tomaba por una orden de marcha.
+    // Antes que las banderas, el tramo de frente de cada formación: sus celdas
+    // en contacto con el enemigo, punteadas con su color. Es lo que hace que el
+    // avance se vea de alguien —esta cuña la abrió el IX, ese saliente lo
+    // sostiene el II— en vez de ser terreno que cambia de color solo.
+    if (view.dist < 1.7 && juego.frenteSet) {
+      var radio = view.dist < 1.06 ? 3.5 : view.dist < 1.25 ? 2.6 : 2;
+      for (var i = 0; i < juego.cuerpos.length; i++) {
+        var uc = juego.cuerpos[i];
+        if (!uc.mio || !uc.sector.length) continue;
+        ctx.fillStyle = colorCuerpo(uc, 0.85);
+        // Un puñado de celdas por cuerpo basta para leer el tramo, y todas las
+        // de un mismo cuerpo se pintan de una vez: esto va sesenta veces por
+        // segundo y son veintiocho formaciones.
+        var salto = Math.max(1, Math.ceil(uc.sector.length / 45));
+        ctx.beginPath();
+        for (var k = 0; k < uc.sector.length; k += salto) {
+          var cs = uc.sector[k];
+          if (!juego.frenteSet.has(cs)) continue;
+          var qs = celdaEnPantalla(cs, aspect, t, p);
+          if (!qs) continue;
+          ctx.rect(qs[0] - radio, qs[1] - radio, radio * 2, radio * 2);
+        }
+        ctx.fill();
+      }
+    }
+
     marcasCuerpo.length = 0;
     for (var i = 0; i < juego.cuerpos.length; i++) {
       var u = juego.cuerpos[i];
@@ -5487,6 +5533,12 @@ body {
       ctx.globalAlpha = u.mio ? 1 : 0.92;
       dibujaBandera(sx, sy, w, h, bd);
       ctx.globalAlpha = 1;
+      // El distintivo de la formación, pegado al asta: la misma marca que lleva
+      // en el índice y con la que están punteadas las celdas que sostiene.
+      if (u.mio) {
+        ctx.fillStyle = colorCuerpo(u, 1);
+        ctx.fillRect(sx - w / 2 - 3, sy - h / 2, 3, h);
+      }
       // Un cuerpo sin suministro se marca: está en una bolsa y se le acaba el
       // tiempo.
       if (u.cortado > 2) {
@@ -5497,15 +5549,34 @@ body {
         ctx.setLineDash([]);
       }
 
+      // Debajo, quién es y con cuánto. El número de la formación va primero y en
+      // su color: es lo que distingue una bandera de las otras veinte iguales.
       // Lo tuyo se sabe; lo del otro se estima.
       var cifra = u.mio ? fmtNum(Math.round(u.hombres + u.lleva))
                         : "≈" + fmtNum(Math.round((u.visto || u.hombres) / 100) * 100);
+      var yTexto = sy + h / 2 + 7;
       ctx.font = "700 11px " + fuente;
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(0,0,0,.75)";
-      ctx.strokeText(cifra, sx, sy + h / 2 + 7);
-      ctx.fillStyle = u.mio ? "#FFD9CF" : "#E8EDF3";
-      ctx.fillText(cifra, sx, sy + h / 2 + 7);
+      if (u.mio) {
+        var num = u.num + " ";
+        var anchoN = ctx.measureText(num).width, anchoC = ctx.measureText(cifra).width;
+        var x0t = sx - (anchoN + anchoC) / 2;
+        ctx.textAlign = "left";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(0,0,0,.75)";
+        ctx.strokeText(num, x0t, yTexto);
+        ctx.strokeText(cifra, x0t + anchoN, yTexto);
+        ctx.fillStyle = colorCuerpo(u, 1);
+        ctx.fillText(num, x0t, yTexto);
+        ctx.fillStyle = "#FFD9CF";
+        ctx.fillText(cifra, x0t + anchoN, yTexto);
+        ctx.textAlign = "center";
+      } else {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(0,0,0,.75)";
+        ctx.strokeText(cifra, sx, yTexto);
+        ctx.fillStyle = "#E8EDF3";
+        ctx.fillText(cifra, sx, yTexto);
+      }
 
       if (u.mio && u.obj >= 0) flechas.push([sx, sy, u.obj]);
     }
