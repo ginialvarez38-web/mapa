@@ -2321,11 +2321,15 @@ body {
         orden.sort(function (a, b) { return suGente(b) - suGente(a); });
         for (var k = 0; k < orden.length; k++) {
           var u = orden[k];
+          // Un mando en reserva no manda hombres todavía: no se le pone «0
+          // hombres · 0 %», que parecía una formación deshecha.
           fila("cuerpo", u.id, u.nom,
-               fmtNum(Math.round(suGente(u))) + " · " + Math.round(u.org * 100) + "% · " +
-               (u.pendObj >= 0 || u.pendDest >= 0 ? "orden en camino"
-                : u.cortado > 2 ? "sin suministro"
-                : u.obj >= 0 ? "al ataque" : u.destino >= 0 ? "en marcha" : "sostiene"),
+               !u.sector.length && !u.lleva
+                 ? (u.destino >= 0 ? "en reserva · en marcha" : "en reserva")
+                 : fmtNum(Math.round(suGente(u))) + " · " + Math.round(u.org * 100) + "% · " +
+                   (u.pendObj >= 0 || u.pendDest >= 0 ? "orden en camino"
+                    : u.cortado > 2 ? "sin suministro"
+                    : u.obj >= 0 ? "al ataque" : u.destino >= 0 ? "en marcha" : "sostiene"),
                colorCuerpo(u, 1));
         }
         // Y después el parte: los países que ya tocas, con lo que llevas tomado
@@ -2680,6 +2684,10 @@ body {
   //   · explota  — celdas que se pueden explotar detrás de una brecha el mismo
   //                día. Cero en la Gran Guerra: ésa es toda la historia del
   //                frente occidental. Tres en la guerra mecanizada.
+  //   · quiebra  — a qué velocidad un asalto rompe la cohesión del defensor.
+  //                Es el reloj de la guerra: con 0,10 —1916— una posición
+  //                aguanta meses y la ofensiva se agota antes que ella; con
+  //                2,2 —1942— se desarticula en días y hay explotación.
   //   · invierno — si la campaña se detiene en invierno (cuarteles de invierno).
   //   · mando    — días que tarda una orden en llegar al cuerpo.
   //   · friccion — probabilidad de que un cuerpo no haga lo que se le manda.
@@ -2692,42 +2700,42 @@ body {
   var EPOCAS = [
     { id: "antigua", n: "Antigüedad", unidad: "Legión", mayor: "Ejército consular", anio: -350, ac: true,
       movil: 0.010, cuerpo: 5200, anchoCel: 2600, mov: 0.72, sum: 12,
-      trinch: 0.15, fort: 2.6, k: 1.00, ritmo: 1.9, cava: 0.006, mandos: 12, aguante: 2.2, mar: 11, persec: 0.55, explota: 2,
+      trinch: 0.15, fort: 2.6, k: 1.00, ritmo: 1.9, quiebra: 0.70, cava: 0.006, mandos: 12, aguante: 2.2, mar: 11, persec: 0.55, explota: 2,
       invierno: true, mando: 6, friccion: 0.30, recon: 2, aire: 0,
       nota: "falanges y legiones · se vive del país · las plazas se rinden de hambre" },
     { id: "medieval", n: "Edad Media", unidad: "Hueste", mayor: "Gran Hueste", anio: 1200, ac: false,
       movil: 0.008, cuerpo: 5000, anchoCel: 2200, mov: 0.70, sum: 10,
-      trinch: 0.20, fort: 3.2, k: 1.02, ritmo: 1.5, cava: 0.008, mandos: 11, aguante: 2.0, mar: 11, persec: 0.45, explota: 2,
+      trinch: 0.20, fort: 3.2, k: 1.02, ritmo: 1.5, quiebra: 0.60, cava: 0.008, mandos: 11, aguante: 2.0, mar: 11, persec: 0.45, explota: 2,
       invierno: true, mando: 7, friccion: 0.34, recon: 2, aire: 0,
       nota: "hueste feudal · el castillo manda · la guerra es de asedios" },
     { id: "polvora", n: "Pólvora", unidad: "Cuerpo", mayor: "Ejército", anio: 1700, ac: false,
       movil: 0.015, cuerpo: 9000, anchoCel: 3400, mov: 0.80, sum: 16,
-      trinch: 0.35, fort: 2.8, k: 1.08, ritmo: 0.70, cava: 0.014, mandos: 13, aguante: 1.6, mar: 12, persec: 0.32, explota: 1,
+      trinch: 0.35, fort: 2.8, k: 1.08, ritmo: 0.70, quiebra: 0.50, cava: 0.014, mandos: 13, aguante: 1.6, mar: 12, persec: 0.32, explota: 1,
       invierno: true, mando: 5, friccion: 0.26, recon: 3, aire: 0,
       nota: "magazines y fortalezas de Vauban · se maniobra para sitiar" },
     { id: "napoleonica", n: "Napoleónica", unidad: "Cuerpo", mayor: "Ejército", anio: 1805, ac: false,
       movil: 0.025, cuerpo: 22000, anchoCel: 4200, mov: 1.15, sum: 20,
-      trinch: 0.30, fort: 2.2, k: 1.12, ritmo: 1.5, cava: 0.010, mandos: 15, aguante: 1.4, mar: 13, persec: 0.45, explota: 2,
+      trinch: 0.30, fort: 2.2, k: 1.12, ritmo: 1.7, quiebra: 2.00, cava: 0.010, mandos: 15, aguante: 1.4, mar: 13, persec: 0.45, explota: 3,
       invierno: false, mando: 4, friccion: 0.20, recon: 3, aire: 0,
       nota: "sistema de cuerpos · marchas largas · se busca la batalla decisiva" },
     { id: "industrial", n: "Industrial", unidad: "Cuerpo", mayor: "Ejército", anio: 1870, ac: false,
       movil: 0.040, cuerpo: 28000, anchoCel: 6500, mov: 0.95, sum: 30,
-      trinch: 0.55, fort: 2.0, k: 1.20, ritmo: 0.85, cava: 0.020, mandos: 20, aguante: 1.1, mar: 14, persec: 0.28, explota: 1,
+      trinch: 0.55, fort: 2.0, k: 1.20, ritmo: 0.85, quiebra: 1.30, cava: 0.020, mandos: 20, aguante: 1.1, mar: 14, persec: 0.28, explota: 1,
       invierno: false, mando: 2, friccion: 0.14, recon: 4, aire: 0,
       nota: "ferrocarril y fusil de retrocarga · movilización de masas" },
     { id: "gran-guerra", n: "Gran Guerra", unidad: "Cuerpo", mayor: "Ejército", anio: 1916, ac: false,
       movil: 0.090, cuerpo: 38000, anchoCel: 14000, mov: 0.75, sum: 34,
-      trinch: 1.10, fort: 1.9, k: 1.25, ritmo: 0.45, cava: 0.032, mandos: 26, aguante: 0.8, mar: 15, persec: 0.12, explota: 0,
+      trinch: 1.10, fort: 2.2, k: 1.25, ritmo: 0.20, quiebra: 0.14, cava: 0.050, mandos: 26, aguante: 0.8, mar: 15, persec: 0.12, explota: 0,
       invierno: false, mando: 2, friccion: 0.12, recon: 5, aire: 0.03,
       nota: "frente continuo · la brecha no se explota · desgaste" },
     { id: "mecanizada", n: "Mecanizada", unidad: "Cuerpo", mayor: "Ejército", anio: 1942, ac: false,
       movil: 0.100, cuerpo: 55000, anchoCel: 8500, mov: 2.00, sum: 46,
-      trinch: 0.70, fort: 1.7, k: 1.35, ritmo: 1.0, cava: 0.016, mandos: 28, aguante: 0.7, mar: 16, persec: 0.50, explota: 3,
+      trinch: 0.70, fort: 1.7, k: 1.35, ritmo: 1.0, quiebra: 2.20, cava: 0.016, mandos: 28, aguante: 0.7, mar: 16, persec: 0.50, explota: 5,
       invierno: false, mando: 1, friccion: 0.08, recon: 7, aire: 0.18,
       nota: "batalla en profundidad · se rompe y se explota · embolsamientos" },
     { id: "moderna", n: "Moderna", unidad: "Cuerpo", mayor: "Ejército", anio: 2000, ac: false,
       movil: 0.030, cuerpo: 26000, anchoCel: 4500, mov: 2.60, sum: 60,
-      trinch: 0.60, fort: 1.6, k: 1.45, ritmo: 1.5, cava: 0.020, mandos: 18, aguante: 1.3, mar: 18, persec: 0.55, explota: 3,
+      trinch: 0.60, fort: 1.6, k: 1.45, ritmo: 1.5, quiebra: 4.00, cava: 0.020, mandos: 18, aguante: 1.3, mar: 18, persec: 0.55, explota: 6,
       invierno: false, mando: 0, friccion: 0.05, recon: 12, aire: 0.35,
       nota: "precisión y vigilancia · la retaguardia enemiga no existe" }
   ];
@@ -3421,10 +3429,56 @@ body {
       // puede recorrer, no lo que le sobra a los demás.
       if (elegido && (mejor ? min : minLleno) <= celdasEsc(25)) elegido.sector.push(c);
     }
-    var cupoMio = Math.max(2, Math.ceil(juego.frente.length / Math.max(1, mios.length) * 1.5));
+    // El frente de verdad es el que da a alguien con quien estás en guerra. El
+    // resto de la frontera —Suiza, Dinamarca, un vecino neutral— es frontera,
+    // no frente, y allí no se pone un cuerpo de ejército: se deja la guarnición
+    // que ya está. Sin esta distinción, veintiséis cuerpos con orden de atacar
+    // se repartían por todo el perímetro del país, la mitad mirando a un
+    // neutral, y sus banderas salían amontonadas donde no pasaba nada mientras
+    // el frente polaco lo llevaban cuatro.
+    var vF = new Int32Array(4);
+    var fuego = [];
+    for (k = 0; k < juego.frente.length; k++) {
+      var cf = juego.frente[k], nf = vecinas(cf, vF);
+      for (var jf = 0; jf < nf; jf++) {
+        var wf = vF[jf];
+        if (juego.est[wf] !== 1) continue;
+        var ipf = juego.paisCel[wf];
+        if (ipf !== MAR && juego.enGuerra[ipf]) { fuego.push(cf); break; }
+      }
+    }
+    // Mientras no haya guerra, los cuerpos se reparten la frontera entera: es
+    // el despliegue de paz, y de ahí salen cuando les mandas atacar.
+    var reparto = fuego.length ? fuego : juego.frente;
+    juego.fuego = fuego;
+
+    // Un frente corto no admite veinte mandos: repartido entre todos, a cada
+    // cuerpo le tocaba una celda y cuatrocientos hombres, que no es un cuerpo de
+    // ejército sino una guarnición con nombre pomposo. Se calcula cuántos caben
+    // —tres celdas por mando como mínimo— y la línea se reparte entre los más
+    // cercanos a ella; los demás quedan en reserva, que es donde debe estar un
+    // ejército que no cabe en el frente.
+    if (mios.length > 1 && reparto.length) {
+      var caben = Math.max(1, Math.min(mios.length, Math.floor(reparto.length / 3)));
+      if (caben < mios.length) {
+        var muestraF = [], pasoF = Math.max(1, Math.floor(reparto.length / 40));
+        for (k = 0; k < reparto.length; k += pasoF) muestraF.push(reparto[k]);
+        for (i = 0; i < mios.length; i++) {
+          var dmin = Infinity;
+          for (k = 0; k < muestraF.length; k++) {
+            var dd = distCel(mios[i].x, muestraF[k]);
+            if (dd < dmin) dmin = dd;
+          }
+          mios[i].alFrente = dmin;
+        }
+        mios.sort(function (a, b) { return a.alFrente - b.alFrente; });
+        mios = mios.slice(0, caben);
+      }
+    }
+    var cupoMio = Math.max(2, Math.ceil(reparto.length / Math.max(1, mios.length) * 1.5));
     var cupoSuyo = Math.max(3, Math.ceil(juego.frente.length /
                                          Math.max(1, cu.length - mios.length) * 1.5));
-    for (k = 0; k < juego.frente.length; k++) asigna(juego.frente[k], mios, cupoMio);
+    for (k = 0; k < reparto.length; k++) asigna(reparto[k], mios, cupoMio);
 
     // La línea enemiga: las celdas suyas que tocan la mía.
     juego.lineaSet = new Set();
@@ -3507,11 +3561,13 @@ body {
       // estando perfectamente abastecido por una carretera larga.
       u.cortado = u.sector.length && u.sum < 0.14 ? u.cortado + 1 : 0;
       u.vacio = u.sector.length ? 0 : u.vacio + 1;
-      if (u.vacio > 10 && !u.quieto) {
-        // Un cuerpo que lleva días sin un palmo de línea que sostener es un
-        // cuerpo desbordado. Sólo se da parte de los que tenían algo que
-        // perder: al que se queda sin sector porque el vecino se lo absorbe no
-        // lo ha deshecho nadie, y llenaba el parte de bajas que no eran tales.
+      // Quedarse sin tramo de línea no es lo mismo en la retaguardia que en el
+      // frente. Con el enemigo encima, un cuerpo que pierde su sector es un
+      // cuerpo desbordado y se da por deshecho. Lejos de la línea, es un mando
+      // en reserva esperando frente que cubrir: no se deshace nadie por estar
+      // de reserva, y por eso el ejército de paz no se evapora en cuanto la
+      // guerra se concentra en una sola frontera.
+      if (u.vacio > 10 && !u.quieto && enPeligro(u)) {
         if (u.ultimos > 8000) anota(paises[u.ip].n + ": deshecho el " + u.nom);
         // Lo que llevara consigo no se pierde con el mando: entra donde esté o
         // vuelve a la reserva del país.
@@ -3548,6 +3604,17 @@ body {
       }
     }
     return false;
+  }
+
+  // ¿Tiene el enemigo encima? Es lo que separa a un mando desbordado de un
+  // mando en reserva: los dos están sin sector, pero uno lo ha perdido peleando
+  // y el otro está esperando frente que cubrir.
+  function enPeligro(u) {
+    return celdaCerca(u.x, Math.round(celdasEsc(6)), function (w) {
+      if (juego.est[w] !== 1) return false;
+      var ip = juego.paisCel[w];
+      return ip !== MAR && juego.enGuerra[ip];
+    }) >= 0;
   }
 
   // ¿Está este cuerpo en condiciones de pelear? Es la única razón por la que
@@ -3597,7 +3664,12 @@ body {
     if (u.obj >= 0 && puedePelear(u) &&
         distCel(meta, u.obj) > distCel(u.x, u.obj) + celdasEsc(1)) return;
 
-    // Y anda: nunca salta. Un puesto de mando hace al día lo que hace su cuerpo.
+    // Y anda: nunca salta, y una sola jornada al día. El reparto de sectores se
+    // rehace más de una vez en la misma jornada —al mover, y otra vez cuando se
+    // levanta un mando nuevo—, y sin dejar constancia de que ya ha andado la
+    // bandera hacía el camino dos veces: un grado en un día, el doble de lo que
+    // marcha un cuerpo acorazado.
+    u.anduvo = true;
     var pasos = Math.max(1, Math.round(epMov()));
     for (k = 0; k < pasos; k++) {
       if (distCel(u.x, meta) < celdasEsc(1.2)) break;
@@ -3962,7 +4034,16 @@ body {
     // Organización: atacar cansa, y al defensor lo rompe la presión.
     // Aplastar a alguien no cuesta lo mismo que pelear de igual a igual.
     juego.org[atacante] = Math.max(0, juego.org[atacante] - 0.055 / Math.max(1, razon * 0.7));
-    juego.org[defensor] = Math.max(0, juego.org[defensor] - 0.045 * Math.min(3, razon));
+    // Cuánto tarda un asalto en romper la cohesión del que defiende. Esto es lo
+    // que de verdad marca el ritmo de una guerra, y cambia por completo con el
+    // siglo: en 1916 una división aguantaba meses de bombardeo sobre la misma
+    // trinchera y la ofensiva se agotaba antes que ella —el Somme avanzó diez
+    // kilómetros en ciento cuarenta y un días—; en 1942 un cuerpo acorazado la
+    // desarticulaba en días. Antes esto era una constante igual para las ocho
+    // épocas, y por eso todas avanzaban a los mismos dos kilómetros por día: el
+    // reloj de la guerra no lo ponía la época, lo ponía esta línea.
+    juego.org[defensor] = Math.max(0, juego.org[defensor] -
+                                      0.045 * E().quiebra * Math.min(3, razon));
     juego.trinch[defensor] = Math.max(0, juego.trinch[defensor] - 0.08);
 
     // Una posición se pierde cuando el que la defiende se rompe y el que asalta
@@ -4622,7 +4703,11 @@ body {
     if (juego.pais < 0) return;
     var mios = 0;
     for (var i = 0; i < juego.cuerpos.length; i++) if (juego.cuerpos[i].mio) mios++;
-    var quiero = cuantosCuerpos(juego.pais, juego.frente.length);
+    // Los mandos que pide el frente que hay que cubrir de verdad, no el
+    // perímetro entero del país: si no, veinticinco cuerpos se apiñaban en el
+    // único tramo donde había guerra.
+    var anchoVivo = juego.fuego && juego.fuego.length ? juego.fuego.length : juego.frente.length;
+    var quiero = cuantosCuerpos(juego.pais, anchoVivo);
     if (mios >= quiero - 1 || !juego.frente.length) return;
     if (juego.sinRelevo && juego.dia < juego.sinRelevo) return;
     var antes = juego.cuerpos.length;
@@ -4862,6 +4947,7 @@ body {
         (u.pendObj >= 0 || u.pendDest >= 0
            ? "orden en camino, " + Math.max(0, u.pendDia - juego.dia) + " d"
            : u.cortado > 2 ? "sin suministro"
+           : !u.sector.length ? "en reserva · toca adónde va"
            : u.obj >= 0 ? "al ataque" : u.destino >= 0 ? "en marcha"
            : "sostiene · toca adónde va")
       : mios + " cuerpos · toca una bandera";
@@ -5458,8 +5544,9 @@ body {
     // en contacto con el enemigo, punteadas con su color. Es lo que hace que el
     // avance se vea de alguien —esta cuña la abrió el IX, ese saliente lo
     // sostiene el II— en vez de ser terreno que cambia de color solo.
-    if (view.dist < 1.7 && juego.frenteSet) {
-      var radio = view.dist < 1.06 ? 3.5 : view.dist < 1.25 ? 2.6 : 2;
+    if (view.dist < 2.6 && juego.frenteSet) {
+      var radio = view.dist < 1.06 ? 3.5 : view.dist < 1.25 ? 2.6
+                : view.dist < 1.6 ? 2 : 1.5;
       for (var i = 0; i < juego.cuerpos.length; i++) {
         var uc = juego.cuerpos[i];
         if (!uc.mio || !uc.sector.length) continue;

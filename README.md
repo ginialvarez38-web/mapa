@@ -227,6 +227,53 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3u. Verificado contra el mapa y contra la historia.**
+Dos comprobaciones que había que hacer: si lo que se ve jugando es lo que dice
+la documentación, y si el ritmo del avance aguanta la comparación con lo que
+midieron los historiadores militares. Las dos encontraron fallos.
+
+*Frontera no es frente.* El reparto de sectores consideraba «frente» **cualquier
+celda mía que tocara tierra extranjera**, en guerra o no. Con veinticinco
+cuerpos y una sola guerra, la mitad del ejército se desplegaba mirando a Suiza,
+a Dinamarca o a un vecino neutral, y sus banderas salían amontonadas donde no
+pasaba nada mientras el frente polaco lo llevaban cuatro. Ahora el frente es el
+que da a alguien con quien estás en guerra; el resto de la frontera se queda con
+su guarnición. Y el número de mandos lo pide **ese** frente, no el perímetro del
+país: un mando sin tramo que cubrir no se deshace, queda **en reserva** —lo dice
+el índice— hasta que haya línea para él. En la prueba, las formaciones pasan de
+apiñarse en un punto a repartirse a lo largo del frente, que es lo que se
+describía y no era verdad.
+
+*El distintivo se veía sólo de cerca.* El punteado de color con el tramo de cada
+formación estaba limitado a menos de 4.460 km de altitud. Un paso de zoom hacia
+fuera y desaparecía. Ahora se dibuja hasta los 10.000 km, con el punto más
+pequeño.
+
+*Y el reloj de la guerra era el mismo para las ocho épocas.* Medido el avance en
+kilómetros por día —no en celdas—, las ocho épocas daban lo mismo: entre 1,9 y
+3,2 km/día el primer mes. La razón estaba en una sola línea: la cohesión del
+defensor caía **0,045 al día por asalto**, una constante, así que una posición
+tardaba siempre unos seis días en romperse, en 1400 y en 1942. Eso no es una
+guerra simulada, es una cuadrícula con un cronómetro. Ahora cada época tiene su
+coeficiente de **quiebra** —a qué velocidad un asalto desarticula al que
+defiende—, que es lo que de verdad separa a un siglo de otro:
+
+| época | quiebra | avance del primer mes | referencia histórica |
+|---|---|---|---|
+| Antigüedad | 0,70 | ~1 km/día | campaña de asedios |
+| Edad Media | 0,60 | ~0,6 km/día | el castillo manda |
+| Pólvora | 0,50 | ~0,6 km/día | guerra de plazas |
+| Napoleónica | 2,00 | ~4-6 km/día | 1805: marchas de 20-30 km/día |
+| Industrial | 1,30 | ~3 km/día | 1870: 250 km en seis semanas |
+| Gran Guerra | 0,14 | **~0 km/día** | el Somme: 10 km en 141 días |
+| Mecanizada | 2,20 | ~5 km/día | Dupuy: 1,81 km/día de avance opuesto |
+| Moderna | 4,00 | ~6 km/día | 2003: 500 km en tres semanas |
+
+Y la forma de la curva es la que describe la historia: no un ritmo constante,
+sino meses de desgaste y, cuando el defensor se rompe, una persecución a
+decenas de kilómetros por día —en la prueba, la campaña mecanizada pasa de 4,6
+km/día el primer trimestre a 37 km/día una vez hundido el frente—.
+
 **3t. Que se vea de quién es el avance.**
 Con veintiocho cuerpos en línea, veinte banderas iguales con un número debajo no
 dicen nada: el terreno cambiaba de color y no había forma de saber qué formación
@@ -991,6 +1038,19 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 - **Fusión**: mandar una formación encima de otra las funde —«el XI Ejército se
   funde en el V Ejército»—, la superviviente hereda su sector y asciende de
   escalón.
+- **Ritmo del avance, en kilómetros por día** —la profundidad del frente sobre
+  el paralelo 52, no celdas—: Antigüedad 1,0 · Edad Media 0,6 · Pólvora 0,8 ·
+  Napoleónica 4,9 · Industrial 2,9 · Gran Guerra **0,0** · Mecanizada 4,2 ·
+  Moderna 5,9, el primer mes. Y la curva de después: la Gran Guerra sigue clavada
+  tres meses y sólo cede cuando el defensor se agota; la Antigüedad pasa de 1 a
+  8,5 km/día en cuanto Polonia se rompe; la mecanizada, de 4,2 a 37 km/día una
+  vez hundido el frente. Contrastado con Dupuy (1,81 km/día de avance opuesto,
+  divisiones en Europa 1943-45), el Somme (10 km en 141 días), Barbarossa (25
+  km/día las primeras semanas, 6-7 sostenidos) y 1805 (marchas de 20-30 km/día).
+- **Lo que se ve a cada altura**: con la campaña en marcha, las diecisiete
+  formaciones salen dibujadas con su bandera desde los 6.371 km de altitud hasta
+  los 573 km; a 127 km se ven las dos o tres que caben en la ventana. El
+  punteado de color del frente se dibuja por debajo de los 10.000 km.
 - **Tablero fino**: 4.320 × 2.160 celdas —9,3 millones, de nueve kilómetros de
   lado—; abrir la campaña cuesta 2,0 s, un día de guerra 12,8 ms, un fotograma
   16 ms y el conjunto 326 MB en el navegador de pruebas por software. El
