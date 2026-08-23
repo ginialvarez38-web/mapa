@@ -2641,7 +2641,15 @@ body {
   var juego = null;
   var MAR = 65535;
 
-  var DIA = 170;              // ms de reloj por día de guerra
+  var DIA = 170;              // ms de reloj por día de guerra, ritmo de 1942
+  // Cuántos días de guerra pasan por segundo depende del siglo. Una campaña
+  // mecanizada se mide en días y una de 1916 en meses: si las dos corren al
+  // mismo reloj, la de 1916 parece parada —y lo parecía: cero celdas en tres
+  // meses de juego, que es exactamente lo que pasó en el Somme, pero en
+  // pantalla no se distingue de un fallo—. Así que el reloj corre más rápido
+  // donde la guerra es más lenta. Los kilómetros por día de la simulación no
+  // cambian: cambia cuántos días te enseña la pantalla en un minuto.
+  function diaMs() { return DIA / (E().reloj || 1); }
 
   // ---------------------------------------------------------------- //
   // Las épocas de la guerra                                           //
@@ -2687,6 +2695,10 @@ body {
   //   · explota  — celdas que se pueden explotar detrás de una brecha el mismo
   //                día. Cero en la Gran Guerra: ésa es toda la historia del
   //                frente occidental. Tres en la guerra mecanizada.
+  //   · reloj    — cuántos días de guerra pasan por segundo, comparado con
+  //                1942. Una campaña de 1916 se mide en meses y una
+  //                mecanizada en días: el reloj corre más rápido donde la
+  //                guerra es más lenta, sin tocar sus kilómetros por día.
   //   · quiebra  — a qué velocidad un asalto rompe la cohesión del defensor.
   //                Es el reloj de la guerra: con 0,10 —1916— una posición
   //                aguanta meses y la ofensiva se agota antes que ella; con
@@ -2703,42 +2715,42 @@ body {
   var EPOCAS = [
     { id: "antigua", n: "Antigüedad", unidad: "Legión", mayor: "Ejército consular", anio: -350, ac: true,
       movil: 0.010, cuerpo: 5200, anchoCel: 2600, mov: 0.72, sum: 12,
-      trinch: 0.15, fort: 2.6, k: 1.00, ritmo: 1.9, quiebra: 0.70, cava: 0.006, mandos: 12, aguante: 2.2, mar: 11, persec: 0.55, explota: 2,
+      trinch: 0.15, fort: 2.6, k: 1.00, ritmo: 1.9, quiebra: 0.90, reloj: 2.4, cava: 0.006, mandos: 12, aguante: 2.2, mar: 11, persec: 0.55, explota: 2,
       invierno: true, mando: 6, friccion: 0.30, recon: 2, aire: 0,
       nota: "falanges y legiones · se vive del país · las plazas se rinden de hambre" },
     { id: "medieval", n: "Edad Media", unidad: "Hueste", mayor: "Gran Hueste", anio: 1200, ac: false,
       movil: 0.008, cuerpo: 5000, anchoCel: 2200, mov: 0.70, sum: 10,
-      trinch: 0.20, fort: 3.2, k: 1.02, ritmo: 1.5, quiebra: 0.60, cava: 0.008, mandos: 11, aguante: 2.0, mar: 11, persec: 0.45, explota: 2,
+      trinch: 0.20, fort: 3.2, k: 1.02, ritmo: 1.5, quiebra: 0.80, reloj: 2.8, cava: 0.008, mandos: 11, aguante: 2.0, mar: 11, persec: 0.45, explota: 2,
       invierno: true, mando: 7, friccion: 0.34, recon: 2, aire: 0,
       nota: "hueste feudal · el castillo manda · la guerra es de asedios" },
     { id: "polvora", n: "Pólvora", unidad: "Cuerpo", mayor: "Ejército", anio: 1700, ac: false,
       movil: 0.015, cuerpo: 9000, anchoCel: 3400, mov: 0.80, sum: 16,
-      trinch: 0.35, fort: 2.8, k: 1.08, ritmo: 0.70, quiebra: 0.50, cava: 0.014, mandos: 13, aguante: 1.6, mar: 12, persec: 0.32, explota: 1,
+      trinch: 0.35, fort: 2.8, k: 1.08, ritmo: 0.70, quiebra: 0.70, reloj: 3.0, cava: 0.014, mandos: 13, aguante: 1.6, mar: 12, persec: 0.32, explota: 1,
       invierno: true, mando: 5, friccion: 0.26, recon: 3, aire: 0,
       nota: "magazines y fortalezas de Vauban · se maniobra para sitiar" },
     { id: "napoleonica", n: "Napoleónica", unidad: "Cuerpo", mayor: "Ejército", anio: 1805, ac: false,
       movil: 0.025, cuerpo: 22000, anchoCel: 4200, mov: 1.15, sum: 20,
-      trinch: 0.30, fort: 2.2, k: 1.12, ritmo: 1.7, quiebra: 2.00, cava: 0.010, mandos: 15, aguante: 1.4, mar: 13, persec: 0.45, explota: 3,
+      trinch: 0.30, fort: 2.2, k: 1.12, ritmo: 1.7, quiebra: 2.00, reloj: 1.2, cava: 0.010, mandos: 15, aguante: 1.4, mar: 13, persec: 0.45, explota: 3,
       invierno: false, mando: 4, friccion: 0.20, recon: 3, aire: 0,
       nota: "sistema de cuerpos · marchas largas · se busca la batalla decisiva" },
     { id: "industrial", n: "Industrial", unidad: "Cuerpo", mayor: "Ejército", anio: 1870, ac: false,
       movil: 0.040, cuerpo: 28000, anchoCel: 6500, mov: 0.95, sum: 30,
-      trinch: 0.55, fort: 2.0, k: 1.20, ritmo: 0.85, quiebra: 1.30, cava: 0.020, mandos: 20, aguante: 1.1, mar: 14, persec: 0.28, explota: 1,
+      trinch: 0.55, fort: 2.0, k: 1.20, ritmo: 0.85, quiebra: 1.30, reloj: 1.6, cava: 0.020, mandos: 20, aguante: 1.1, mar: 14, persec: 0.28, explota: 1,
       invierno: false, mando: 2, friccion: 0.14, recon: 4, aire: 0,
       nota: "ferrocarril y fusil de retrocarga · movilización de masas" },
     { id: "gran-guerra", n: "Gran Guerra", unidad: "Cuerpo", mayor: "Ejército", anio: 1916, ac: false,
       movil: 0.090, cuerpo: 38000, anchoCel: 14000, mov: 0.75, sum: 34,
-      trinch: 1.10, fort: 2.2, k: 1.25, ritmo: 0.20, quiebra: 0.14, cava: 0.050, mandos: 26, aguante: 0.8, mar: 15, persec: 0.12, explota: 0,
+      trinch: 1.10, fort: 2.2, k: 1.25, ritmo: 0.20, quiebra: 0.22, reloj: 5.0, cava: 0.050, mandos: 26, aguante: 0.8, mar: 15, persec: 0.12, explota: 0,
       invierno: false, mando: 2, friccion: 0.12, recon: 5, aire: 0.03,
       nota: "frente continuo · la brecha no se explota · desgaste" },
     { id: "mecanizada", n: "Mecanizada", unidad: "Cuerpo", mayor: "Ejército", anio: 1942, ac: false,
       movil: 0.100, cuerpo: 55000, anchoCel: 8500, mov: 2.00, sum: 46,
-      trinch: 0.70, fort: 1.7, k: 1.35, ritmo: 1.0, quiebra: 2.20, cava: 0.016, mandos: 28, aguante: 0.7, mar: 16, persec: 0.50, explota: 5,
+      trinch: 0.70, fort: 1.7, k: 1.35, ritmo: 1.0, quiebra: 2.20, reloj: 1.0, cava: 0.016, mandos: 28, aguante: 0.7, mar: 16, persec: 0.50, explota: 5,
       invierno: false, mando: 1, friccion: 0.08, recon: 7, aire: 0.18,
       nota: "batalla en profundidad · se rompe y se explota · embolsamientos" },
     { id: "moderna", n: "Moderna", unidad: "Cuerpo", mayor: "Ejército", anio: 2000, ac: false,
       movil: 0.030, cuerpo: 26000, anchoCel: 4500, mov: 2.60, sum: 60,
-      trinch: 0.60, fort: 1.6, k: 1.45, ritmo: 1.5, quiebra: 4.00, cava: 0.020, mandos: 18, aguante: 1.3, mar: 18, persec: 0.55, explota: 6,
+      trinch: 0.60, fort: 1.6, k: 1.45, ritmo: 1.5, quiebra: 4.00, reloj: 0.9, cava: 0.020, mandos: 18, aguante: 1.3, mar: 18, persec: 0.55, explota: 6,
       invierno: false, mando: 0, friccion: 0.05, recon: 12, aire: 0.35,
       nota: "precisión y vigilancia · la retaguardia enemiga no existe" }
   ];
@@ -2988,7 +3000,7 @@ body {
       pais: celdaDiv[celdaInicio] !== MAR ? divisiones[celdaDiv[celdaInicio]].pa : -1,
       dia: 0, reloj: 0,
       bajas: 0, bajasEnemigas: 0,
-      mias: 0, miasIni: 0, tierra: 0, sinSum: 0, enBatalla: 0,
+      mias: 0, miasIni: 0, tierra: 0, sinSum: 0, enBatalla: 0, batallas: [],
       ganadas: 0, perdidas: 0, rendidas: 0, anexadas: 0, cambios: 0, repasado: -1,
       sinRelevo: 0,
       objetivo: -1, fin: null, todos: false,
@@ -4011,6 +4023,7 @@ body {
 
   // Un día de combate entre dos celdas. Devuelve true si el defensor cede.
   function choque(atacante, defensor) {
+    if (juego.batallas.length < 400) juego.batallas.push(defensor);
     var pa = poderAtaque(atacante);
     var pd = poderDefensa(defensor, atacante);
     if (pa <= 0) return false;
@@ -4639,6 +4652,9 @@ body {
 
     // 6. Mis ofensivas, una por cuerpo con orden.
     juego.enBatalla = 0;
+    // Dónde se peleó hoy: para poder enseñarlo. Un asalto que no toma la
+    // posición sigue siendo un asalto, y sin verlo la pantalla parece parada.
+    juego.batallas = [];
     if (!juego.cuarteles) {
       for (var i = 0; i < juego.cuerpos.length; i++) {
         if (juego.cuerpos[i].mio) atacaCuerpo(juego.cuerpos[i]);
@@ -4791,7 +4807,11 @@ body {
     if (!juego || juego.fin) return;
     juego.reloj += dt;
     var dias = 0;
-    while (juego.reloj >= DIA && dias < 4) { juego.reloj -= DIA; unDia(); dias++; }
+    var paso = diaMs();
+    // Tope de días por fotograma: con el reloj rápido de 1916 hay que dejar
+    // avanzar más de un día por cuadro, pero un día cuesta veinte milisegundos
+    // y ocho seguidos serían un tirón.
+    while (juego.reloj >= paso && dias < 6) { juego.reloj -= paso; unDia(); dias++; }
     if (dias) {
       subeMapa();
       pintaGuerra();
@@ -5061,15 +5081,15 @@ body {
   //   · sobre una bandera mía → tomas el mando de ese cuerpo
   //   · terreno enemigo       → ese cuerpo ataca hacia ahí
   //   · terreno mío           → ese cuerpo se traslada
+  // Tocar el mapa es dar una orden, siempre. Quién la recibe se decide antes y
+  // en otro sitio: la bandera que tenga el dedo más cerca en pantalla, o el
+  // renglón del índice. Aquí había además un repaso por celda que cogía
+  // cualquier formación con el puesto de mando a menos de dos celdas de la
+  // tocada, y con el frente apretado ese repaso pisaba la decisión anterior: la
+  // orden se convertía en «coger la formación de al lado» y no llegaba nunca.
+  // Eso es lo que se veía como que las divisiones no obedecen.
   function tocaCelda(c) {
     if (!juego || juego.fin || c < 0) return false;
-    // Por si el toque no llegó por pantalla —desde el índice, o en las pruebas—:
-    // una bandera muy cerca de la celda tocada también se coge.
-    // Sólo se coge la bandera tocando su celda: para el toque de verdad ya está
-    // el radio de pantalla, y con más margen era imposible mandar un cuerpo a
-    // concentrarse junto a otro sin cambiar de mando por el camino.
-    var sobre = cuerpoCerca(c, celdasEsc(0.6), true);
-    if (sobre && sobre.id !== juego.sel) { juego.sel = sobre.id; pintaGuerra(); return true; }
     // Con el mando general puesto, la orden es para todas las formaciones.
     if (juego.todos) return ordenaATodos(c);
     var mando = cuerpoSel() || cuerpoCerca(c, undefined, true);
@@ -5601,6 +5621,25 @@ body {
     // resuelve el toque. Antes se buscaba el cuerpo por la celda tocada, y en
     // una vista de lejos una celda es un píxel: tocabas la bandera y no cogía
     // nada, o peor, lo tomaba por una orden de marcha.
+    // Dónde se está peleando hoy. Un asalto que no toma la posición sigue
+    // siendo un asalto: en 1916 se machacaba la misma trinchera durante meses
+    // antes de que cediera, y sin enseñarlo la pantalla parecía parada. Cada
+    // celda batida late en rojo mientras dura el combate.
+    if (view.dist < 2.6 && juego.batallas && juego.batallas.length) {
+      var latido = 0.45 + 0.55 * (Math.sin(performance.now() / 190) + 1) * 0.5;
+      ctx.fillStyle = "rgba(226,74,58," + (0.30 + latido * 0.5).toFixed(2) + ")";
+      var rb = view.dist < 1.06 ? 5 : view.dist < 1.25 ? 4 : view.dist < 1.6 ? 3 : 2.2;
+      var saltoB = Math.max(1, Math.ceil(juego.batallas.length / 120));
+      ctx.beginPath();
+      for (var ib = 0; ib < juego.batallas.length; ib += saltoB) {
+        var qb = celdaEnPantalla(juego.batallas[ib], aspect, t, p);
+        if (!qb) continue;
+        ctx.moveTo(qb[0] + rb, qb[1]);
+        ctx.arc(qb[0], qb[1], rb, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
+
     // Antes que las banderas, el tramo de frente de cada formación: sus celdas
     // en contacto con el enemigo, punteadas con su color. Es lo que hace que el
     // avance se vea de alguien —esta cuña la abrió el IX, ese saliente lo

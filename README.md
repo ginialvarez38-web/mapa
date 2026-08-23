@@ -227,6 +227,39 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3x. La orden se da donde apuntas.** Tocar el mapa resolvía dos veces quién
+recibía el toque: primero en pantalla —mirando qué bandera tenía el dedo más
+cerca, que ya decide entre coger una formación y darle una orden— y después
+otra vez por celda, cogiendo cualquier formación cuyo puesto de mando estuviera
+a menos de dos celdas de la tocada. Con el frente apretado, ese segundo repaso
+pisaba la decisión del primero y la orden se convertía en «coger la formación
+de al lado»: la orden nunca llegaba. Ahora el toque que viene de la pantalla ya
+está resuelto y no se revisa; el repaso por celda queda sólo para las órdenes
+que no vienen del dedo —el índice, las pruebas—.
+
+**3w. Que se vea que se está peleando.** Con las épocas ya calibradas contra la
+historia apareció el efecto secundario: en la Gran Guerra no se conquistaba
+**nada** —cero celdas en noventa días de juego—, que es exactamente lo que pasó
+en el Somme, pero en pantalla no se distingue de un fallo. Y en la Antigüedad o
+la Pólvora, una celda en los primeros diez días. Dos remedios, ninguno a costa
+de los kilómetros por día:
+
+- **El reloj corre distinto en cada siglo.** Una campaña mecanizada se mide en
+  días y una de 1916 en meses: ahora la Gran Guerra pasa cinco días de guerra
+  por cada uno de 1942, la Pólvora tres, la Antigüedad dos y medio. La
+  simulación no cambia —el avance sigue siendo el histórico—; cambia cuántos
+  días te enseña la pantalla en un minuto. Con eso, el desgaste de 1916 se ve
+  progresar en segundos en vez de parecer una pantalla congelada.
+- **Y el combate se dibuja.** Cada celda batida ese día late en rojo mientras
+  dura el asalto. Un ataque que no toma la posición sigue siendo un ataque: en
+  1916 se machacaba la misma trinchera durante meses antes de que cediera, y
+  ahora se ve dónde y cuánto.
+
+Además, las épocas más lentas suben un punto su coeficiente de quiebra
+—Antigüedad 0,90, Edad Media 0,80, Pólvora 0,70, Gran Guerra 0,22— para que el
+primer mes tenga movimiento medible: de 1 celda a 289 en la Antigüedad, de 0 a
+10 en noventa días en la Gran Guerra.
+
 **3v. Alto.** Un ejército al que no puedes parar no lo mandas tú. Se mandaba
 atacar y las formaciones seguían solas —tomaban el objetivo, se buscaban el
 siguiente por su cuenta y no había manera de detenerlas—, y además, al
