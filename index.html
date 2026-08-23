@@ -1268,6 +1268,20 @@ body {
     "uniform vec3 uLight; uniform float uNight; uniform float uShade;",
     "uniform float uHover, uSel, uHovPais, uSelPais; uniform vec3 uAccent;",
     "uniform float uAlpha, uFisico, uRealce; uniform vec3 uTierra;",
+    // Un frente no se detiene en una cuadrícula. La ocupación se guarda celda a
+    // celda —no hay otra forma de simular una guerra sobre el mundo entero—,
+    // pero al pintarla se desplaza la lectura con un ruido suave de media celda:
+    // el borde de lo conquistado sale ondulado, como una línea de frente
+    // dibujada a mano, en vez de la escalera de rectángulos que se veía al
+    // acercarse. No cambia lo que se simula, sólo cómo se dibuja, y el ruido
+    // depende sólo del sitio, así que no tiembla al mover la cámara.
+    "float picoteo(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }",
+    "float ondula(vec2 p){",
+    "  vec2 i = floor(p), f = fract(p);",
+    "  vec2 u = f * f * (3.0 - 2.0 * f);",
+    "  return mix(mix(picoteo(i), picoteo(i + vec2(1.0, 0.0)), u.x),",
+    "             mix(picoteo(i + vec2(0.0, 1.0)), picoteo(i + vec2(1.0, 1.0)), u.x), u.y);",
+    "}",
     "void main(){",
     "  vec2 uv = vec2(mod(vIdx, uPalSize.x) + 0.5, floor(vIdx / uPalSize.x) + 0.5) / uPalSize;",
     "  vec3 base = mix(texture2D(uPal, uv).rgb, uTierra, uFisico);",
@@ -1287,10 +1301,13 @@ body {
     "    vec3 g = normalize(vGeo);",
     "    vec2 uv = vec2(atan(g.x, g.z) * 0.15915494 + 0.5,",
     "                   asin(clamp(g.y, -1.0, 1.0)) * 0.31830989 + 0.5);",
+    "    vec2 px = 1.0 / uMapaSize;",
+    "    vec2 cel = uv * uMapaSize;",
+    "    vec2 desp = vec2(ondula(cel * 0.55), ondula(cel * 0.55 + 41.7)) - 0.5;",
+    "    uv += desp * px * 1.15;",
     "    float est = texture2D(uMapa, uv).a;",
     "    if (est > 0.82) {",
     "      col = mix(col, est > 0.95 ? uMio : uSinSum, 0.42);",
-    "      vec2 px = 1.0 / uMapaSize;",
     "      float borde = 0.0;",
     "      borde += step(texture2D(uMapa, uv + vec2(px.x, 0.0)).a, 0.82);",
     "      borde += step(texture2D(uMapa, uv - vec2(px.x, 0.0)).a, 0.82);",
@@ -2426,11 +2443,25 @@ body {
   // Todos los números de época están escritos en celdas de cuarto de grado, así
   // que aquí queda el factor con el que se convierten: las distancias se
   // multiplican por ESC, los hombres por celda se dividen por su cuadrado.
-  // Un tablero fino son unos ciento treinta megas de rejillas; en un aparato
-  // con poca memoria no merece la pena arriesgarse.
-  var FINO = gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 2880 &&
-             !(navigator.deviceMemory && navigator.deviceMemory < 4);
-  var GW = FINO ? 2880 : 1440, GH = GW >> 1;
+  // Tres tableros, del más fino que admita el aparato al de siempre: celdas de
+  // 0,083° —nueve kilómetros de lado— en un ordenador con memoria de sobra, de
+  // 0,1° —once kilómetros— en casi todo lo demás, y de cuarto de grado si la
+  // GPU no da para más. El fino son unos trescientos megas de rejillas y el
+  // mediano, doscientos treinta: por eso se mira la memoria antes de elegir, y
+  // por eso, si aun así no cabe, se baja un escalón y se reintenta.
+  var NIVELES = [4320, 3600, 1440];
+  var nivelRejilla = (function () {
+    var maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE), mem = navigator.deviceMemory || 0;
+    // Al escalón más fino sólo se sube con memoria declarada de sobra: el
+    // aparato que no dice cuánta tiene —Safari no lo dice— se queda en el
+    // mediano, que ya es más fino que el de antes. Trescientos megas de
+    // rejillas en un teléfono no se recuperan con un reintento: la pestaña se
+    // cierra sola y no hay excepción que cazar.
+    if (maxTex >= 8192 && mem >= 8) return 0;
+    if (maxTex >= 4096 && !(mem && mem < 4)) return 1;
+    return 2;
+  })();
+  var GW = NIVELES[nivelRejilla], GH = GW >> 1;
   var ESC = GW / 1440;
   var NCEL = GW * GH;
   var celdaDiv = null;                     // división de cada celda, 65535 = mar
@@ -2650,44 +2681,44 @@ body {
   //                Sicilia y Cerdeña salían siempre sin abastecer y Roma no
   //                podía sostener lo que sostuvo durante siete siglos.
   var EPOCAS = [
-    { id: "antigua", n: "Antigüedad", unidad: "Legión", mayor: "Ejército", anio: -350, ac: true,
-      movil: 0.010, cuerpo: 15000, anchoCel: 2600, mov: 0.72, sum: 12,
-      trinch: 0.15, fort: 2.6, k: 1.00, ritmo: 1.9, cava: 0.006, mandos: 5, aguante: 2.2, mar: 11, persec: 0.55, explota: 2,
+    { id: "antigua", n: "Antigüedad", unidad: "Legión", mayor: "Ejército consular", anio: -350, ac: true,
+      movil: 0.010, cuerpo: 5200, anchoCel: 2600, mov: 0.72, sum: 12,
+      trinch: 0.15, fort: 2.6, k: 1.00, ritmo: 1.9, cava: 0.006, mandos: 12, aguante: 2.2, mar: 11, persec: 0.55, explota: 2,
       invierno: true, mando: 6, friccion: 0.30, recon: 2, aire: 0,
       nota: "falanges y legiones · se vive del país · las plazas se rinden de hambre" },
     { id: "medieval", n: "Edad Media", unidad: "Hueste", mayor: "Gran Hueste", anio: 1200, ac: false,
-      movil: 0.008, cuerpo: 12000, anchoCel: 2200, mov: 0.70, sum: 10,
-      trinch: 0.20, fort: 3.2, k: 1.02, ritmo: 1.5, cava: 0.008, mandos: 5, aguante: 2.0, mar: 11, persec: 0.45, explota: 2,
+      movil: 0.008, cuerpo: 5000, anchoCel: 2200, mov: 0.70, sum: 10,
+      trinch: 0.20, fort: 3.2, k: 1.02, ritmo: 1.5, cava: 0.008, mandos: 11, aguante: 2.0, mar: 11, persec: 0.45, explota: 2,
       invierno: true, mando: 7, friccion: 0.34, recon: 2, aire: 0,
       nota: "hueste feudal · el castillo manda · la guerra es de asedios" },
     { id: "polvora", n: "Pólvora", unidad: "Cuerpo", mayor: "Ejército", anio: 1700, ac: false,
-      movil: 0.015, cuerpo: 18000, anchoCel: 3400, mov: 0.80, sum: 16,
-      trinch: 0.35, fort: 2.8, k: 1.08, ritmo: 0.70, cava: 0.014, mandos: 6, aguante: 1.6, mar: 12, persec: 0.32, explota: 1,
+      movil: 0.015, cuerpo: 9000, anchoCel: 3400, mov: 0.80, sum: 16,
+      trinch: 0.35, fort: 2.8, k: 1.08, ritmo: 0.70, cava: 0.014, mandos: 13, aguante: 1.6, mar: 12, persec: 0.32, explota: 1,
       invierno: true, mando: 5, friccion: 0.26, recon: 3, aire: 0,
       nota: "magazines y fortalezas de Vauban · se maniobra para sitiar" },
     { id: "napoleonica", n: "Napoleónica", unidad: "Cuerpo", mayor: "Ejército", anio: 1805, ac: false,
-      movil: 0.025, cuerpo: 25000, anchoCel: 4200, mov: 1.15, sum: 20,
-      trinch: 0.30, fort: 2.2, k: 1.12, ritmo: 1.5, cava: 0.010, mandos: 8, aguante: 1.4, mar: 13, persec: 0.45, explota: 2,
+      movil: 0.025, cuerpo: 22000, anchoCel: 4200, mov: 1.15, sum: 20,
+      trinch: 0.30, fort: 2.2, k: 1.12, ritmo: 1.5, cava: 0.010, mandos: 15, aguante: 1.4, mar: 13, persec: 0.45, explota: 2,
       invierno: false, mando: 4, friccion: 0.20, recon: 3, aire: 0,
       nota: "sistema de cuerpos · marchas largas · se busca la batalla decisiva" },
     { id: "industrial", n: "Industrial", unidad: "Cuerpo", mayor: "Ejército", anio: 1870, ac: false,
-      movil: 0.040, cuerpo: 30000, anchoCel: 6500, mov: 0.95, sum: 30,
-      trinch: 0.55, fort: 2.0, k: 1.20, ritmo: 0.85, cava: 0.020, mandos: 10, aguante: 1.1, mar: 14, persec: 0.28, explota: 1,
+      movil: 0.040, cuerpo: 28000, anchoCel: 6500, mov: 0.95, sum: 30,
+      trinch: 0.55, fort: 2.0, k: 1.20, ritmo: 0.85, cava: 0.020, mandos: 20, aguante: 1.1, mar: 14, persec: 0.28, explota: 1,
       invierno: false, mando: 2, friccion: 0.14, recon: 4, aire: 0,
       nota: "ferrocarril y fusil de retrocarga · movilización de masas" },
-    { id: "gran-guerra", n: "Gran Guerra", unidad: "Ejército", mayor: "Grupo de Ejércitos", anio: 1916, ac: false,
-      movil: 0.090, cuerpo: 40000, anchoCel: 14000, mov: 0.75, sum: 34,
-      trinch: 1.10, fort: 1.9, k: 1.25, ritmo: 0.45, cava: 0.032, mandos: 12, aguante: 0.8, mar: 15, persec: 0.12, explota: 0,
+    { id: "gran-guerra", n: "Gran Guerra", unidad: "Cuerpo", mayor: "Ejército", anio: 1916, ac: false,
+      movil: 0.090, cuerpo: 38000, anchoCel: 14000, mov: 0.75, sum: 34,
+      trinch: 1.10, fort: 1.9, k: 1.25, ritmo: 0.45, cava: 0.032, mandos: 26, aguante: 0.8, mar: 15, persec: 0.12, explota: 0,
       invierno: false, mando: 2, friccion: 0.12, recon: 5, aire: 0.03,
       nota: "frente continuo · la brecha no se explota · desgaste" },
-    { id: "mecanizada", n: "Mecanizada", unidad: "Ejército", mayor: "Grupo de Ejércitos", anio: 1942, ac: false,
-      movil: 0.100, cuerpo: 60000, anchoCel: 8500, mov: 2.00, sum: 46,
-      trinch: 0.70, fort: 1.7, k: 1.35, ritmo: 1.0, cava: 0.016, mandos: 14, aguante: 0.7, mar: 16, persec: 0.50, explota: 3,
+    { id: "mecanizada", n: "Mecanizada", unidad: "Cuerpo", mayor: "Ejército", anio: 1942, ac: false,
+      movil: 0.100, cuerpo: 55000, anchoCel: 8500, mov: 2.00, sum: 46,
+      trinch: 0.70, fort: 1.7, k: 1.35, ritmo: 1.0, cava: 0.016, mandos: 28, aguante: 0.7, mar: 16, persec: 0.50, explota: 3,
       invierno: false, mando: 1, friccion: 0.08, recon: 7, aire: 0.18,
       nota: "batalla en profundidad · se rompe y se explota · embolsamientos" },
     { id: "moderna", n: "Moderna", unidad: "Cuerpo", mayor: "Ejército", anio: 2000, ac: false,
-      movil: 0.030, cuerpo: 35000, anchoCel: 4500, mov: 2.60, sum: 60,
-      trinch: 0.60, fort: 1.6, k: 1.45, ritmo: 1.5, cava: 0.020, mandos: 10, aguante: 1.3, mar: 18, persec: 0.55, explota: 3,
+      movil: 0.030, cuerpo: 26000, anchoCel: 4500, mov: 2.60, sum: 60,
+      trinch: 0.60, fort: 1.6, k: 1.45, ritmo: 1.5, cava: 0.020, mandos: 18, aguante: 1.3, mar: 18, persec: 0.55, explota: 3,
       invierno: false, mando: 0, friccion: 0.05, recon: 12, aire: 0.35,
       nota: "precisión y vigilancia · la retaguardia enemiga no existe" }
   ];
@@ -3317,7 +3348,7 @@ body {
         hombres: 0, org: 0.75, obj: -1, destino: -1, sector: [], cortado: 0,
         vacio: 0, marcha: false, sum: 1, puesto: -1, ultimos: 0, paso: 0,
         pendObj: -1, pendDest: -1, pendDia: 0, quieto: 0, fundirCon: -1,
-        lleva: 0,                        // los hombres que van con él de marcha
+        lleva: 0, anduvo: false,                        // los hombres que van con él de marcha
         num: romano(++cuentaCuerpo[ip]), pegado: 0,
         nom: ""                          // se pone justo debajo
       });
@@ -3486,7 +3517,7 @@ body {
       // cambias la orden a media marcha, su gente entra en la línea donde esté,
       // no se queda dando vueltas en la columna.
       if (u.lleva > 0 && u.destino < 0 && !u.marcha) descargaTropa(u);
-      if (!u.marcha) colocaMando(u);
+      if (!u.marcha && !u.anduvo) colocaMando(u);
       vivos.push(u);
     }
     juego.cuerpos = vivos;
@@ -3750,6 +3781,10 @@ body {
     for (var i = 0; i < juego.cuerpos.length; i++) {
       var u = juego.cuerpos[i];
       u.marcha = false;
+      // Lo que ya ha andado hoy: un puesto de mando hace una jornada al día, no
+      // dos. Sin esto, el cuerpo que llegaba a su destino y tenía orden de
+      // atacar marchaba su jornada y encima colocaba la bandera otra media.
+      u.anduvo = false;
       if (u.quieto > 0) u.quieto--;
       var meta = -1;
       if (u.destino >= 0) {
@@ -3763,6 +3798,7 @@ body {
         if (u.destino < 0) { /* no queda nada nuestro cerca: se cancela */ }
         else if (juego.est[u.destino] !== 2) u.destino = -1;
         else if (distCel(u.x, u.destino) < celdasEsc(1.2)) {
+          u.anduvo = true;
           if (llegaDestino(u)) continue;   // se ha fundido: uno de los dos ya no está
         } else meta = u.destino;
       }
@@ -3781,6 +3817,7 @@ body {
       }
       if (meta < 0) continue;
       u.marcha = true;
+      u.anduvo = true;
       // Si lo que empieza es un traslado de verdad —no un ajuste de dos celdas
       // dentro de su propio tramo—, el cuerpo levanta el campo y se lleva a su
       // gente. La descarga es cosa de llegaDestino.
@@ -4149,7 +4186,7 @@ body {
           juego.fuerza[reparto[k]] += da;
           juego.reservaPais[ip] -= da;
           juego.org[reparto[k]] = Math.min(1, juego.org[reparto[k]] +
-                                              0.55 * da / (juego.fuerza[reparto[k]] + 1));
+                                              rehace(reparto[k], da));
         }
       }
 
@@ -4340,8 +4377,22 @@ body {
       if (juego.sum[c] < 0.12 || juego.fuerza[c] >= media) continue;
       var toca = bote * (media - juego.fuerza[c]) / falta;
       juego.fuerza[c] += toca;
-      juego.org[c] = Math.min(1, juego.org[c] + 0.55 * toca / (juego.fuerza[c] + 1));
+      juego.org[c] = Math.min(1, juego.org[c] + rehace(c, toca));
     }
+  }
+
+  // Lo que un relevo rehace de cohesión. Se mide contra lo que cabe en una
+  // celda —la plantilla—, no contra los cuatro hombres que queden vivos en
+  // ella: midiéndolo contra lo que queda, un goteo de doce reemplazos en una
+  // posición machacada de cincuenta hombres la devolvía entera a la mañana
+  // siguiente, y ninguna ofensiva rompía nada. Con el tablero fino eso pasó a
+  // ser decisivo —una celda tiene la novena parte de gente que en el tablero
+  // gordo—: la época Moderna se quedaba clavada en cuarenta y seis celdas
+  // ganadas en cuatro meses teniendo cinco mil hombres por celda contra
+  // cincuenta y siete, porque el defensor recuperaba cada día la organización
+  // que le quitaba el asalto.
+  function rehace(c, da) {
+    return 0.55 * da / (juego.fuerza[c] + porCelda(1200));
   }
 
   // Reparte hombres por el sector de un cuerpo: hacia un punto si se le señala
@@ -4364,7 +4415,7 @@ body {
       // acababa siempre en organización cero y ahí se quedaba para siempre,
       // porque el descanso solo nunca daba para más que las bajas del día. Una
       // ofensiva se sostiene relevando, no dejando morir al que va delante.
-      juego.org[c] = Math.min(1, juego.org[c] + 0.55 * da / (juego.fuerza[c] + 1));
+      juego.org[c] = Math.min(1, juego.org[c] + rehace(c, da));
     }
   }
 
@@ -4904,12 +4955,13 @@ body {
     return true;
   }
 
-  // Si el tablero fino no cabe en la memoria del aparato, se baja al de cuarto
-  // de grado y se vuelve a empezar. Mejor una campaña de celdas gordas que una
-  // pantalla en blanco.
+  // Si el tablero no cabe en la memoria del aparato, se baja un escalón y se
+  // vuelve a empezar. Mejor una campaña de celdas gordas que una pantalla en
+  // blanco.
   function bajaARejillaGruesa() {
-    if (ESC === 1) return false;
-    GW = 1440; GH = 720; ESC = 1; NCEL = GW * GH;
+    if (nivelRejilla >= NIVELES.length - 1) return false;
+    nivelRejilla++;
+    GW = NIVELES[nivelRejilla]; GH = GW >> 1; ESC = GW / 1440; NCEL = GW * GH;
     celdaDiv = null;
     colaSum = distSum = selloSum = null;
     if (mapaTex) { gl.deleteTexture(mapaTex); mapaTex = null; mapaBuf = null; }
@@ -4926,8 +4978,13 @@ body {
     try {
       nuevaCampana(c, idEpoca);
     } catch (e) {
-      if (!bajaARejillaGruesa()) throw e;
-      nuevaCampana(celdaDe(lon, lat), idEpoca);
+      // Se va bajando de escalón hasta que la campaña quepa.
+      var puesta = false;
+      while (!puesta && bajaARejillaGruesa()) {
+        try { nuevaCampana(celdaDe(lon, lat), idEpoca); puesta = true; }
+        catch (e2) { /* al siguiente escalón */ }
+      }
+      if (!puesta) throw e;
     }
     seleccionar(null);
     flyTo(lon, lat, clampDist(1.25));
@@ -5393,8 +5450,11 @@ body {
       // en el mismo punto se abren en abanico, cada uno con su cifra y su sitio
       // donde tocarlo. Antes se descartaban las que chocaban, y por eso parecía
       // que en un sitio sólo cabían dos.
+      // El abanico es de cinco columnas y cuatro filas: con ejércitos de
+      // veintiocho cuerpos, en un punto de ruptura se juntan más banderas de
+      // las que cabían en el abanico corto de tres por tres.
       var ox = q[0], oy = q[1], intento = 0;
-      while (intento < 9) {
+      while (intento < 20) {
         var libre = true;
         for (var k2 = 0; k2 < marcasCuerpo.length; k2++) {
           var ob = marcasCuerpo[k2];
@@ -5402,8 +5462,8 @@ body {
         }
         if (libre) break;
         intento++;
-        sx = ox + ((intento % 3) - 1) * (w + 5);
-        sy = oy + (Math.floor((intento - 1) / 3) + 1) * (h + 15);
+        sx = ox + ((intento % 5) - 2) * (w + 5);
+        sy = oy + (Math.floor((intento - 1) / 5) + 1) * (h + 15);
       }
       marcasCuerpo.push([sx, sy, u.id, u.mio ? 1 : 0]);
       boxes.push([sx - w / 2 - 4, sy - h / 2 - 4, sx + w / 2 + 4, sy + h / 2 + 14]);

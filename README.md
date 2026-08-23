@@ -227,6 +227,59 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3s. Celdas más pequeñas y un ejército de verdad.**
+Dos cosas que se piden solas al acercarse: que lo conquistado se lea con más
+detalle y que haya más formaciones que llevar.
+
+*El tablero, en tres escalones.* Antes había dos —un octavo de grado, catorce
+kilómetros, si la GPU daba para una textura de 2.880, y cuarto de grado si no—. Ahora son tres, y se elige
+el más fino que el aparato admita: **0,083°** —nueve kilómetros de lado, 9,3
+millones de celdas— donde hay textura de 8.192 y memoria declarada de ocho
+gigas; **0,1°** —once kilómetros, 6,5 millones de celdas— en todo lo demás que
+llegue a 4.096; y el cuarto de grado de siempre si no. Al escalón más fino no se
+sube nunca a ciegas: un aparato que no declara su memoria —Safari no la
+declara— se queda en el mediano, porque trescientos megas de rejillas en un
+teléfono no se recuperan con un reintento, la pestaña se cierra sola y no hay
+excepción que cazar. Y si aun así no cabe, se baja **un escalón** y se reintenta,
+en vez de caer de golpe al tablero gordo.
+
+*Y una cosa que sólo se ve con celdas pequeñas.* Con el tablero fino, la época
+Moderna se quedó **clavada**: cuarenta y seis celdas ganadas en cuatro meses
+teniendo cinco mil hombres por celda contra cincuenta y siete del defensor. El
+culpable no era el mando ni el número de formaciones —probado bajando otra vez a
+diez— sino cómo se rehacía la cohesión: un relevo devolvía organización en
+proporción a **lo que quedaba vivo en la celda**, así que un goteo de doce
+reemplazos en una posición machacada de cincuenta hombres la devolvía entera a
+la mañana siguiente, y el asalto no rompía nunca. Con celdas nueve veces más
+pequeñas eso pasó de detalle a bloqueo. Ahora la cohesión se rehace contra **la
+plantilla de una celda**, no contra los cuatro supervivientes: la Moderna pasa
+de +46 a +4.223 celdas, y las ocho épocas quedan otra vez ordenadas —de +1.672
+de la Pólvora a +7.573 de la Mecanizada— con sus bajas características.
+
+*Y el frente deja de ser una escalera.* Por fina que sea la rejilla, al bajar a
+setenta kilómetros de altitud una celda ocupa media pantalla y lo conquistado se
+ve como un montón de rectángulos. Como una guerra sobre el mundo entero no se
+puede simular sin cuadrícula, lo que se arregla es el dibujo: al leer la
+ocupación, el sombreador desplaza la lectura con un **ruido suave de media
+celda**, y el borde sale ondulado, como una línea de frente trazada a mano. No
+cambia nada de lo que se simula —el tablero sigue siendo el mismo— y el ruido
+depende sólo del sitio, así que la línea no tiembla al mover la cámara.
+
+*Y más formaciones, con el escalón que les toca.* La Gran Guerra y la campaña
+mecanizada llamaban «Ejército» a formaciones de cuarenta y sesenta mil hombres,
+que es lo que mide un **cuerpo de ejército**, no un ejército —el 6.º Ejército en
+Stalingrado eran trescientos mil—. Corregido el nombre, se corrige el número:
+donde había 14 mandos ahora hay **28**, y el que se come a otro asciende a
+Ejército. Igual en las demás épocas: una legión son cinco mil hombres y una
+consular, cuatro legiones, así que la Antigüedad pasa de 5 mandos de quince mil
+a 12 legiones de cinco mil; la Edad Media, a 11 huestes; Pólvora, a 13 cuerpos;
+la Napoleónica, a 15 —la Grande Armée de 1805 tenía siete cuerpos y llegó a
+tener más—; la Industrial, a 20; la Moderna, a 18. En la prueba, la invasión de
+Polonia se lleva ahora con **23 formaciones** en vez de con 14, todas con su
+orden y su bandera. El abanico con el que se separan las banderas amontonadas
+pasa de tres por tres a cinco por cuatro, que con veintitantos cuerpos en un
+punto de ruptura hacía falta.
+
 **3r. Una división sólo cede terreno cuando ya no puede pelear.**
 El fallo que quedaba era el más feo de todos: la bandera de un cuerpo se iba
 hacia atrás sin que nadie se lo mandara. Medido, en trescientos días de campaña
@@ -918,8 +971,18 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
 - **Fusión**: mandar una formación encima de otra las funde —«el XI Ejército se
   funde en el V Ejército»—, la superviviente hereda su sector y asciende de
   escalón.
-- **Nadie salta y nadie se retira solo**: en trescientos días de campaña con las
-  catorce formaciones atacando, ninguna bandera se mueve más de **0,50° en un
+- **Tablero fino**: 4.320 × 2.160 celdas —9,3 millones, de nueve kilómetros de
+  lado—; abrir la campaña cuesta 2,0 s, un día de guerra 12,8 ms, un fotograma
+  16 ms y el conjunto 326 MB en el navegador de pruebas por software. El
+  mediano, 3.600 × 1.800, se comprueba aparte: la campaña, el mando y los
+  traslados funcionan igual con el factor de escala fraccionario.
+- **Las ocho épocas, con el tablero fino** y la misma orden: Antigüedad +1.913
+  celdas (223k bajas propias por 71k ajenas), Edad Media +1.909, Pólvora +1.672,
+  Napoleónica +3.105, Industrial +5.751, Gran Guerra +4.749, Mecanizada +7.573,
+  Moderna +4.223. Doce, once, trece, quince, diecinueve, veinticinco,
+  veintisiete y diecisiete formaciones respectivamente.
+- **Nadie salta y nadie se retira solo**: en trescientos días de campaña con el
+  ejército entero atacando, ninguna bandera se mueve más de **0,50° en un
   día** —la jornada de marcha de su época— y ninguna se aleja de su objetivo tres
   días seguidos teniendo con qué pelear. Antes había sesenta retrocesos, con
   saltos de hasta siete grados en una noche.
