@@ -227,6 +227,25 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3v. Alto.** Un ejército al que no puedes parar no lo mandas tú. Se mandaba
+atacar y las formaciones seguían solas —tomaban el objetivo, se buscaban el
+siguiente por su cuenta y no había manera de detenerlas—, y además, al
+reapuntarlas contra otro país, volvían al enemigo que tuvieran más cerca en
+cuanto tomaban una celda: mandabas atacar Chequia y seguían metiéndose en
+Polonia. Dos cosas:
+
+- **Botón `Alto`**: la formación que llevas —o el ejército entero, si está
+  puesto el mando general— deja de atacar, cancela lo que tuviera pendiente y
+  se queda sosteniendo lo que ha tomado. El índice lo dice. Cualquier orden
+  nueva lo levanta. En la prueba, tras el alto una ofensiva que iba a novecientas
+  celdas gana **cero** en los dos meses siguientes, y ninguna formación se busca
+  objetivo por su cuenta.
+- **Contra quién se ataca es una orden, no una sugerencia**: la formación
+  recuerda el país contra el que la mandaste y se atiene a él mientras le quede
+  frente; sólo cuando ese país ya no tiene línea cerca busca otro enemigo. En la
+  prueba, reapuntadas contra Chequia, **17 de 17** tienen objetivo checo cuarenta
+  días después.
+
 **3u. Verificado contra el mapa y contra la historia.**
 Dos comprobaciones que había que hacer: si lo que se ve jugando es lo que dice
 la documentación, y si el ritmo del avance aguanta la comparación con lo que

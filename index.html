@@ -594,6 +594,8 @@ body {
   <div class="oculta-mini"><span>Parte</span><b id="ro-parte">—</b></div>
   <button class="btn" id="g-todos" type="button" aria-pressed="false"
           title="Las órdenes van a todas tus formaciones a la vez">Todos</button>
+  <button class="btn" id="g-alto" type="button"
+          title="Detener: la formación deja de atacar y se queda donde está">Alto</button>
   <button class="plegar" id="g-mini" type="button" aria-expanded="true"
           title="Plegar o desplegar el parte">▾</button>
   <button class="btn" id="g-salir" type="button">Terminar</button>
@@ -2329,6 +2331,7 @@ body {
                  : fmtNum(Math.round(suGente(u))) + " · " + Math.round(u.org * 100) + "% · " +
                    (u.pendObj >= 0 || u.pendDest >= 0 ? "orden en camino"
                     : u.cortado > 2 ? "sin suministro"
+                    : u.alto ? "alto"
                     : u.obj >= 0 ? "al ataque" : u.destino >= 0 ? "en marcha" : "sostiene"),
                colorCuerpo(u, 1));
         }
@@ -3365,7 +3368,7 @@ body {
         hombres: 0, org: 0.75, obj: -1, destino: -1, sector: [], cortado: 0,
         vacio: 0, marcha: false, sum: 1, puesto: -1, ultimos: 0, paso: 0,
         pendObj: -1, pendDest: -1, pendDia: 0, quieto: 0, fundirCon: -1,
-        lleva: 0, anduvo: false,                        // los hombres que van con él de marcha
+        lleva: 0, anduvo: false, alto: false, paisObj: -1,                        // los hombres que van con él de marcha
         num: romano(++cuentaCuerpo[ip]), pegado: 0,
         nom: ""                          // se pone justo debajo
       });
@@ -3671,10 +3674,16 @@ body {
     // marcha un cuerpo acorazado.
     u.anduvo = true;
     var pasos = Math.max(1, Math.round(epMov()));
+    var firme = u.obj >= 0 && puedePelear(u);
     for (k = 0; k < pasos; k++) {
       if (distCel(u.x, meta) < celdasEsc(1.2)) break;
       var sig = pasoHacia(u.x, meta);
       if (sig < 0) break;
+      // Ni rodeando: mientras pueda pelear, no da un paso que lo aleje de
+      // aquello contra lo que está. El camino a su tramo puede bordear un río o
+      // el sector del vecino, y tres días seguidos de rodeo se ven desde fuera
+      // como una retirada.
+      if (firme && distCel(sig, u.obj) > distCel(u.x, u.obj)) break;
       u.x = sig;
     }
   }
@@ -4132,6 +4141,9 @@ body {
   // mando se iba solo al centro de su sector —muchas veces hacia atrás—: eso es
   // lo que se veía como que la división retrocede sin tocar nada.
   function sigueElEje(u, tomada) {
+    // Si le has mandado alto, no se busca objetivo nuevo: se queda con lo que
+    // ha tomado. Esto es lo que hacía imposible detener una ofensiva.
+    if (u.alto) { u.obj = -1; return; }
     var x0 = u.x % GW, y0 = (u.x / GW) | 0;
     var x1 = tomada % GW, y1 = (tomada / GW) | 0;
     var dx = x1 - x0, dy = y1 - y0;
@@ -4150,7 +4162,19 @@ body {
       var ip = juego.paisCel[w];
       return ip !== MAR && juego.enGuerra[ip];
     }
-    u.obj = celdaCerca(meta, Math.round(celdasEsc(12)), hayEnemigo);
+    // Contra quien le has mandado atacar. Sin esto, un cuerpo al que reapuntabas
+    // a otro país volvía solo al enemigo que tuviera más cerca —el de antes— en
+    // cuanto tomaba una celda, y parecía que no obedecía.
+    function elSeñalado(w) {
+      return hayEnemigo(w) && juego.paisCel[w] === u.paisObj;
+    }
+    var busca = u.paisObj >= 0 && juego.enGuerra[u.paisObj] ? elSeñalado : hayEnemigo;
+    u.obj = celdaCerca(meta, Math.round(celdasEsc(12)), busca);
+    if (u.obj < 0 && busca !== hayEnemigo) {
+      // El país señalado ya no tiene nada por este rumbo: se mira su frente más
+      // cercano antes de dar la orden por cumplida.
+      u.obj = celdaCerca(u.x, Math.round(celdasEsc(40)), busca);
+    }
     // Y si por ese rumbo ya no queda nadie —el país cayó, el frente se fue—, se
     // busca el enemigo más cercano a donde está. Mientras haya guerra, un
     // ejército no se queda parado esperando que le vuelvan a decir algo.
@@ -4196,7 +4220,7 @@ body {
   }
 
   function atacaCuerpo(u) {
-    if (u.obj < 0 || !u.sector.length) return;
+    if (u.alto || u.obj < 0 || !u.sector.length) return;
     // Si el sitio señalado ya es mío —normalmente porque lo ha tomado otro—,
     // este cuerpo no se queda parado: sigue por su propio eje. Mandabas a todo
     // el ejército contra un punto, lo tomaba uno y los otros trece se quedaban
@@ -4854,6 +4878,36 @@ body {
     pintaGuerra();
   });
 
+  // Alto. Un ejército al que no puedes parar no lo mandas tú: se mandaba
+  // atacar y las formaciones seguían solas, tomando un objetivo y buscándose
+  // el siguiente por su cuenta, sin manera de detenerlas. Con esto, la
+  // formación que llevas —o el ejército entero, si está puesto el mando
+  // general— deja de atacar, cancela lo que tuviera pendiente y se queda donde
+  // está sosteniendo lo que ha tomado. Cualquier orden nueva lo levanta.
+  var gAlto = document.getElementById("g-alto");
+  gAlto.addEventListener("click", function () {
+    if (!juego || juego.fin) return;
+    var paran = juego.todos ? juego.cuerpos.filter(function (u) { return u.mio; })
+                            : [cuerpoSel()].filter(Boolean);
+    if (!paran.length) return;
+    for (var i = 0; i < paran.length; i++) detén(paran[i]);
+    juego.objetivo = -1;
+    anota(paran.length > 1 ? "Alto en todo el frente"
+                           : paran[0].nom + ": alto");
+    pintaGuerra();
+  });
+
+  function detén(u) {
+    u.alto = true;
+    u.paisObj = -1;
+    u.obj = -1;
+    u.destino = -1;
+    u.pendObj = -1;
+    u.pendDest = -1;
+    u.fundirCon = -1;
+    u.puesto = -1;
+  }
+
   // El selector de época. Se elige antes de empezar; una vez abierta la guerra
   // ya no se cambia de siglo a mitad de campaña.
   for (var ke = 0; ke < EPOCAS.length; ke++) {
@@ -4947,6 +5001,7 @@ body {
         (u.pendObj >= 0 || u.pendDest >= 0
            ? "orden en camino, " + Math.max(0, u.pendDia - juego.dia) + " d"
            : u.cortado > 2 ? "sin suministro"
+           : u.alto ? "alto · toca adónde va"
            : !u.sector.length ? "en reserva · toca adónde va"
            : u.obj >= 0 ? "al ataque" : u.destino >= 0 ? "en marcha"
            : "sostiene · toca adónde va")
@@ -5032,6 +5087,9 @@ body {
   // correo de su siglo en llegar al puesto de mando.
   function ordenaA(mando, c) {
     var tarda = E().mando;
+    // Cualquier orden nueva levanta el alto: si le mandas algo, es que quieres
+    // que se mueva otra vez.
+    mando.alto = false;
     if (juego.est[c] === 2) {
       // ¿Le estás mandando encima de otro cuerpo tuyo? Entonces la orden es de
       // concentrar: al llegar se funden en uno mayor.
@@ -5043,6 +5101,9 @@ body {
       mando.fundirCon = -1;
       var ip = juego.paisCel[c];
       if (ip !== MAR && !juego.enGuerra[ip] && !juego.capitulado[ip]) declaraGuerra(ip, true);
+      // Contra qué país es la ofensiva: la formación se atendrá a él mientras
+      // le quede frente, en vez de irse al enemigo que le pille más cerca.
+      mando.paisObj = ip !== MAR ? ip : -1;
       if (tarda) { mando.pendObj = c; mando.pendDest = -1; mando.pendDia = juego.dia + tarda; }
       else { mando.obj = c; mando.destino = -1; }
       juego.objetivo = c;
