@@ -227,6 +227,36 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**4a. Un juego se abre por su portada, no por una barra de capas.** Estaba todo
+—el mundo, la guerra, el imperio— y aun así seguía pareciendo una aplicación de
+mapas con cosas encima: al entrar, un globo y una fila de interruptores
+(Rotar, Fronteras, Relieve, Retícula, Carta). El mapa es el tablero, pero el
+tablero no es la puerta. Ahora la cáscara es la de un juego:
+
+- **Portada**. Título, de qué va y dos caminos: *Nueva partida* o *Explorar el
+  atlas* —el atlas sigue entero para quien venga a eso—. El pie cuenta lo que
+  hay dentro con los números reales del mundo cargado: 249 países, 4.322
+  divisiones, 7.358 ciudades y el tamaño de celda de esa máquina.
+- **Elección**. Primero el siglo —las ocho épocas, cada una con su unidad y su
+  año, porque elegir época es elegir a qué juegas— y después el país, **de una
+  lista ordenada por población urbana y con buscador**. Antes había que acertar
+  con el dedo en el mapa: Andorra o Luxemburgo eran casi imposibles. La
+  pantalla **no tapa el globo** —se arrima a un lado y deja pasar el toque—, así
+  que el mapa sigue valiendo para elegir, y al señalar un país la cámara vuela
+  hasta él antes de decidir.
+- **Pestañas**. El panel deja de ser «Índice» y pasa a ser el gobierno:
+  **Imperio** (las cuentas de la casa y levantar tropas), **Ejército** (el orden
+  de batalla), **Ciudades**, **Técnica** y **Atlas** (el índice de países de
+  siempre). Cada una trae su propio listado y su propia cabecera, y el buscador
+  aparece sólo donde hay algo que buscar.
+- **Los mandos de la vista se apartan**. Durante la partida, la fila de capas y
+  el cuadro de coordenadas se recogen detrás de un botón *Vista*; el HUD que
+  queda es el parte de guerra. Se recuperan cuando se quieren, no antes.
+
+De paso, la conquista deja de contarse sólo en celdas: se lleva la **superficie
+real** tomada, con la corrección del coseno de la latitud, porque una celda de
+un cuarto de grado en Siberia no es la misma tierra que en el Sahara.
+
 **3z. El imperio: turnos, técnica y ciudades sobre la misma guerra.** La campaña
 militar ya estaba; lo que faltaba era lo demás de una civilización —la economía
 que paga los ejércitos, las ciudades que la producen y la técnica que decide en
@@ -1106,6 +1136,16 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   Baikal y los Andes se obtiene en cada caso el accidente correcto con su
   cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
   Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
+- **La cáscara del juego**, de punta a punta y sin un solo error de consola: se
+  abre en la portada y con los mandos del atlas fuera; *Nueva partida* lleva a
+  elegir, con las ocho épocas y 120 países en lista y el globo a la vista;
+  el buscador filtra («espa» → España, 23.265k urbanos, 507 mil km²); elegir
+  país y época abre la partida en la época elegida, saca las pestañas y guarda
+  la barra de capas; las cinco pestañas traen lo suyo —6 cuentas y reclutar,
+  24 técnicas, 42 ciudades y los 8 edificios de una de ellas, las formaciones,
+  240 países—; el botón *Vista* devuelve y vuelve a guardar los mandos del mapa;
+  la guerra corre igual por debajo (+658 celdas, 548.824 km² en cuarenta días) y
+  *Terminar* devuelve a la portada.
 - **Campaña**: la rejilla de celdas reproduce las superficies reales con un
   error del 1% en los países comprobados. Entrar, elegir país tocando el mapa,
   tomar el mando de un cuerpo tocando su bandera, mandarlo a atacar o a

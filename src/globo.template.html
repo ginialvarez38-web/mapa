@@ -258,6 +258,15 @@ body {
    dos como pasaba con un cuadradito delante. */
 .list p { margin: 0; padding: 14px; color: var(--muted); font-size: 12.5px; }
 
+/* Un renglón de cuenta: no se toca, sólo dice cómo va el imperio. */
+.dato {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 6px 14px;
+  font-size: 12.5px; color: var(--ink);
+}
+.dato span { color: var(--muted); }
+.dato b { font-family: var(--font-data); font-size: 11px; font-weight: 500; text-align: right; }
+
 .list h3 {
   margin: 6px 0 2px;
   padding: 6px 14px 4px;
@@ -567,6 +576,123 @@ body {
   .boot .bar i { animation: none; width: 100%; }
   .boot { transition: none; }
 }
+
+/* ---- la portada y la elección: esto es un juego, y un juego empieza ---- */
+.portada {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: radial-gradient(120% 90% at 50% 0%, rgba(12,16,24,.35), rgba(8,11,17,.86) 60%);
+  backdrop-filter: blur(2px);
+}
+/* La elección no tapa el mundo: se arrima a un lado y deja el globo a mano,
+   porque parte de elegir país es verlo. Sólo la caja recoge el dedo. */
+.eleccion {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: flex-start;
+  padding: 18px;
+  pointer-events: none;
+}
+.eleccion .eleccion-caja { pointer-events: auto; }
+.portada[hidden], .eleccion[hidden] { display: none; }
+
+/* Mientras se elige o se mira la portada, los mandos del atlas estorban: lo
+   que hay delante es un juego, no una barra de capas. */
+body.telon .masthead, body.telon .readout, body.telon .controls,
+body.telon .panel, body.telon .card, body.telon .guerra,
+body.eligiendo .masthead, body.eligiendo .controls, body.eligiendo .guerra,
+body.eligiendo .readout, body.eligiendo .panel, body.eligiendo .card { display: none !important; }
+body.jugando .masthead { display: none; }
+body.jugando .controls, body.jugando .readout { display: none; }
+body.jugando.capas .controls, body.jugando.capas .readout { display: flex; }
+.capas-chip { position: fixed; right: 14px; bottom: 16px; z-index: 22; display: none; }
+body.jugando .capas-chip { display: inline-flex; }
+@media (max-width: 900px) { .capas-chip { bottom: 12px; right: 10px; } }
+.portada-caja, .eleccion-caja {
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 26px 26px 22px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px;
+  background: rgba(18,22,30,.92);
+  color: #EEF2F7;
+  box-shadow: 0 24px 70px rgba(0,0,0,.5);
+}
+.portada .sello, .eleccion .lema, .portada .pie {
+  margin: 0; font-family: var(--font-data); font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase; color: #9FB0C4;
+}
+.portada h1 {
+  margin: 6px 0 10px; font-family: var(--font-display);
+  font-size: clamp(38px, 8vw, 62px); line-height: .95; letter-spacing: .01em;
+  color: #FFF;
+}
+.portada .lema, .eleccion-caja .lema {
+  margin: 0 0 18px; font-size: 14px; line-height: 1.5;
+  letter-spacing: 0; text-transform: none; color: #C6D2E0;
+  font-family: var(--font-ui);
+}
+.portada .pie { margin-top: 16px; }
+.portada-botones { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn.grande {
+  padding: 11px 20px; font-size: 13px; letter-spacing: .10em;
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+}
+.btn.grande[disabled] { opacity: .45; cursor: default; }
+/* Las cajas del juego son oscuras siempre, también con el atlas en claro: los
+   botones de dentro llevan su propio color o se pierden sobre el fondo. */
+.portada .btn, .eleccion .btn {
+  color: #DDE5EF; border-color: rgba(255,255,255,.24); background: rgba(255,255,255,.05);
+}
+.portada .btn:hover, .eleccion .btn:hover {
+  background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.38); color: #FFF;
+}
+.portada .btn.grande, .eleccion .btn.grande {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+}
+.eleccion-caja h2 {
+  margin: 0 0 6px; font-family: var(--font-display);
+  font-size: 26px; font-weight: 500; color: #FFF;
+}
+.epocas { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; margin-bottom: 14px; }
+.epocas button {
+  padding: 8px 9px; text-align: left; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.16); border-radius: 5px;
+  background: rgba(255,255,255,.04); color: #DDE5EF;
+  font-family: var(--font-ui); font-size: 12px;
+}
+.epocas button b { display: block; font-size: 12.5px; font-weight: 600; }
+.epocas button i { font-style: normal; font-family: var(--font-data); font-size: 10px; color: #93A3B6; }
+.epocas button[aria-pressed="true"] {
+  border-color: var(--accent); background: rgba(224,106,90,.18); color: #FFF;
+}
+.eleccion .search { width: 100%; margin-bottom: 8px; }
+.lista-paises { max-height: 34vh; overflow: auto; border: 1px solid rgba(255,255,255,.1); border-radius: 5px; }
+.lista-paises button {
+  display: flex; width: 100%; justify-content: space-between; gap: 10px;
+  padding: 7px 11px; border: 0; background: transparent; cursor: pointer;
+  color: #D8E1EC; font-family: var(--font-ui); font-size: 13px; text-align: left;
+}
+.lista-paises button i {
+  font-style: normal; font-family: var(--font-data); font-size: 10px; color: #8FA0B4; white-space: nowrap;
+}
+.lista-paises button:hover, .lista-paises button[aria-pressed="true"] {
+  background: rgba(224,106,90,.18); color: #FFF;
+}
+.pie-eleccion {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 14px; flex-wrap: wrap;
+}
+.pie-eleccion b { font-family: var(--font-data); font-size: 11px; color: #A9B8C9; font-weight: 500; }
+.pie-eleccion span { display: flex; gap: 8px; }
+
+/* ---- las pestañas del juego ---- */
+.pestanas { display: flex; gap: 4px; padding: 8px 10px 0; flex-wrap: wrap; }
+.pestanas[hidden] { display: none; }
+.pestanas .btn { flex: 1 1 auto; padding: 6px 8px; font-size: 10px; }
+/* Con pestañas, el botón de Imperio de la tira de guerra sobra. */
+body.jugando #g-imperio { display: none; }
 </style>
 
 <div class="stage">
@@ -578,6 +704,39 @@ body {
   <h1>Atlas Orbital</h1>
   <p id="sub">el mundo por divisiones</p>
 </header>
+
+<div class="portada" id="portada">
+  <div class="portada-caja">
+    <p class="sello">Atlas Orbital</p>
+    <h1>Imperios</h1>
+    <p class="lema">El mundo real —fronteras, ciudades y relieve— y tres mil años de
+      guerra y gobierno. Elige un país y llévalo de la legión al satélite.</p>
+    <div class="portada-botones">
+      <button class="btn grande" id="p-jugar" type="button">Nueva partida</button>
+      <button class="btn" id="p-atlas" type="button">Explorar el atlas</button>
+    </div>
+    <p class="pie" id="p-pie">249 países · 7.358 ciudades · el mundo entero en celdas de nueve kilómetros</p>
+  </div>
+</div>
+
+<div class="eleccion" id="eleccion" hidden>
+  <div class="eleccion-caja">
+    <h2>Elige con qué empiezas</h2>
+    <p class="lema">La época decide con qué armas y a qué ritmo se pelea. El país,
+      con qué gente y qué fronteras.</p>
+    <div class="epocas" id="p-epocas"></div>
+    <label class="sr-only" for="p-buscar">Buscar país</label>
+    <input class="search" id="p-buscar" type="search" placeholder="Buscar país…" autocomplete="off">
+    <div class="lista-paises" id="p-paises"></div>
+    <div class="pie-eleccion">
+      <b id="p-elegido">Toca un país en el mapa o búscalo aquí</b>
+      <span>
+        <button class="btn" id="p-volver" type="button">Atrás</button>
+        <button class="btn grande" id="p-comenzar" type="button" disabled>Comenzar</button>
+      </span>
+    </div>
+  </div>
+</div>
 
 <div class="readout" id="readout">
   <div><span>Cursor</span><b id="ro-cursor">—</b></div>
@@ -608,6 +767,13 @@ body {
 </div>
 
 <nav class="panel" id="panel" aria-label="Índice de países">
+  <div class="pestanas" id="pestanas" hidden role="tablist" aria-label="Secciones del juego">
+    <button class="btn" data-vista="imperio" type="button" aria-pressed="true">Imperio</button>
+    <button class="btn" data-vista="batalla" type="button" aria-pressed="false">Ejército</button>
+    <button class="btn" data-vista="ciudades" type="button" aria-pressed="false">Ciudades</button>
+    <button class="btn" data-vista="tecno" type="button" aria-pressed="false">Técnica</button>
+    <button class="btn" data-vista="atlas" type="button" aria-pressed="false">Atlas</button>
+  </div>
   <div class="panel-head">
     <h2>Índice</h2>
     <label class="sr-only" for="search">Buscar país</label>
@@ -645,6 +811,9 @@ body {
     <button class="btn" id="c-close">Cerrar</button>
   </div>
 </section>
+
+<button class="btn capas-chip" id="t-capas" type="button" aria-pressed="false"
+        title="Mostrar u ocultar los mandos de la vista">Vista</button>
 
 <div class="controls" role="group" aria-label="Controles de la vista">
   <button class="btn panel-toggle" id="t-panel" aria-pressed="false">Índice</button>
@@ -1962,7 +2131,14 @@ body {
       if ((eligiendo || juego) && ll) {
         var cel = celdaDe(ll.lon, ll.lat);
         if (eligiendo) {
-          if (rasterizaMundo()[cel] !== 65535) { empiezaEn(cel); return; }
+          var idiv = rasterizaMundo()[cel];
+          if (idiv !== 65535) {
+            // Con la pantalla de elección abierta, tocar el mapa señala el país
+            // en la lista; sin ella —la campaña suelta del atlas— empieza ahí.
+            if (enEleccion()) { eligeDesdeMapa(divisiones[idiv].pa); return; }
+            empiezaEn(cel);
+            return;
+          }
         } else if (tocaCelda(cel)) return;
       }
       if (m) { seleccionar(m); return; }
@@ -2316,7 +2492,15 @@ body {
       // En campaña el índice deja de ser el de países: pasa a ser el parte de
       // guerra, con las divisiones que puedes atacar ahora delante, luego las
       // tuyas del frente y al final las demás.
-      if (juego && juego.imp && juego.imp.vista === "imperio") { indiceImperio(); return; }
+      // Cada pestaña es una parte del gobierno y trae su propio índice; la de
+      // ejército es el orden de batalla de siempre, que sigue aquí abajo.
+      if (juego && juego.imp) {
+        var v = juego.imp.vista || "imperio";
+        if (v === "imperio") { indiceImperio(); return; }
+        if (v === "ciudades") { indiceCiudades(); return; }
+        if (v === "tecno") { indiceTecno(); return; }
+        if (v === "atlas") { indiceAtlas(); return; }
+      }
       if (juego) {
         // Primero, tu orden de batalla: todas tus formaciones, con lo que
         // llevan y lo que están haciendo. Tocar una es tomar su mando y volar
@@ -2351,10 +2535,7 @@ body {
         marcarLista();
         return;
       }
-      for (var i = 0; i < NP && i < MAX_RESULTADOS; i++) {
-        fila("pais", i, paises[i].n, fmtArea(paises[i].a));
-      }
-      marcarLista();
+      indiceAtlas();
       return;
     }
 
@@ -2405,26 +2586,73 @@ body {
     marcarLista();
   }
 
-  // El índice del imperio: qué investigas, qué construye cada ciudad y qué
-  // puedes reclutar. Es el mismo listado del atlas, con otras filas.
+  // El índice del imperio: el estado de la casa —lo que rinde, lo que cuesta,
+  // lo que hay en marcha— y lo único que se decide aquí, levantar tropas. La
+  // técnica y las ciudades tienen su propia pestaña, que para eso están.
   function indiceImperio() {
     var imp = juego.imp, r = rentas();
-    if (imp.verCiudad >= 0) { indiceCiudad(imp.verCiudad); return; }
 
-    titulo("Reclutar");
+    titulo(anoTexto(imp.anio) + " · turno " + imp.turno);
+    dato("Tesoro", fmtNum(Math.round(imp.oro)) + " de oro" +
+         (r.oro >= 0 ? " · +" + r.oro + " al turno" : " · " + r.oro + " al turno"));
+    dato("Ciencia", fmtNum(Math.round(imp.ciencia)) + " · +" + r.ciencia + " al turno");
+    dato("Ciudades", r.ciudades + " · " + fmtNum(Math.round(r.pob / 1000)) + "k habitantes");
+    dato("Producción", Math.round(r.prod) + " al turno · manutención " + r.mant + " de oro");
+    var mios = 0, hombres = 0;
+    for (var i = 0; i < juego.cuerpos.length; i++) {
+      if (!juego.cuerpos[i].mio) continue;
+      mios++;
+      hombres += juego.cuerpos[i].hombres + juego.cuerpos[i].lleva;
+    }
+    dato("Ejército", mios + " " + (mios === 1 ? E().unidad.toLowerCase() : E().mayor.toLowerCase()) +
+         " · " + fmtNum(Math.round(hombres)) + " hombres");
+    dato("Tierra", fmtArea(Math.round(juego.km2)) + " · " +
+         Math.round(imp.puntos) + " puntos");
+
+    titulo("Levantar tropas");
     var cr = costeRecluta();
-    var mios = 0;
-    for (var i = 0; i < juego.cuerpos.length; i++) if (juego.cuerpos[i].mio) mios++;
     fila("recluta", 0, "Nuevo " + E().unidad.toLowerCase(),
          cr.oro + " oro · tienes " + mios);
 
-    titulo("Tecnología · " + E().n);
+    titulo("En marcha");
+    var t = imp.investiga >= 0 ? TECNOS[imp.investiga] : null;
+    fila("ira", 0, t ? "Investigando " + t.n.toLowerCase() : "Sin investigar nada",
+         t ? fmtNum(imp.ciencia) + "/" + fmtNum(t.coste) + " · " +
+             faltanTurnos(imp.ciencia, t.coste, r.ciencia)
+           : "elige en la pestaña Técnica");
+    var obras = 0, ciu = misCiudades();
+    for (var i = 0; i < ciu.length; i++) {
+      var e = imp.ciu[ciu[i]];
+      if (e && e.obra) obras++;
+    }
+    fila("irc", 0, obras ? obras + (obras === 1 ? " obra en curso" : " obras en curso")
+                         : "Ninguna ciudad construye",
+         ciu.length ? "de " + ciu.length + " ciudades" : "aún sin ciudades");
+    marcarLista();
+  }
+
+  // Un renglón que no se toca: sirve para contar cómo va el imperio.
+  function dato(k, v) {
+    var d = document.createElement("div");
+    d.className = "dato";
+    var a = document.createElement("span");
+    a.textContent = k;
+    var b = document.createElement("b");
+    b.textContent = v;
+    d.appendChild(a); d.appendChild(b);
+    listEl.appendChild(d);
+  }
+
+  // La pestaña de técnica: el árbol, con lo sabido y lo que viene.
+  function indiceTecno() {
+    var imp = juego.imp, r = rentas(), era = EPOCAS.indexOf(E());
+    titulo("Técnica · " + E().n);
     for (var i = 0; i < TECNOS.length; i++) {
       var t = TECNOS[i];
       var sabida = !!imp.sabidas[t.id];
       // Se enseña lo sabido, lo que se investiga y lo siguiente de cada época:
       // el árbol entero de golpe son veinticuatro renglones que no dicen nada.
-      if (!sabida && t.era > EPOCAS.indexOf(E()) + 1) continue;
+      if (!sabida && t.era > era + 1) continue;
       fila("tecno", i, t.n,
            sabida ? "sabida"
            : i === imp.investiga
@@ -2432,10 +2660,16 @@ body {
                faltanTurnos(imp.ciencia, t.coste, r.ciencia)
              : fmtNum(t.coste) + " ciencia");
     }
+    marcarLista();
+  }
 
-    titulo("Ciudades");
+  // La pestaña de ciudades: qué tienes y qué levanta cada una.
+  function indiceCiudades() {
+    var imp = juego.imp;
+    if (imp.verCiudad >= 0) { indiceCiudad(imp.verCiudad); return; }
     var ciu = misCiudades().slice();
     ciu.sort(function (a, b) { return pobCiudad(b) - pobCiudad(a); });
+    titulo(ciu.length ? ciu.length + (ciu.length === 1 ? " ciudad" : " ciudades") : "Ciudades");
     for (var i = 0; i < ciu.length && i < 60; i++) {
       var ic = ciu[i], e = imp.ciu[ic];
       var obra = e && e.obra ? porId(EDIFICIOS, e.obra) : null;
@@ -2446,8 +2680,16 @@ body {
     }
     if (!ciu.length) {
       var p = document.createElement("p");
-      p.textContent = "Tu imperio no tiene ciudades todavía.";
+      p.textContent = "Tu imperio no tiene ciudades todavía. Toma una y construirás en ella.";
       listEl.appendChild(p);
+    }
+    marcarLista();
+  }
+
+  // La pestaña de atlas: el índice de siempre, que el mapa sigue siendo el mapa.
+  function indiceAtlas() {
+    for (var i = 0; i < NP && i < MAX_RESULTADOS; i++) {
+      fila("pais", i, paises[i].n, fmtArea(paises[i].a));
     }
     marcarLista();
   }
@@ -2460,7 +2702,7 @@ body {
     var imp = juego.imp;
     var e = imp.ciu[ic] || (imp.ciu[ic] = { edif: [], obra: null, hecho: 0, crece: 1 });
     titulo(ciudades[ic].n);
-    fila("volver", 0, "‹ Imperio",
+    fila("volver", 0, "‹ Ciudades",
          fmtNum(Math.round(pobCiudad(ic) / 1000)) + "k habitantes");
     for (var i = 0; i < EDIFICIOS.length; i++) {
       var ed = EDIFICIOS[i];
@@ -2511,6 +2753,9 @@ body {
         return;
       }
       if (r.tipo === "volver") { juego.imp.verCiudad = -1; renderList(""); return; }
+      // Los dos renglones de «en marcha» llevan a la pestaña que decide.
+      if (r.tipo === "ira") { ponVista("tecno"); return; }
+      if (r.tipo === "irc") { ponVista("ciudades"); return; }
       if (r.tipo === "obra") {
         var ic = juego.imp.verCiudad, ed = EDIFICIOS[r.i];
         var e = juego.imp.ciu[ic];
@@ -2604,6 +2849,15 @@ body {
     if (x < 0) x = 0; else if (x >= GW) x = GW - 1;
     if (y < 0) y = 0; else if (y >= GH) y = GH - 1;
     return y * GW + x;
+  }
+
+  // Lo que mide una celda sobre el suelo. Una celda es un cuadro de grados, no
+  // de kilómetros: cerca del polo el mismo cuadro es una franja estrecha, y por
+  // eso conquistar Siberia da menos tierra de la que parece en el mapa.
+  var GRADO = 111.32;                        // km por grado de meridiano
+  function km2Celda(c) {
+    var d = 360 / GW;
+    return GRADO * d * GRADO * d * Math.cos(latDeCelda(c) * Math.PI / 180);
   }
 
   function lonDeCelda(c) { return ((c % GW) + 0.5) / GW * 360 - 180; }
@@ -3116,7 +3370,7 @@ body {
       pais: celdaDiv[celdaInicio] !== MAR ? divisiones[celdaDiv[celdaInicio]].pa : -1,
       dia: 0, reloj: 0,
       bajas: 0, bajasEnemigas: 0,
-      mias: 0, miasIni: 0, tierra: 0, sinSum: 0, enBatalla: 0, batallas: [],
+      mias: 0, miasIni: 0, km2: 0, tierra: 0, sinSum: 0, enBatalla: 0, batallas: [],
       ganadas: 0, perdidas: 0, rendidas: 0, anexadas: 0, cambios: 0, repasado: -1,
       sinRelevo: 0,
       objetivo: -1, fin: null, todos: false,
@@ -3218,6 +3472,7 @@ body {
     juego.org[c] = 0.45;
     juego.trinch[c] = 0;
     juego.mias++;
+    juego.km2 += km2Celda(c);
     juego.cambios++;
     var ipT = juego.paisCel[c];
     if (ipT !== MAR) juego.miasDe[ipT]++;
@@ -3232,6 +3487,7 @@ body {
     juego.org[c] = 0.4;
     juego.trinch[c] = 0;
     juego.mias--;
+    juego.km2 -= km2Celda(c);
     juego.cambios++;
     var ipP = juego.paisCel[c];
     if (ipP !== MAR) juego.miasDe[ipP]--;
@@ -5237,6 +5493,7 @@ body {
     cuentaCuerpo = null;
     marcasCuerpo.length = 0;
     if (guerraBtn) guerraBtn.setAttribute("aria-pressed", "false");
+    salDePartida();
     pintaGuerra();
     renderList(searchEl.value);
   }
@@ -5336,13 +5593,7 @@ body {
   // sabes, lo que construyes y lo que puedes reclutar—.
   gImperio.addEventListener("click", function () {
     if (!juego) return;
-    var imp = juego.imp;
-    imp.vista = imp.vista === "batalla" ? "imperio" : "batalla";
-    imp.verCiudad = -1;
-    gImperio.setAttribute("aria-pressed", String(imp.vista === "imperio"));
-    searchEl.value = "";
-    renderList("");
-
+    ponVista(juego.imp.vista === "imperio" ? "batalla" : "imperio");
   });
   gAlto.addEventListener("click", function () {
     if (!juego || juego.fin) return;
@@ -5480,7 +5731,7 @@ body {
     roTec.textContent = t
       ? t.n + " · " + fmtNum(imp.ciencia) + " / " + fmtNum(t.coste) + " (+" + r.ciencia +
         " al turno) · " + faltanTurnos(imp.ciencia, t.coste, r.ciencia)
-      : "todo investigado";
+      : proximaTecno() >= 0 ? "nada · elige en la pestaña Técnica" : "todo investigado";
     gTurno.textContent = imp.corriendo ? "…" + Math.max(0, imp.finTurno - juego.dia) + " d"
                                        : "Turno »";
   }
@@ -5665,6 +5916,7 @@ body {
     }
     seleccionar(null);
     flyTo(lon, lat, clampDist(1.25));
+    entraEnPartida();
     pintaGuerra();
     renderList(searchEl.value);
   }
@@ -5686,7 +5938,7 @@ body {
     return el;
   }
 
-  toggle("t-spin", opts.spin, function (v) { opts.spin = v; });
+  var spinBtn = toggle("t-spin", opts.spin, function (v) { opts.spin = v; });
   toggle("t-night", opts.night, function (v) { opts.night = v; });
   toggle("t-grid", opts.grid, function (v) { opts.grid = v; });
   var frontBtn = toggle("t-front", opts.front, function (v) { opts.front = v; });
@@ -5721,6 +5973,240 @@ body {
       finCampana();
     }
   });
+
+  // --- la cáscara del juego: portada, elección y pestañas ------------------
+  //
+  // El mapa es el tablero, pero un juego empieza por su portada y se lleva por
+  // pestañas, no por una barra de capas. Aquí está esa cáscara: la pantalla de
+  // inicio, la elección de época y país —con su lista y su buscador, sin
+  // obligar a acertar con el dedo en el mapa— y las secciones del juego.
+  var elPortada = document.getElementById("portada");
+  var elEleccion = document.getElementById("eleccion");
+  var elPestanas = document.getElementById("pestanas");
+  var pElegido = document.getElementById("p-elegido");
+  var pComenzar = document.getElementById("p-comenzar");
+  var pPaises = document.getElementById("p-paises");
+  var pBuscar = document.getElementById("p-buscar");
+  var panelH2 = document.querySelector(".panel-head h2");
+  var elegido = -1;
+  var cuerpo = document.body;
+
+  // Tres estados de la cáscara y nada más: el telón, la elección y la partida.
+  // El atlas —el mapa a secas, sin juego— es la ausencia de los tres.
+  function estado(cual) {
+    cuerpo.classList.toggle("telon", cual === "telon");
+    cuerpo.classList.toggle("eligiendo", cual === "eligiendo");
+    cuerpo.classList.toggle("jugando", cual === "jugando");
+    if (cual !== "jugando") cuerpo.classList.remove("capas");
+  }
+
+  // Empezar una partida por donde sea —la elección, el atlas o una prueba—
+  // baja el telón y saca las pestañas: la cáscara sigue al juego, no al revés.
+  function entraEnPartida() {
+    if (!elPortada) return;
+    elPortada.hidden = true;
+    elEleccion.hidden = true;
+    elPestanas.hidden = false;
+    estado("jugando");
+  }
+
+  function salDePartida() {
+    if (!elPortada) return;
+    elPestanas.hidden = true;
+    panelH2.textContent = "Índice";
+    searchEl.hidden = false;
+    verPortada();
+  }
+
+  function verPortada() {
+    elPortada.hidden = false;
+    elEleccion.hidden = true;
+    elPestanas.hidden = true;
+    document.getElementById("p-pie").textContent =
+      fmtNum(NP) + " países · " + fmtNum(ND) + " divisiones · " + fmtNum(NC) +
+      " ciudades · el mundo entero en celdas de " +
+      Math.round(360 / GW * 111) + " kilómetros";
+    estado("telon");
+    opts.spin = true;
+    if (spinBtn) spinBtn.setAttribute("aria-pressed", "true");
+  }
+
+  function abreEleccion() {
+    elPortada.hidden = true;
+    elEleccion.hidden = false;
+    eligiendo = true;
+    estado("eligiendo");
+    seleccionar(null);
+    if (guerraBtn) guerraBtn.setAttribute("aria-pressed", "true");
+    pintaEpocas();
+    pintaPaises(pBuscar.value);
+    pintaGuerra();
+  }
+
+  function alAtlas() {
+    elPortada.hidden = true;
+    elEleccion.hidden = true;
+    elPestanas.hidden = true;
+    eligiendo = false;
+    estado("");
+    if (guerraBtn) guerraBtn.setAttribute("aria-pressed", "false");
+    pintaGuerra();
+  }
+
+  document.getElementById("p-jugar").addEventListener("click", abreEleccion);
+  document.getElementById("p-atlas").addEventListener("click", alAtlas);
+  document.getElementById("p-volver").addEventListener("click", function () {
+    eligiendo = false;
+    if (guerraBtn) guerraBtn.setAttribute("aria-pressed", "false");
+    verPortada();
+    pintaGuerra();
+  });
+  document.getElementById("t-capas").addEventListener("click", function () {
+    var abre = !cuerpo.classList.contains("capas");
+    cuerpo.classList.toggle("capas", abre);
+    this.setAttribute("aria-pressed", String(abre));
+  });
+
+  // Las ocho épocas, con lo que significan. Elegir siglo es elegir a qué juegas:
+  // una legión no hace lo mismo que un cuerpo acorazado.
+  function pintaEpocas() {
+    var cont = document.getElementById("p-epocas");
+    cont.textContent = "";
+    EPOCAS.forEach(function (ep, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(i === epocaElegida));
+      var t = document.createElement("b");
+      t.textContent = ep.n;
+      var s2 = document.createElement("i");
+      s2.textContent = (ep.anio < 0 ? Math.abs(ep.anio) + " a. C." : ep.anio) + " · " +
+                       ep.unidad.toLowerCase();
+      b.appendChild(t); b.appendChild(s2);
+      b.addEventListener("click", function () {
+        epocaElegida = i;
+        pintaEpocas();
+        pintaGuerra();
+      });
+      cont.appendChild(b);
+    });
+  }
+
+  // Y los países, ordenados por población: se elige de una lista, como en
+  // cualquier juego, y el mapa vuela hasta él para que lo veas antes de decidir.
+  // La población de un país no viene en los datos: se suma la de sus ciudades,
+  // que es la urbana, y se hace una vez para toda la partida.
+  var pobDePais = null;
+  function poblacion(ip) {
+    if (!pobDePais) {
+      pobDePais = new Float64Array(NP);
+      for (var k = 0; k < NC; k++) {
+        if (ciudades[k].pa >= 0) pobDePais[ciudades[k].pa] += ciudades[k].pop || 0;
+      }
+    }
+    return pobDePais[ip];
+  }
+
+  function pintaPaises(filtro) {
+    var q = normalize(filtro || "");
+    var lista = [];
+    for (var i = 0; i < NP; i++) {
+      if (q && normalize(paises[i].n).indexOf(q) < 0) continue;
+      lista.push(i);
+    }
+    lista.sort(function (a, b) { return poblacion(b) - poblacion(a); });
+    pPaises.textContent = "";
+    for (var k = 0; k < lista.length && k < 120; k++) {
+      var ip = lista[k];
+      var b = document.createElement("button");
+      b.type = "button";
+      b.dataset.ip = String(ip);
+      b.setAttribute("aria-pressed", String(ip === elegido));
+      var n = document.createElement("span");
+      n.textContent = paises[ip].n;
+      var d = document.createElement("i");
+      var pob = poblacion(ip);
+      d.textContent = (pob ? fmtNum(Math.round(pob / 1000)) + "k urbanos · " : "") +
+                      fmtArea(paises[ip].a);
+      b.appendChild(n); b.appendChild(d);
+      pPaises.appendChild(b);
+    }
+  }
+
+  pBuscar.addEventListener("input", function () { pintaPaises(pBuscar.value); });
+  pPaises.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    eligePais(Number(b.dataset.ip));
+  });
+
+  function eligePais(ip) {
+    elegido = ip;
+    var c = paises[ip] && paises[ip].c;
+    if (c) flyTo(c[0], c[1], clampDist(1.9));
+    pElegido.textContent = paises[ip].n + " · " + EPOCAS[epocaElegida].n;
+    pComenzar.disabled = false;
+    pintaPaises(pBuscar.value);
+  }
+
+  // Tocar el mapa mientras eliges también vale: es el mismo gesto de siempre.
+  function enEleccion() { return !elEleccion.hidden; }
+  function eligeDesdeMapa(ip) {
+    if (elEleccion.hidden || ip < 0) return;
+    eligePais(ip);
+  }
+
+  pComenzar.addEventListener("click", function () {
+    if (elegido < 0) return;
+    var c = paises[elegido].c;
+    var celda = celdaDe(c[0], c[1]);
+    if (rasterizaMundo()[celda] === MAR) {
+      // El punto representativo puede caer en el mar en un país de islas: se
+      // busca tierra suya cerca.
+      celda = celdaCerca(celda, 60, function (w) {
+        return rasterizaMundo()[w] !== MAR && divisiones[celdaDiv[w]] &&
+               divisiones[celdaDiv[w]].pa === elegido;
+      });
+    }
+    if (celda < 0) return;
+    elEleccion.hidden = true;
+    empiezaEn(celda, epocaElegida);
+    elPestanas.hidden = false;
+    estado("jugando");
+    ponVista("imperio");
+  });
+
+  // Las pestañas: cada una es una parte del gobierno.
+  elPestanas.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (b) ponVista(b.dataset.vista);
+  });
+
+  function ponVista(v) {
+    if (!juego || !juego.imp) return;
+    juego.imp.vista = v;
+    juego.imp.verCiudad = -1;
+    Array.prototype.forEach.call(elPestanas.querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.vista === v));
+    });
+    gImperio.setAttribute("aria-pressed", String(v === "imperio"));
+    // La cabecera del panel es la de la pestaña, y el buscador sólo tiene
+    // sentido donde hay algo que buscar: el atlas y tus ciudades.
+    var nom = { imperio: "Imperio", batalla: "Ejército", ciudades: "Ciudades",
+                tecno: "Técnica", atlas: "Atlas" };
+    panelH2.textContent = nom[v] || "Índice";
+    searchEl.hidden = !(v === "atlas" || v === "batalla");
+    searchEl.value = "";
+    renderList("");
+    abrePanel();
+  }
+
+  // En pantalla estrecha el panel nace plegado; al cambiar de pestaña hay que
+  // enseñarlo, o se toca una pestaña y no pasa nada visible.
+  function abrePanel() {
+    if (window.innerWidth > 900) return;
+    panelBtn.setAttribute("aria-pressed", "true");
+    syncPanel();
+  }
 
   var styleBtn = toggle("t-style", opts.scene === "carta", function (v) {
     opts.scene = v ? "carta" : "noche";
@@ -6929,6 +7415,16 @@ body {
     capitalDe: capitalDe,
     decoded: decoded,
     juego: function () { return juego; },
+    // La cáscara del juego, para poder probarla: en qué pantalla estamos y los
+    // tres gestos que la mueven.
+    pantalla: function () {
+      return !elPortada.hidden ? "portada"
+           : !elEleccion.hidden ? "eleccion"
+           : juego ? "partida" : "atlas";
+    },
+    eligePais: eligeDesdeMapa,
+    pestana: function () { return juego && juego.imp ? juego.imp.vista : null; },
+    ponVista: ponVista,
     dibujaBandera: function (g, x, y, w, h, bd) {
       var viejo = ctx; ctx = g; dibujaBandera(x, y, w, h, bd); ctx = viejo;
     },
@@ -6965,6 +7461,9 @@ body {
   };
 
   window.atlas.marcas = marcas;
+
+  // El mundo ya está cargado: se levanta el telón del juego, no el del atlas.
+  verPortada();
 
   requestAnimationFrame(function (t) {
     last = t;
