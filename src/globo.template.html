@@ -592,10 +592,16 @@ body {
   <div class="oculta-mini"><span>En guerra con</span><b id="ro-contra">—</b></div>
   <div><span>Mando</span><b id="ro-cuerpo">—</b></div>
   <div class="oculta-mini"><span>Parte</span><b id="ro-parte">—</b></div>
+  <div><span>Imperio</span><b id="ro-imperio">—</b></div>
+  <div class="oculta-mini"><span>Investigando</span><b id="ro-tec">—</b></div>
   <button class="btn" id="g-todos" type="button" aria-pressed="false"
           title="Las órdenes van a todas tus formaciones a la vez">Todos: no</button>
   <button class="btn" id="g-alto" type="button"
           title="Detener: la formación deja de atacar y se queda donde está">Alto</button>
+  <button class="btn" id="g-turno" type="button"
+          title="Cierra el año: la campaña corre una temporada y luego se cobran las rentas">Turno »</button>
+  <button class="btn" id="g-imperio" type="button" aria-pressed="false"
+          title="Tecnología, ciudades y reclutamiento">Imperio</button>
   <button class="plegar" id="g-mini" type="button" aria-expanded="true"
           title="Plegar o desplegar el parte">▾</button>
   <button class="btn" id="g-salir" type="button">Terminar</button>
@@ -2310,6 +2316,7 @@ body {
       // En campaña el índice deja de ser el de países: pasa a ser el parte de
       // guerra, con las divisiones que puedes atacar ahora delante, luego las
       // tuyas del frente y al final las demás.
+      if (juego && juego.imp && juego.imp.vista === "imperio") { indiceImperio(); return; }
       if (juego) {
         // Primero, tu orden de batalla: todas tus formaciones, con lo que
         // llevan y lo que están haciendo. Tocar una es tomar su mando y volar
@@ -2398,6 +2405,83 @@ body {
     marcarLista();
   }
 
+  // El índice del imperio: qué investigas, qué construye cada ciudad y qué
+  // puedes reclutar. Es el mismo listado del atlas, con otras filas.
+  function indiceImperio() {
+    var imp = juego.imp, r = rentas();
+    if (imp.verCiudad >= 0) { indiceCiudad(imp.verCiudad); return; }
+
+    titulo("Reclutar");
+    var cr = costeRecluta();
+    var mios = 0;
+    for (var i = 0; i < juego.cuerpos.length; i++) if (juego.cuerpos[i].mio) mios++;
+    fila("recluta", 0, "Nuevo " + E().unidad.toLowerCase(),
+         cr.oro + " oro · tienes " + mios);
+
+    titulo("Tecnología · " + E().n);
+    for (var i = 0; i < TECNOS.length; i++) {
+      var t = TECNOS[i];
+      var sabida = !!imp.sabidas[t.id];
+      // Se enseña lo sabido, lo que se investiga y lo siguiente de cada época:
+      // el árbol entero de golpe son veinticuatro renglones que no dicen nada.
+      if (!sabida && t.era > EPOCAS.indexOf(E()) + 1) continue;
+      fila("tecno", i, t.n,
+           sabida ? "sabida"
+           : i === imp.investiga
+             ? fmtNum(imp.ciencia) + "/" + fmtNum(t.coste) + " · " +
+               faltanTurnos(imp.ciencia, t.coste, r.ciencia)
+             : fmtNum(t.coste) + " ciencia");
+    }
+
+    titulo("Ciudades");
+    var ciu = misCiudades().slice();
+    ciu.sort(function (a, b) { return pobCiudad(b) - pobCiudad(a); });
+    for (var i = 0; i < ciu.length && i < 60; i++) {
+      var ic = ciu[i], e = imp.ciu[ic];
+      var obra = e && e.obra ? porId(EDIFICIOS, e.obra) : null;
+      fila("ciuimp", ic, ciudades[ic].n,
+           fmtNum(Math.round(pobCiudad(ic) / 1000)) + "k · " +
+           (obra ? obra.n.toLowerCase() + " " + Math.round(e.hecho / obra.coste * 100) + "%"
+                 : (e && e.edif && e.edif.length ? e.edif.length + " edificios" : "sin obra")));
+    }
+    if (!ciu.length) {
+      var p = document.createElement("p");
+      p.textContent = "Tu imperio no tiene ciudades todavía.";
+      listEl.appendChild(p);
+    }
+    marcarLista();
+  }
+
+  function unArticulo() {
+    return /^[aeiou]/i.test(E().unidad) ? "un" : (E().unidad === "Hueste" || E().unidad === "Legión" ? "una" : "un");
+  }
+
+  function indiceCiudad(ic) {
+    var imp = juego.imp;
+    var e = imp.ciu[ic] || (imp.ciu[ic] = { edif: [], obra: null, hecho: 0, crece: 1 });
+    titulo(ciudades[ic].n);
+    fila("volver", 0, "‹ Imperio",
+         fmtNum(Math.round(pobCiudad(ic) / 1000)) + "k habitantes");
+    for (var i = 0; i < EDIFICIOS.length; i++) {
+      var ed = EDIFICIOS[i];
+      var tiene = e.edif.indexOf(ed.id) >= 0;
+      var puede = !ed.req || imp.sabidas[ed.req];
+      var sub = tiene ? "construido"
+              : !puede ? "pide " + ((porId(TECNOS, ed.req) || {}).n || "").toLowerCase()
+              : e.obra === ed.id ? "en obra · " + Math.round(e.hecho / ed.coste * 100) + "%"
+              : ed.coste + " · " + faltanTurnos(0, ed.coste, prodCiudad(ic)) + " · " +
+                ed.oro + " oro/turno";
+      fila("obra", i, ed.n, sub);
+    }
+    marcarLista();
+  }
+
+  function titulo(t) {
+    var h = document.createElement("h3");
+    h.textContent = t;
+    listEl.appendChild(h);
+  }
+
   function desdeBoton(b) {
     return { tipo: b.dataset.tipo, i: Number(b.dataset.i) };
   }
@@ -2409,6 +2493,38 @@ body {
     // Con la campaña abierta el índice manda divisiones, no fichas: sirve para
     // elegir con cuál empiezas y para buscar objetivos por nombre.
     if (juego && r) {
+      // El imperio: investigar, construir y reclutar.
+      if (r.tipo === "tecno") {
+        var t = TECNOS[r.i];
+        if (t && !juego.imp.sabidas[t.id]) {
+          juego.imp.investiga = r.i;
+          anota("Se pone a investigar " + t.n);
+          renderList("");
+          pintaGuerra();
+        }
+        return;
+      }
+      if (r.tipo === "ciuimp") {
+        juego.imp.verCiudad = r.i;
+        renderList("");
+        flyTo(ciudades[r.i].c[0], ciudades[r.i].c[1], clampDist(Math.min(view.dist, 1.2)));
+        return;
+      }
+      if (r.tipo === "volver") { juego.imp.verCiudad = -1; renderList(""); return; }
+      if (r.tipo === "obra") {
+        var ic = juego.imp.verCiudad, ed = EDIFICIOS[r.i];
+        var e = juego.imp.ciu[ic];
+        if (ic >= 0 && ed && e && e.edif.indexOf(ed.id) < 0 &&
+            (!ed.req || juego.imp.sabidas[ed.req])) {
+          // Cambiar de obra no tira lo puesto: la piedra ya cortada sirve para
+          // lo siguiente, que es como se construyó media Europa.
+          e.obra = ed.id;
+          anota(ciudades[ic].n + ": empieza " + ed.n.toLowerCase());
+          renderList("");
+        }
+        return;
+      }
+      if (r.tipo === "recluta") { reclutaCuerpo(); renderList(""); return; }
       // Una formación de la lista: se toma su mando y se vuela hasta ella.
       if (r.tipo === "cuerpo") {
         var quien = cuerpoPorId(r.i);
@@ -3014,6 +3130,7 @@ body {
       moral: new Float32Array(NP),
       ultimoSum: -1e9, registro: []
     };
+    juego.imp = nuevoImperio();
     for (var c = 0; c < NCEL; c++) if (juego.est[c]) juego.tierra++;
     juego.org.fill(0.75);
     juego.sum.fill(1);
@@ -3329,6 +3446,273 @@ body {
       for (var j = 0; j < m; j++) if (juego.est[vB[j]] === 1) { toca = true; break; }
       if (toca) juego.frenteSet.add(w); else juego.frenteSet.delete(w);
     }
+  }
+
+  // --- el imperio ----------------------------------------------------------
+  //
+  // Sobre la guerra va lo demás de una civilización: la economía que paga los
+  // ejércitos, las ciudades que la producen y la técnica que decide en qué
+  // siglo peleas. El turno es un año —y unos cuantos según la época: en la
+  // Antigüedad un año es poco y en el siglo XX es mucho—, dentro del cual la
+  // campaña corre sola una temporada; al cerrarlo se cobran los ingresos, se
+  // adelanta la investigación y crecen las ciudades.
+  //
+  // La técnica no es una lista de adornos: cuando terminas las tres de tu
+  // época, el ejército entero cambia de siglo. Las mismas ocho épocas que ya
+  // gobiernan la guerra —sus armas, su ritmo, su alcance de suministro— son
+  // ahora las edades de tu civilización, y pasar de una a otra se gana
+  // investigando.
+  var TECNOS = [
+    { id: "agri",      n: "Agricultura",        era: 0, coste: 40,   da: { comida: 0.30 } },
+    { id: "escritura", n: "Escritura",          era: 0, coste: 55,   da: { ciencia: 0.25 } },
+    { id: "bronce",    n: "Metalurgia",         era: 0, coste: 75,   da: { fuerza: 0.10 } },
+    { id: "arado",     n: "Arado pesado",       era: 1, coste: 110,  da: { comida: 0.30 } },
+    { id: "feudalismo",n: "Feudalismo",         era: 1, coste: 140,  da: { recluta: 0.25 } },
+    { id: "castillos", n: "Castillos",          era: 1, coste: 180,  da: { defensa: 0.30 } },
+    { id: "imprenta",  n: "Imprenta",           era: 2, coste: 240,  da: { ciencia: 0.35 } },
+    { id: "artilleria",n: "Artillería de sitio",era: 2, coste: 300,  da: { fuerza: 0.15 } },
+    { id: "navegacion",n: "Navegación de altura",era: 2, coste: 360, da: { oro: 0.30 } },
+    { id: "nacion",    n: "Nación en armas",    era: 3, coste: 460,  da: { recluta: 0.40 } },
+    { id: "carreteras",n: "Carreteras",         era: 3, coste: 540,  da: { prod: 0.25 } },
+    { id: "banca",     n: "Banca",              era: 3, coste: 640,  da: { oro: 0.35 } },
+    { id: "vapor",     n: "Máquina de vapor",   era: 4, coste: 780,  da: { prod: 0.35 } },
+    { id: "ferrocarril",n: "Ferrocarril",       era: 4, coste: 920,  da: { prod: 0.25, recluta: 0.2 } },
+    { id: "acero",     n: "Acero",              era: 4, coste: 1080, da: { fuerza: 0.15, defensa: 0.15 } },
+    { id: "quimica",   n: "Química industrial", era: 5, coste: 1300, da: { fuerza: 0.20 } },
+    { id: "ametralladora", n: "Ametralladora",  era: 5, coste: 1500, da: { defensa: 0.35 } },
+    { id: "telegrafo", n: "Telégrafo",          era: 5, coste: 1750, da: { ciencia: 0.30 } },
+    { id: "motor",     n: "Motor de combustión",era: 6, coste: 2050, da: { prod: 0.30 } },
+    { id: "radio",     n: "Radio",              era: 6, coste: 2400, da: { ciencia: 0.30 } },
+    { id: "blindaje",  n: "Blindaje",           era: 6, coste: 2800, da: { fuerza: 0.25 } },
+    { id: "electronica", n: "Electrónica",      era: 7, coste: 3300, da: { ciencia: 0.40 } },
+    { id: "satelites", n: "Satélites",          era: 7, coste: 3900, da: { oro: 0.40 } },
+    { id: "precision", n: "Armas de precisión", era: 7, coste: 4600, da: { fuerza: 0.30 } }
+  ];
+
+  // Lo que se puede levantar en una ciudad. Cuesta producción una vez y oro
+  // todos los turnos: un imperio con más edificios de los que puede pagar se
+  // arruina, que es la mitad de la historia de los imperios.
+  var EDIFICIOS = [
+    { id: "granero",   n: "Granero",     coste: 45,  oro: 1, req: "agri",       da: { comida: 0.35 } },
+    { id: "mercado",   n: "Mercado",     coste: 70,  oro: 1, req: "escritura",  da: { oro: 0.35 } },
+    { id: "biblioteca",n: "Biblioteca",  coste: 90,  oro: 2, req: "escritura",  da: { ciencia: 0.40 } },
+    { id: "murallas",  n: "Murallas",    coste: 60,  oro: 1, req: "bronce",     da: { defensa: 0.35 } },
+    { id: "cuartel",   n: "Cuartel",     coste: 80,  oro: 2, req: "feudalismo", da: { recluta: 0.30 } },
+    { id: "puerto",    n: "Puerto",      coste: 110, oro: 2, req: "navegacion", da: { oro: 0.40 } },
+    { id: "fabrica",   n: "Fábrica",     coste: 190, oro: 3, req: "vapor",      da: { prod: 0.45 } },
+    { id: "universidad", n: "Universidad", coste: 220, oro: 3, req: "imprenta", da: { ciencia: 0.50 } }
+  ];
+
+  // Cuántos años pasa un turno y cuántos días de campaña corren dentro de él.
+  // En la Antigüedad un turno es una generación y una campaña de verano; en
+  // 1942, un año y una ofensiva.
+  function anosPorTurno() { return [25, 15, 8, 4, 3, 2, 1, 1][EPOCAS.indexOf(E())] || 1; }
+  function diasPorTurno() { return 90; }
+
+  function nuevoImperio() {
+    return {
+      turno: 1, anio: E().anio, oro: 120, ciencia: 0,
+      sabidas: {}, investiga: -1, ciu: {}, vista: "batalla", verCiudad: -1,
+      finTurno: 0, corriendo: false, ultimo: null, puntos: 0, rev: 0
+    };
+  }
+
+  // Los bonos que dan la técnica y los edificios, sumados. Un imperio es la
+  // suma de lo que sabe y de lo que ha construido.
+  // Los bonos se recalculan cuando cambia algo —una técnica, un edificio, el
+  // frente—, no en cada choque: esto lo consulta el combate miles de veces al
+  // día.
+  function bonos() {
+    var imp = juego.imp;
+    if (!imp) return { oro: 0, ciencia: 0, prod: 0, comida: 0, fuerza: 0, defensa: 0, recluta: 0 };
+    if (imp.bonoDia === juego.dia && imp.bonoRev === imp.rev && imp.bono) return imp.bono;
+    imp.bonoDia = juego.dia; imp.bonoRev = imp.rev;
+    imp.bono = calculaBonos();
+    return imp.bono;
+  }
+
+  function calculaBonos() {
+    var b = { oro: 0, ciencia: 0, prod: 0, comida: 0, fuerza: 0, defensa: 0, recluta: 0 };
+    var imp = juego.imp;
+    for (var i = 0; i < TECNOS.length; i++) {
+      if (!imp.sabidas[TECNOS[i].id]) continue;
+      for (var k in TECNOS[i].da) b[k] += TECNOS[i].da[k];
+    }
+    misCiudades().forEach(function (ic) {
+      var e = imp.ciu[ic];
+      if (!e || !e.edif) return;
+      for (var j = 0; j < e.edif.length; j++) {
+        var ed = porId(EDIFICIOS, e.edif[j]);
+        if (ed) for (var k2 in ed.da) b[k2] += ed.da[k2];
+      }
+    });
+    return b;
+  }
+
+  function porId(lista, id) {
+    for (var i = 0; i < lista.length; i++) if (lista[i].id === id) return lista[i];
+    return null;
+  }
+
+  // Mis ciudades: las que están en celdas que domino. Cambian con el frente, y
+  // por eso una guerra ganada es una economía ganada.
+  var cacheCiu = { dia: -1, lista: [] };
+  function misCiudades() {
+    if (cacheCiu.dia === juego.dia && cacheCiu.cambios === juego.cambios) return cacheCiu.lista;
+    var lista = [];
+    juego.ciudad.forEach(function (ic, c) { if (juego.est[c] === 2) lista.push(ic); });
+    cacheCiu = { dia: juego.dia, cambios: juego.cambios, lista: lista };
+    return lista;
+  }
+
+  function pobCiudad(ic) {
+    var e = juego.imp.ciu[ic];
+    return ciudades[ic].pop * (e && e.crece ? e.crece : 1);
+  }
+
+  // Lo que rinde el imperio en un turno. La tierra da poco y la ciudad mucho:
+  // es la diferencia entre un reino agrario y uno con puertos y fábricas.
+  function rentas() {
+    var b = bonos(), pob = 0, ciu = misCiudades();
+    for (var i = 0; i < ciu.length; i++) pob += pobCiudad(ciu[i]);
+    // La escala: un país grande de la Antigüedad saca unas decenas de oro al
+    // turno, no miles. La tierra rinde poco y la gente mucho, que es la
+    // diferencia entre un reino agrario y uno de ciudades.
+    var tierra = juego.mias / (ESC * ESC);          // en celdas de cuarto de grado
+    var base = tierra * 0.006 + pob / 900000;
+    var mant = 0;
+    for (var i = 0; i < ciu.length; i++) {
+      var e = juego.imp.ciu[ciu[i]];
+      if (!e || !e.edif) continue;
+      for (var j = 0; j < e.edif.length; j++) {
+        var ed = porId(EDIFICIOS, e.edif[j]);
+        if (ed) mant += ed.oro;
+      }
+    }
+    // Los ejércitos comen: cada formación cuesta oro todos los turnos.
+    var mios = 0;
+    for (var i = 0; i < juego.cuerpos.length; i++) if (juego.cuerpos[i].mio) mios++;
+    mant += mios * 2;
+    // La producción no se reparte desde arriba: la hace cada ciudad con su
+    // gente, y por eso una ciudad grande levanta una catedral y una aldea no.
+    var prod = 0;
+    for (var i = 0; i < ciu.length; i++) prod += prodCiudad(ciu[i], b);
+    return {
+      oro: Math.round(base * 1.6 * (1 + b.oro) - mant),
+      ciencia: Math.round(base * 0.5 * (1 + b.ciencia)),
+      prod: Math.round(prod),
+      mant: mant, pob: pob, ciudades: ciu.length, bonos: b
+    };
+  }
+
+  function prodCiudad(ic, b) {
+    b = b || bonos();
+    return (1 + pobCiudad(ic) / 60000) * (1 + b.prod);
+  }
+
+  function costeRecluta() {
+    return { oro: Math.round(40 + E().cuerpo / 900), prod: Math.round(60 + E().cuerpo / 700) };
+  }
+
+  // Cerrar el turno: se cobran las rentas, avanza la investigación, las obras
+  // de cada ciudad y crece la población.
+  function cierraTurno() {
+    var imp = juego.imp, r = rentas();
+    imp.oro = Math.max(0, imp.oro + r.oro);
+    imp.ciencia += r.ciencia;
+    var parte = [];
+
+    // Investigación. Al terminar las tres de una época, el ejército entero
+    // cambia de siglo: es lo que hace que la técnica se note en la guerra.
+    if (imp.investiga >= 0) {
+      var t = TECNOS[imp.investiga];
+      if (t && !imp.sabidas[t.id] && imp.ciencia >= t.coste) {
+        imp.ciencia -= t.coste;
+        imp.sabidas[t.id] = 1;
+        imp.rev++;
+        parte.push("Se descubre " + t.n);
+        imp.investiga = proximaTecno();
+        var ep = EPOCAS.indexOf(E());
+        if (ep >= 0 && ep < EPOCAS.length - 1 && eraCompleta(ep)) {
+          juego.ep = EPOCAS[ep + 1];
+          parte.push("Tu civilización entra en la época " + juego.ep.n);
+        }
+      }
+    } else imp.investiga = proximaTecno();
+
+    // Obras y crecimiento de cada ciudad.
+    var ciu = misCiudades(), b = r.bonos;
+    for (var i = 0; i < ciu.length; i++) {
+      var ic = ciu[i], e = imp.ciu[ic] || (imp.ciu[ic] = { edif: [], obra: null, hecho: 0, crece: 1 });
+      e.crece = (e.crece || 1) * (1 + 0.012 * (1 + b.comida));
+      if (!e.obra) continue;
+      e.hecho += prodCiudad(ic, b);
+      var ed = porId(EDIFICIOS, e.obra);
+      if (ed && e.hecho >= ed.coste) {
+        e.hecho = 0;
+        e.edif.push(ed.id);
+        imp.rev++;
+        parte.push(ciudades[ic].n + ": se termina " + ed.n.toLowerCase());
+        e.obra = null;
+      }
+    }
+
+    imp.turno++;
+    imp.anio += anosPorTurno();
+    imp.ultimo = { oro: r.oro, ciencia: r.ciencia, prod: r.prod, parte: parte };
+    for (var i = 0; i < parte.length; i++) anota(parte[i]);
+    imp.puntos = puntuacion();
+  }
+
+  // Reclutar una formación: cuesta oro y sale de la capital, con la tropa que
+  // la reserva del país pueda darle. Antes los mandos se levantaban solos; un
+  // imperio decide cuántos ejércitos puede pagar.
+  function reclutaCuerpo() {
+    if (!juego || juego.pais < 0) return false;
+    var cr = costeRecluta();
+    if (juego.imp.oro < cr.oro) {
+      anota("No hay oro para levantar otra formación");
+      return false;
+    }
+    var cuna = juego.est[juego.capital] === 2 ? juego.capital
+             : celdaCerca(juego.capital, Math.round(celdasEsc(30)),
+                          function (w) { return juego.est[w] === 2; });
+    if (cuna < 0) cuna = juego.frente.length ? juego.frente[0] : -1;
+    if (cuna < 0) return false;
+    var antes = juego.cuerpos.length;
+    creaCuerpos(juego.pais, true, [cuna], 1);
+    if (juego.cuerpos.length === antes) return false;
+    juego.imp.oro -= cr.oro;
+    var nuevo = juego.cuerpos[juego.cuerpos.length - 1];
+    // Un cuerpo nuevo no nace vacío: se le da lo que haya instruido en los
+    // depósitos, hasta lo que la época dice que es una formación.
+    var da = Math.min(juego.reservaPais[juego.pais], E().cuerpo * (1 + bonos().recluta));
+    nuevo.lleva = da;
+    juego.reservaPais[juego.pais] -= da;
+    anota(paises[juego.pais].n + ": se levanta el " + nuevo.nom + " con " +
+          fmtNum(Math.round(da)) + " hombres");
+    reparteSectores();
+    pintaGuerra();
+    return true;
+  }
+
+  function eraCompleta(ep) {
+    for (var i = 0; i < TECNOS.length; i++) {
+      if (TECNOS[i].era === ep && !juego.imp.sabidas[TECNOS[i].id]) return false;
+    }
+    return true;
+  }
+
+  function proximaTecno() {
+    for (var i = 0; i < TECNOS.length; i++) if (!juego.imp.sabidas[TECNOS[i].id]) return i;
+    return -1;
+  }
+
+  function puntuacion() {
+    var sabe = 0;
+    for (var k in juego.imp.sabidas) if (juego.imp.sabidas[k]) sabe++;
+    return Math.round(juego.mias / (ESC * ESC) * 0.2 + misCiudades().length * 4 + sabe * 30 +
+                      juego.imp.turno);
   }
 
   // --- el orden de batalla -------------------------------------------------
@@ -3982,7 +4366,10 @@ body {
   // organización, y sólo cuando se rompe cede el terreno. Atacar también
   // desorganiza al atacante, así que no se puede empujar sin parar.
   function poderAtaque(c) {
-    return juego.fuerza[c] * juego.org[c] * (0.35 + 0.65 * juego.sum[c]) * climaEn(c).mov;
+    // Lo que sabe tu civilización se nota en la línea: el bronce, el acero y la
+    // precisión son técnicas antes que armas.
+    var tec = juego.est[c] === 2 ? 1 + bonos().fuerza : 1;
+    return juego.fuerza[c] * juego.org[c] * (0.35 + 0.65 * juego.sum[c]) * climaEn(c).mov * tec;
   }
 
   // El terreno y la plaza fuerte de una celda se calculan al vuelo: sólo los
@@ -4017,6 +4404,7 @@ body {
       for (var k = 0; k < n; k++) if (juego.est[vD[k]] === bando) rodean++;
       t *= 1 - 0.17 * Math.max(0, rodean - 1);
     }
+    if (juego.est[c] === 2) t *= 1 + bonos().defensa;   // murallas, trincheras, técnica
     return juego.fuerza[c] * (0.25 + 0.75 * juego.org[c]) *
            (0.3 + 0.7 * juego.sum[c]) * t;
   }
@@ -4624,8 +5012,8 @@ body {
       // término se le acumulaban cinco millones de hombres en los depósitos
       // mientras la línea se quedaba corta.
       var cupo = Math.min(juego.reservaPais[mi],
-                          40 + frente.length * 40 / ESC + juego.mias * 0.05 / ESC +
-                          juego.movilizable[mi] * 0.002);
+                          (40 + frente.length * 40 / ESC + juego.mias * 0.05 / ESC +
+                           juego.movilizable[mi] * 0.002) * (1 + bonos().recluta));
       var pesoU = [], sumaU = 0;
       for (var i = 0; i < juego.cuerpos.length; i++) {
         var u = juego.cuerpos[i];
@@ -4675,6 +5063,11 @@ body {
     }
     coalicion();
     compruebaFin();
+    // El año se cierra cuando pasa su último día, avance el tiempo como avance.
+    if (juego.imp && juego.imp.corriendo && juego.dia >= juego.imp.finTurno) {
+      juego.imp.corriendo = false;
+      cierraTurno();
+    }
   }
 
   // Lo mismo para el defensor: las guarniciones del interior van saliendo hacia
@@ -4741,6 +5134,9 @@ body {
   // sin sector ya desaparecen solos.
   function reponCuerpos() {
     if (juego.pais < 0) return;
+    // Con el imperio abierto, los ejércitos no brotan solos: se reclutan y se
+    // pagan. Levantar un cuerpo es una decisión de gobierno, no un automatismo.
+    if (juego.imp) return;
     var mios = 0;
     for (var i = 0; i < juego.cuerpos.length; i++) if (juego.cuerpos[i].mio) mios++;
     // Los mandos que pide el frente que hay que cubrir de verdad, no el
@@ -4808,10 +5204,21 @@ body {
     juego.reloj += dt;
     var dias = 0;
     var paso = diaMs();
+    // El turno manda sobre el reloj: la campaña corre dentro del año que has
+    // abierto y se para al cerrarlo. Mientras esté parada, el tiempo no pasa
+    // —es tu turno para decidir—.
+    if (juego.imp && !juego.imp.corriendo) return;
     // Tope de días por fotograma: con el reloj rápido de 1916 hay que dejar
     // avanzar más de un día por cuadro, pero un día cuesta veinte milisegundos
     // y ocho seguidos serían un tirón.
-    while (juego.reloj >= paso && dias < 6) { juego.reloj -= paso; unDia(); dias++; }
+    var turnoAntes = juego.imp ? juego.imp.turno : 0;
+    while (juego.reloj >= paso && dias < 6) {
+      juego.reloj -= paso;
+      unDia();
+      dias++;
+      if (juego.imp && !juego.imp.corriendo) break;   // el año se ha cerrado
+    }
+    if (juego.imp && juego.imp.turno !== turnoAntes) renderList(searchEl.value);
     if (dias) {
       subeMapa();
       pintaGuerra();
@@ -4908,7 +5315,35 @@ body {
   // formación que llevas —o el ejército entero, si está puesto el mando
   // general— deja de atacar, cancela lo que tuviera pendiente y se queda donde
   // está sosteniendo lo que ha tomado. Cualquier orden nueva lo levanta.
+  var roImperio = document.getElementById("ro-imperio");
+  var roTec = document.getElementById("ro-tec");
+  var gTurno = document.getElementById("g-turno");
+  var gImperio = document.getElementById("g-imperio");
   var gAlto = document.getElementById("g-alto");
+
+  // Cerrar el turno: la campaña corre una temporada —se ve el frente moverse— y
+  // al terminarla se cobran las rentas y se para a esperar tus órdenes.
+  gTurno.addEventListener("click", function () {
+    if (!juego || juego.fin) return;
+    if (juego.imp.corriendo) return;
+    juego.imp.finTurno = juego.dia + diasPorTurno();
+    juego.imp.corriendo = true;
+    juego.reloj = 0;
+    pintaGuerra();
+  });
+
+  // El índice cambia de asunto: o el orden de batalla o el imperio —lo que
+  // sabes, lo que construyes y lo que puedes reclutar—.
+  gImperio.addEventListener("click", function () {
+    if (!juego) return;
+    var imp = juego.imp;
+    imp.vista = imp.vista === "batalla" ? "imperio" : "batalla";
+    imp.verCiudad = -1;
+    gImperio.setAttribute("aria-pressed", String(imp.vista === "imperio"));
+    searchEl.value = "";
+    renderList("");
+
+  });
   gAlto.addEventListener("click", function () {
     if (!juego || juego.fin) return;
     var paran = juego.todos ? juego.cuerpos.filter(function (u) { return u.mio; })
@@ -4973,6 +5408,8 @@ body {
       roContra.textContent = "toca tu país";
       roCuerpo.textContent = "—";
       roParte.textContent = ep0.nota;
+      roImperio.textContent = "elige un país y empieza";
+      roTec.textContent = "—";
       return;
     }
     gEpoca.value = String(EPOCAS.indexOf(juego.ep));
@@ -5031,6 +5468,32 @@ body {
            : "sostiene · toca adónde va")
       : mios + " cuerpos · toca una bandera";
     roParte.textContent = juego.registro.length ? juego.registro[0] : "sin novedad";
+
+    // El estado del imperio: el año, la caja y lo que rinde. Un turno es una
+    // decisión: en qué gastas lo que produces.
+    var imp = juego.imp, r = rentas();
+    roImperio.textContent = "turno " + imp.turno + " · año " + anoTexto(imp.anio) + " · " +
+      fmtNum(imp.oro) + " de oro (" + (r.oro >= 0 ? "+" : "") + r.oro + ") · " +
+      r.prod + " de producción · " + r.ciudades + " ciudades · " +
+      fmtNum(Math.round(r.pob / 1000)) + "k habitantes · " + imp.puntos + " puntos";
+    var t = imp.investiga >= 0 ? TECNOS[imp.investiga] : null;
+    roTec.textContent = t
+      ? t.n + " · " + fmtNum(imp.ciencia) + " / " + fmtNum(t.coste) + " (+" + r.ciencia +
+        " al turno) · " + faltanTurnos(imp.ciencia, t.coste, r.ciencia)
+      : "todo investigado";
+    gTurno.textContent = imp.corriendo ? "…" + Math.max(0, imp.finTurno - juego.dia) + " d"
+                                       : "Turno »";
+  }
+
+  function anoTexto(a) {
+    return a < 0 ? Math.abs(Math.round(a)) + " a. C." : Math.round(a);
+  }
+
+  function faltanTurnos(tiene, coste, porTurno) {
+    if (tiene >= coste) return "lista al cerrar el turno";
+    if (porTurno <= 0) return "sin ciencia: te falta economía";
+    var n = Math.ceil((coste - tiene) / porTurno);
+    return n + (n === 1 ? " turno" : " turnos");
   }
 
   // El cuerpo cuya bandera cae bajo el dedo. Se mira sólo entre los míos: la

@@ -227,6 +227,42 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3z. El imperio: turnos, técnica y ciudades sobre la misma guerra.** La campaña
+militar ya estaba; lo que faltaba era lo demás de una civilización —la economía
+que paga los ejércitos, las ciudades que la producen y la técnica que decide en
+qué siglo peleas—. Va encima, sin tocar la simulación de guerra:
+
+- **El turno es un año** —y unos cuantos según la época: veinticinco en la
+  Antigüedad, uno en 1942—. Dentro de él la campaña **corre sola una
+  temporada** de noventa días: ves el frente moverse. Al cerrarse, se cobran
+  las rentas, avanza la investigación y crecen las ciudades. Mientras decides,
+  el tiempo no pasa.
+- **La economía sale del mapa que ya existe**: las ciudades reales que domines
+  —con su población real— y el territorio. Oro para pagar ejércitos y edificios,
+  ciencia para investigar, y producción **por ciudad**, que por eso una ciudad
+  grande levanta una universidad y una aldea no.
+- **Veinticuatro tecnologías en las ocho épocas**, tres por época. Y aquí está
+  el nudo con la guerra: **cuando terminas las tres de tu época, tu ejército
+  entero cambia de siglo**. Las mismas ocho épocas que gobiernan el combate
+  —armas, ritmo, alcance del suministro, quiebra— son las edades de tu
+  civilización, y se ganan investigando. Cada técnica pesa además en la línea:
+  metalurgia y blindaje suman fuerza, castillos y ametralladora suman defensa,
+  feudalismo y ferrocarril suman reemplazos.
+- **Ocho edificios por ciudad** —granero, mercado, biblioteca, murallas,
+  cuartel, puerto, fábrica, universidad—: cuestan producción una vez y **oro
+  todos los turnos**. Un imperio con más edificios de los que puede pagar se
+  arruina, que es media historia de los imperios.
+- **Los ejércitos ya no brotan solos**: se reclutan y se pagan. Levantar una
+  formación cuesta oro y sale de la capital con lo que haya instruido en los
+  depósitos. Mantenerla cuesta oro cada turno.
+- **Puntuación**: territorio, ciudades, técnicas y turnos aguantados.
+
+Comprobado de punta a punta: se abre campaña en la Antigüedad, el índice enseña
+las técnicas y las cincuenta y cinco ciudades, se investiga, se construye, pasan
+turnos con la campaña corriendo dentro, entran oro y ciencia, se recluta pagando,
+y al completar una época **el ejército cambia de siglo** —la quiebra pasa de 0,9
+a 2,0 y con ella todo el combate—.
+
 **3y. Una orden general es un eje, no un punto.** Con el mando general puesto,
 la misma celda se le daba por objetivo a las veinte formaciones y todas
 convergían al mismo sitio, que es exactamente lo que no hace un cuartel
