@@ -593,7 +593,7 @@ body {
   <div><span>Mando</span><b id="ro-cuerpo">—</b></div>
   <div class="oculta-mini"><span>Parte</span><b id="ro-parte">—</b></div>
   <button class="btn" id="g-todos" type="button" aria-pressed="false"
-          title="Las órdenes van a todas tus formaciones a la vez">Todos</button>
+          title="Las órdenes van a todas tus formaciones a la vez">Todos: no</button>
   <button class="btn" id="g-alto" type="button"
           title="Detener: la formación deja de atacar y se queda donde está">Alto</button>
   <button class="plegar" id="g-mini" type="button" aria-expanded="true"
@@ -4895,6 +4895,10 @@ body {
     if (!juego) return;
     juego.todos = !juego.todos;
     gTodos.setAttribute("aria-pressed", String(juego.todos));
+    // Con el rótulo se sabe sin mirar el color: o mandas el ejército entero o
+    // mandas la formación que llevas, y confundirlos es mandar veinte cuerpos
+    // al mismo sitio sin querer.
+    gTodos.textContent = juego.todos ? "Todos: sí" : "Todos: no";
     pintaGuerra();
   });
 
@@ -5057,7 +5061,11 @@ body {
     if (!juego || id < 0) return false;
     juego.sel = id;
     // Coger una bandera es volver a llevar ese cuerpo, no el ejército entero.
-    if (juego.todos) { juego.todos = false; gTodos.setAttribute("aria-pressed", "false"); }
+    if (juego.todos) {
+      juego.todos = false;
+      gTodos.setAttribute("aria-pressed", "false");
+      gTodos.textContent = "Todos: no";
+    }
     pintaGuerra();
     return true;
   }
@@ -5067,13 +5075,43 @@ body {
   // van a buscarlo.
   function ordenaATodos(c) {
     var alguna = false;
+    var vT = new Int32Array(4);
     for (var i = 0; i < juego.cuerpos.length; i++) {
       var u = juego.cuerpos[i];
       if (!u.mio) continue;
       juego.sel = u.id;
-      if (ordenaA(u, c)) alguna = true;
+      // Una orden general es un eje, no un punto: mandar a veinte formaciones
+      // contra la misma celda las amontona a todas en el mismo sitio, que es
+      // justo lo que no hace un cuartel general. Cada cuerpo ataca por SU
+      // tramo, hacia allí: de las celdas enemigas que tiene delante, la que
+      // más se acerca al punto que has señalado. El que no tiene a nadie
+      // delante sí recibe el punto, y marchará a buscar frente desde donde
+      // pueda atacarlo.
+      var suyo = c, ipDiana = juego.est[c] === 1 ? juego.paisCel[c] : MAR;
+      if (ipDiana !== MAR && u.sector.length) {
+        // Sólo cuenta como «su tramo» lo que sea del país señalado: si le
+        // mandas atacar a otro, el cuerpo que no lo tiene delante no se queda
+        // mordiendo al de siempre —eso era desobedecer—, recibe el punto y
+        // marcha a un sitio desde donde pueda atacarlo.
+        var mejor = -1, min = Infinity;
+        for (var k = 0; k < u.sector.length; k++) {
+          var cs = u.sector[k];
+          if (juego.est[cs] !== 2) continue;
+          var n = vecinas(cs, vT);
+          for (var q = 0; q < n; q++) {
+            var w = vT[q];
+            if (juego.est[w] !== 1 || juego.paisCel[w] !== ipDiana) continue;
+            var d = distCel(w, c);
+            if (d < min) { min = d; mejor = w; }
+          }
+        }
+        if (mejor >= 0) suyo = mejor;
+      }
+      if (ordenaA(u, suyo)) alguna = true;
+      // Y contra el país señalado, no contra el de la celda que le tocó.
+      if (juego.est[c] === 1 && juego.paisCel[c] !== MAR) u.paisObj = juego.paisCel[c];
     }
-    if (alguna) pintaGuerra();
+    if (alguna) { juego.objetivo = c; pintaGuerra(); }
     return alguna;
   }
 

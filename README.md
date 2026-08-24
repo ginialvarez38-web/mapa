@@ -227,6 +227,20 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**3y. Una orden general es un eje, no un punto.** Con el mando general puesto,
+la misma celda se le daba por objetivo a las veinte formaciones y todas
+convergían al mismo sitio, que es exactamente lo que no hace un cuartel
+general. Ahora cada cuerpo ataca **por su tramo, hacia allí**: de las celdas
+enemigas que tiene delante, la que más se acerca al punto señalado; el que no
+tiene a nadie delante sí recibe el punto y marcha a buscar frente desde donde
+pueda atacarlo. En la prueba, diecisiete formaciones reciben **diecisiete
+objetivos distintos**, repartidos a lo largo del frente, en vez de amontonarse.
+
+Y el interruptor deja de ser adivinanza: el botón pone **`Todos: no`** o
+`Todos: sí`. Arranca en `no` —cada división se moviliza tocándola a ella— y
+tocar una bandera lo devuelve a `no`, porque coger una formación es dejar de
+mandar el ejército entero.
+
 **3x. La orden se da donde apuntas.** Tocar el mapa resolvía dos veces quién
 recibía el toque: primero en pantalla —mirando qué bandera tenía el dedo más
 cerca, que ya decide entre coger una formación y darle una orden— y después
