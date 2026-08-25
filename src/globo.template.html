@@ -601,7 +601,8 @@ body {
 body.telon .masthead, body.telon .readout, body.telon .controls,
 body.telon .panel, body.telon .card, body.telon .guerra,
 body.eligiendo .masthead, body.eligiendo .controls, body.eligiendo .guerra,
-body.eligiendo .readout, body.eligiendo .panel, body.eligiendo .card { display: none !important; }
+body.eligiendo .readout, body.eligiendo .panel, body.eligiendo .card,
+body.telon .parte-turno, body.eligiendo .parte-turno { display: none !important; }
 body.jugando .masthead { display: none; }
 body.jugando .controls, body.jugando .readout { display: none; }
 body.jugando.capas .controls, body.jugando.capas .readout { display: flex; }
@@ -687,6 +688,41 @@ body.jugando .capas-chip { display: inline-flex; }
 .pie-eleccion b { font-family: var(--font-data); font-size: 11px; color: #A9B8C9; font-weight: 500; }
 .pie-eleccion span { display: flex; gap: 8px; }
 
+/* ---- el marcador final ---- */
+.marcador { margin: 14px 0 18px; }
+.marcador div {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.08);
+  font-size: 13px; color: #C6D2E0;
+}
+.marcador div b { font-family: var(--font-data); font-size: 11px; font-weight: 500; color: #FFF; }
+.marcador div.tuyo { color: #FFF; }
+.marcador div.tuyo span::before { content: "▸ "; color: var(--accent); }
+
+/* ---- el parte del turno: lo que ha pasado mientras decidías ---- */
+.parte-turno {
+  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%);
+  z-index: 24; width: min(430px, calc(100vw - 28px));
+}
+.parte-turno[hidden] { display: none; }
+.parte-caja {
+  padding: 12px 14px 10px;
+  border: 1px solid rgba(255,255,255,.16); border-radius: 8px;
+  background: rgba(18,22,30,.94); color: #E7EDF5;
+  box-shadow: 0 18px 44px rgba(0,0,0,.45);
+}
+.parte-caja h3 {
+  margin: 0 0 8px; font-family: var(--font-data); font-size: 10px;
+  letter-spacing: .18em; text-transform: uppercase; color: #9FB0C4; font-weight: 500;
+}
+.parte-cuentas {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 8px;
+  font-family: var(--font-data); font-size: 11px; color: #B9C7D8;
+}
+.parte-caja ul { margin: 0 0 10px; padding-left: 16px; max-height: 26vh; overflow: auto; }
+.parte-caja li { font-size: 12.5px; line-height: 1.45; margin: 2px 0; }
+@media (max-width: 900px) { .parte-turno { bottom: 12px; } }
+
 /* ---- las pestañas del juego ---- */
 .pestanas { display: flex; gap: 4px; padding: 8px 10px 0; flex-wrap: wrap; }
 .pestanas[hidden] { display: none; }
@@ -738,6 +774,28 @@ body.jugando #g-imperio { display: none; }
   </div>
 </div>
 
+<div class="portada" id="final" hidden>
+  <div class="portada-caja">
+    <p class="sello" id="f-sello">Fin de la partida</p>
+    <h1 id="f-titulo">—</h1>
+    <p class="lema" id="f-texto">—</p>
+    <div class="marcador" id="f-marcador"></div>
+    <div class="portada-botones">
+      <button class="btn grande" id="f-otra" type="button">Otra partida</button>
+      <button class="btn" id="f-mirar" type="button">Mirar el mapa</button>
+    </div>
+  </div>
+</div>
+
+<div class="parte-turno" id="parte-turno" hidden aria-live="polite">
+  <div class="parte-caja">
+    <h3 id="pt-titulo">—</h3>
+    <div class="parte-cuentas" id="pt-cuentas"></div>
+    <ul id="pt-lista"></ul>
+    <button class="btn" id="pt-cerrar" type="button">Seguir</button>
+  </div>
+</div>
+
 <div class="readout" id="readout">
   <div><span>Cursor</span><b id="ro-cursor">—</b></div>
   <div><span>Altitud</span><b id="ro-alt">—</b></div>
@@ -752,6 +810,7 @@ body.jugando #g-imperio { display: none; }
   <div><span>Mando</span><b id="ro-cuerpo">—</b></div>
   <div class="oculta-mini"><span>Parte</span><b id="ro-parte">—</b></div>
   <div><span>Imperio</span><b id="ro-imperio">—</b></div>
+  <div class="oculta-mini"><span>El mundo</span><b id="ro-mundo">—</b></div>
   <div class="oculta-mini"><span>Investigando</span><b id="ro-tec">—</b></div>
   <button class="btn" id="g-todos" type="button" aria-pressed="false"
           title="Las órdenes van a todas tus formaciones a la vez">Todos: no</button>
@@ -772,6 +831,7 @@ body.jugando #g-imperio { display: none; }
     <button class="btn" data-vista="batalla" type="button" aria-pressed="false">Ejército</button>
     <button class="btn" data-vista="ciudades" type="button" aria-pressed="false">Ciudades</button>
     <button class="btn" data-vista="tecno" type="button" aria-pressed="false">Técnica</button>
+    <button class="btn" data-vista="mundo" type="button" aria-pressed="false">Mundo</button>
     <button class="btn" data-vista="atlas" type="button" aria-pressed="false">Atlas</button>
   </div>
   <div class="panel-head">
@@ -1747,6 +1807,14 @@ body.jugando #g-imperio { display: none; }
   }
 
   function colorPais(scene, i) {
+    // En partida el mapa político es el de los imperios, no el de las banderas:
+    // cada civilización de su color, y lo libre del color del mundo. Lo que tú
+    // conquistas se pinta encima, celda a celda, desde la otra textura.
+    if (juego && juego.dueno) {
+      var d = juego.dueno[i];
+      if (d === MIO) return hexToRgb(COLOR_IMPERIO);
+      if (d >= 0 && juego.rivales[d]) return hexToRgb(juego.rivales[d].col);
+    }
     // El índice alfabético no guarda relación con la vecindad geográfica, así
     // que este salto reparte tonos distintos entre países limítrofes.
     return hexToRgb(scene.land[(i * 7) % scene.land.length]);
@@ -1763,7 +1831,13 @@ body.jugando #g-imperio { display: none; }
       // Con las divisiones a la vista, cada una toma el tono de su país en un
       // matiz distinto; sin ellas, todo el país va de un color. En campaña el
       // matiz separa una división conquistada de la de al lado.
-      var k = opts.divs ? 0.88 + 0.20 * (((i * 37) % 5) / 4) : 1;
+      // El matiz por división separa una provincia de la de al lado. Cuando la
+      // provincia es de un imperio, el matiz se recoge: lo que hay que ver de un
+      // golpe es de quién es, no dónde acaba cada distrito.
+      var deAlguien = juego && juego.dueno && juego.dueno[ip] !== LIBRE;
+      var k = !opts.divs ? 1
+            : deAlguien ? 0.95 + 0.10 * (((i * 37) % 5) / 4)
+                        : 0.88 + 0.20 * (((i * 37) % 5) / 4);
       palData[i * 4] = Math.min(255, rgb[0] * 255 * k);
       palData[i * 4 + 1] = Math.min(255, rgb[1] * 255 * k);
       palData[i * 4 + 2] = Math.min(255, rgb[2] * 255 * k);
@@ -2496,9 +2570,15 @@ body.jugando #g-imperio { display: none; }
       // ejército es el orden de batalla de siempre, que sigue aquí abajo.
       if (juego && juego.imp) {
         var v = juego.imp.vista || "imperio";
-        if (v === "imperio") { indiceImperio(); return; }
+        if (v === "imperio") {
+          if (juego.imp.verGob) indiceGobierno();
+          else if (juego.imp.verMar) indiceMaravillas();
+          else indiceImperio();
+          return;
+        }
         if (v === "ciudades") { indiceCiudades(); return; }
         if (v === "tecno") { indiceTecno(); return; }
+        if (v === "mundo") { indiceMundo(); return; }
         if (v === "atlas") { indiceAtlas(); return; }
       }
       if (juego) {
@@ -2614,6 +2694,25 @@ body.jugando #g-imperio { display: none; }
     fila("recluta", 0, "Nuevo " + E().unidad.toLowerCase(),
          cr.oro + " oro · tienes " + mios);
 
+    titulo("Gobierno");
+    var g = gobiernoActual(), desc = descontento();
+    fila("gob", 0, g.n, imp.anarquia > 0 ? "anarquía este turno"
+         : "aguanta " + g.aguanta + " ciudades tomadas");
+    dato("Descontento", desc <= 0 ? "ninguno"
+         : Math.round(desc * 100) + "% de todo lo que produces");
+
+    titulo("Gran obra");
+    var om = imp.obraMar ? porId(MARAVILLAS, imp.obraMar.id) : null;
+    fila("granobra", 0, om ? om.n : "Sin maravilla en obra",
+         om ? Math.round(imp.obraMar.hecho) + "/" + om.coste + " · " +
+              faltanTurnos(imp.obraMar.hecho, om.coste, r.prod * 0.35)
+            : imp.maravillas.length ? imp.maravillas.length + " levantadas · elige otra"
+                                    : "elige una · la levanta el imperio");
+    if (om) {
+      fila("apuraMar", 0, "Apresurarla con oro",
+           cuestaApurar(om.coste, imp.obraMar.hecho) + " de oro · tienes " + fmtNum(imp.oro));
+    }
+
     titulo("En marcha");
     var t = imp.investiga >= 0 ? TECNOS[imp.investiga] : null;
     fila("ira", 0, t ? "Investigando " + t.n.toLowerCase() : "Sin investigar nada",
@@ -2629,6 +2728,13 @@ body.jugando #g-imperio { display: none; }
                          : "Ninguna ciudad construye",
          ciu.length ? "de " + ciu.length + " ciudades" : "aún sin ciudades");
     marcarLista();
+  }
+
+  // Lo que cuesta comprar el tiempo. Cuanto menos hecho está, más caro: pagar
+  // una catedral entera en un año es un disparate, y cuesta como un disparate.
+  function cuestaApurar(coste, hecho) {
+    var falta = Math.max(0, coste - hecho);
+    return Math.round(falta * 2 + falta * falta / Math.max(20, coste) * 1.2);
   }
 
   // Un renglón que no se toca: sirve para contar cómo va el imperio.
@@ -2686,6 +2792,147 @@ body.jugando #g-imperio { display: none; }
     marcarLista();
   }
 
+  // La pestaña del mundo: quién más juega esta partida, cómo va cada uno y qué
+  // piensa de ti. Es el tablero diplomático.
+  function indiceMundo() {
+    var imp = juego.imp;
+    if (imp.verRival >= 0) { indiceRival(imp.verRival); return; }
+    if (!juego.rivales) { titulo("El mundo"); marcarLista(); return; }
+
+    // Dónde estás tú entre todos.
+    var tabla = [{ n: "Tu imperio", p: imp.puntos, mio: true }];
+    for (var k = 0; k < juego.rivales.length; k++) {
+      var r0 = juego.rivales[k];
+      if (!r0.muerto) tabla.push({ n: r0.n, p: r0.puntos, k: k });
+    }
+    tabla.sort(function (a, b) { return b.p - a.p; });
+    var puesto = 1;
+    for (var i = 0; i < tabla.length; i++) if (tabla[i].mio) puesto = i + 1;
+
+    titulo("Año " + anoTexto(imp.anio) + " · vas " + puesto + ".º de " + tabla.length);
+    dato("Tus puntos", String(imp.puntos));
+    dato("Tu tierra", fmtArea(Math.round(juego.km2)) + " · " + porcentaje(juego.km2 / tierraDelMundo()));
+    dato("Para ganar", "medio mundo, el programa espacial o el año " + ANIO_TOPE);
+
+    titulo("Las civilizaciones");
+    for (var k2 = 0; k2 < juego.rivales.length; k2++) {
+      var r = juego.rivales[k2];
+      if (r.muerto) continue;
+      var suFuerza = fuerzaRival(r) / Math.max(1, miFuerza());
+      fila("rival", k2, r.n,
+           (r.conmigo ? "en guerra · " : r.tregua > 0 ? "tregua · " : "") +
+           r.paises.length + (r.paises.length === 1 ? " país · " : " países · ") +
+           (suFuerza > 1.4 ? "más fuerte" : suFuerza < 0.7 ? "más débil" : "parejo") +
+           " · " + comoTeVe(r), r.col);
+    }
+    var caidos = juego.rivales.filter(function (x) { return x.muerto; });
+    if (caidos.length) {
+      titulo("Ya no existen");
+      for (var c = 0; c < caidos.length; c++) {
+        dato(caidos[c].n, "borrada del mapa");
+      }
+    }
+
+    titulo("Maravillas del mundo");
+    for (var m = 0; m < MARAVILLAS.length; m++) {
+      var mv = MARAVILLAS[m];
+      var quien = juego.maravillasDelMundo[mv.id];
+      dato(mv.n, quien ? (quien === "tú" ? "tuya" : "de " + quien)
+                       : EPOCAS[mv.era].n + " · sin construir");
+    }
+    marcarLista();
+  }
+
+  // Un porcentaje que no miente cuando es pequeño: «0% del mundo» con medio
+  // millón de kilómetros cuadrados en la mano suena a que no tienes nada.
+  function porcentaje(f) {
+    var p = f * 100;
+    return (p < 1 ? p.toFixed(2) : p < 10 ? p.toFixed(1) : String(Math.round(p)))
+           .replace(".", ",") + "% del mundo";
+  }
+
+  function comoTeVe(r) {
+    var a = r.actitud;
+    return a > 50 ? "te aprecia" : a > 15 ? "cordial" : a > -15 ? "indiferente"
+         : a > -50 ? "receloso" : "te odia";
+  }
+
+  // La ficha de un imperio rival: lo que sabes de él y lo que puedes hacerle.
+  function indiceRival(k) {
+    var r = juego.rivales[k], imp = juego.imp;
+    titulo(r.n);
+    fila("volverMundo", 0, "‹ El mundo", comoTeVe(r));
+    dato("Territorio", r.paises.length + (r.paises.length === 1 ? " país" : " países"));
+    dato("Época", EPOCAS[r.era].n);
+    dato("Fuerza", Math.round(fuerzaRival(r) / Math.max(1, miFuerza()) * 100) + "% de la tuya");
+    dato("Puntos", String(r.puntos));
+    dato("Contigo", r.conmigo ? "en guerra" : r.tregua > 0 ? "tregua de " + r.tregua + " turnos" : "en paz");
+    if (r.guerra) {
+      dato("Su guerra", "contra " + paises[r.guerra.ip].n +
+           (r.guerra.marcador > 0.3 ? " · ganando" : r.guerra.marcador < -0.3 ? " · perdiendo" : " · sin decidirse"));
+    }
+
+    titulo("Sus provincias");
+    for (var i = 0; i < r.paises.length && i < 30; i++) {
+      var ip = r.paises[i];
+      fila("irPais", ip, paises[ip].n,
+           juego.miasDe[ip] > 0
+             ? Math.round(juego.miasDe[ip] / Math.max(1, juego.celdasIni[ip]) * 100) + "% tomado"
+             : fmtArea(paises[ip].a));
+    }
+
+    titulo("Diplomacia");
+    if (r.conmigo) {
+      var p = precioDeLaPaz(r);
+      fila("pazCon", k, "Pedir la paz",
+           !p.acepta ? "no la aceptará: le has quitado demasiado"
+           : p.oro ? "te pide " + fmtNum(p.oro) + " de oro" : "la firmaría sin pedir nada");
+    } else {
+      fila("guerraA", k, "Declarar la guerra",
+           r.tregua > 0 ? "romperías la tregua" : "sus provincias entran en la campaña");
+    }
+    fila("regalo", k, "Regalar 100 de oro",
+         imp.oro >= 100 ? "mejora lo que piensa de ti" : "no tienes oro");
+    marcarLista();
+  }
+
+  // Las formas de gobierno, para elegir con cuál se gobierna.
+  function indiceGobierno() {
+    var imp = juego.imp;
+    titulo("Forma de gobierno");
+    fila("volver", 0, "‹ Imperio", gobiernoActual().n);
+    for (var i = 0; i < GOBIERNOS.length; i++) {
+      var g = GOBIERNOS[i];
+      var puede = !g.req || imp.sabidas[g.req];
+      fila("ponGob", i, g.n,
+           g.id === imp.gobierno ? "el tuyo · " + g.nota
+           : !puede ? "pide " + ((porId(TECNOS, g.req) || {}).n || "").toLowerCase()
+           : g.nota + " · un turno de anarquía");
+    }
+    marcarLista();
+  }
+
+  // Las maravillas que aún puedes levantar.
+  function indiceMaravillas() {
+    var imp = juego.imp, r = rentas();
+    titulo("Gran obra del imperio");
+    fila("volver", 0, "‹ Imperio",
+         imp.obraMar ? "en obra: " + (porId(MARAVILLAS, imp.obraMar.id) || {}).n : "ninguna en obra");
+    for (var i = 0; i < MARAVILLAS.length; i++) {
+      var m = MARAVILLAS[i];
+      var quien = juego.maravillasDelMundo[m.id];
+      var puede = !m.req || imp.sabidas[m.req];
+      fila("ponMar", i, m.n,
+           quien === "tú" ? "tuya · " + m.nota
+           : quien ? "la levantó " + quien
+           : !puede ? "pide " + ((porId(TECNOS, m.req) || {}).n || "").toLowerCase()
+           : imp.obraMar && imp.obraMar.id === m.id
+             ? "en obra · " + Math.round(imp.obraMar.hecho) + "/" + m.coste
+             : m.coste + " de producción · " + faltanTurnos(0, m.coste, r.prod * 0.35));
+    }
+    marcarLista();
+  }
+
   // La pestaña de atlas: el índice de siempre, que el mapa sigue siendo el mapa.
   function indiceAtlas() {
     for (var i = 0; i < NP && i < MAX_RESULTADOS; i++) {
@@ -2704,6 +2951,15 @@ body.jugando #g-imperio { display: none; }
     titulo(ciudades[ic].n);
     fila("volver", 0, "‹ Ciudades",
          fmtNum(Math.round(pobCiudad(ic) / 1000)) + "k habitantes");
+    // Pagar para que la obra esté mañana: el oro sirve para eso desde que hay
+    // oro, y así el tesoro no se queda muerto en la caja.
+    if (e.obra) {
+      var edo = porId(EDIFICIOS, e.obra);
+      if (edo) {
+        fila("apura", ic, "Apresurar " + edo.n.toLowerCase() + " con oro",
+             cuestaApurar(edo.coste, e.hecho) + " de oro · tienes " + fmtNum(imp.oro));
+      }
+    }
     for (var i = 0; i < EDIFICIOS.length; i++) {
       var ed = EDIFICIOS[i];
       var tiene = e.edif.indexOf(ed.id) >= 0;
@@ -2752,10 +3008,56 @@ body.jugando #g-imperio { display: none; }
         flyTo(ciudades[r.i].c[0], ciudades[r.i].c[1], clampDist(Math.min(view.dist, 1.2)));
         return;
       }
-      if (r.tipo === "volver") { juego.imp.verCiudad = -1; renderList(""); return; }
+      if (r.tipo === "volver") {
+        juego.imp.verCiudad = -1;
+        juego.imp.verGob = false;
+        juego.imp.verMar = false;
+        renderList("");
+        return;
+      }
       // Los dos renglones de «en marcha» llevan a la pestaña que decide.
       if (r.tipo === "ira") { ponVista("tecno"); return; }
       if (r.tipo === "irc") { ponVista("ciudades"); return; }
+
+      // El gobierno y la gran obra: sus dos listas y sus dos decisiones.
+      if (r.tipo === "gob") { juego.imp.verGob = true; renderList(""); return; }
+      if (r.tipo === "ponGob") {
+        if (cambiaGobierno(GOBIERNOS[r.i].id)) { juego.imp.verGob = false; pintaGuerra(); }
+        renderList("");
+        return;
+      }
+      if (r.tipo === "granobra") { juego.imp.verMar = true; renderList(""); return; }
+      if (r.tipo === "ponMar") {
+        var mv = MARAVILLAS[r.i];
+        if (mv && !juego.maravillasDelMundo[mv.id] && (!mv.req || juego.imp.sabidas[mv.req])) {
+          // Cambiar de maravilla no tira la piedra ya puesta, como con las obras
+          // de una ciudad: se aprovecha para la siguiente.
+          var hecho = juego.imp.obraMar ? juego.imp.obraMar.hecho : 0;
+          juego.imp.obraMar = { id: mv.id, hecho: hecho };
+          juego.imp.verMar = false;
+          anota("El imperio empieza " + mv.n);
+        }
+        renderList("");
+        return;
+      }
+
+      // La diplomacia.
+      if (r.tipo === "rival") {
+        juego.imp.verRival = r.i;
+        renderList("");
+        var suyo = juego.rivales[r.i];
+        if (suyo && paises[suyo.ip].c) flyTo(paises[suyo.ip].c[0], paises[suyo.ip].c[1]);
+        return;
+      }
+      if (r.tipo === "volverMundo") { juego.imp.verRival = -1; renderList(""); return; }
+      if (r.tipo === "guerraA") { declaroA(juego.rivales[r.i]); renderList(""); return; }
+      if (r.tipo === "pazCon") { pidoLaPaz(juego.rivales[r.i]); renderList(""); return; }
+      if (r.tipo === "regalo") { regaloA(juego.rivales[r.i], 100); renderList(""); return; }
+      if (r.tipo === "irPais") {
+        var pc = paises[r.i].c;
+        if (pc) flyTo(pc[0], pc[1]);
+        return;
+      }
       if (r.tipo === "obra") {
         var ic = juego.imp.verCiudad, ed = EDIFICIOS[r.i];
         var e = juego.imp.ciu[ic];
@@ -2770,6 +3072,33 @@ body.jugando #g-imperio { display: none; }
         return;
       }
       if (r.tipo === "recluta") { reclutaCuerpo(); renderList(""); return; }
+      // Comprar el tiempo: se paga lo que falta y la obra queda lista.
+      if (r.tipo === "apura") {
+        var ea = juego.imp.ciu[r.i], eda = ea && ea.obra ? porId(EDIFICIOS, ea.obra) : null;
+        if (eda) {
+          var precio = cuestaApurar(eda.coste, ea.hecho);
+          if (juego.imp.oro >= precio) {
+            juego.imp.oro -= precio;
+            ea.hecho = eda.coste;
+            anota(ciudades[r.i].n + ": se paga " + eda.n.toLowerCase() + " a tocateja");
+          } else anota("No hay oro para apresurar la obra");
+        }
+        renderList("");
+        return;
+      }
+      if (r.tipo === "apuraMar") {
+        var om2 = juego.imp.obraMar ? porId(MARAVILLAS, juego.imp.obraMar.id) : null;
+        if (om2) {
+          var pm = cuestaApurar(om2.coste, juego.imp.obraMar.hecho);
+          if (juego.imp.oro >= pm) {
+            juego.imp.oro -= pm;
+            juego.imp.obraMar.hecho = om2.coste;
+            anota("Se paga " + om2.n + " a tocateja");
+          } else anota("No hay oro para apresurar " + om2.n);
+        }
+        renderList("");
+        return;
+      }
       // Una formación de la lista: se toma su mando y se vuela hasta ella.
       if (r.tipo === "cuerpo") {
         var quien = cuerpoPorId(r.i);
@@ -3461,6 +3790,11 @@ body.jugando #g-imperio { display: none; }
     creaCuerpos(ip0, true, juego.frente.length ? juego.frente : [celdaInicio],
                 cuantosCuerpos(ip0, juego.frente.length));
     reparteSectores();
+    // Y el resto del mundo, que también juega: siete imperios rivales repartidos
+    // por el globo, cada uno con su técnica, su ambición y sus guerras.
+    creaRivales();
+    juego.ciudadesIni = misCiudades().length;    // gobernar lo tuyo no cuesta
+    uploadPalette(SCENES[opts.scene]);
     subeMapa();
     return juego;
   }
@@ -3769,7 +4103,11 @@ body.jugando #g-imperio { display: none; }
     return {
       turno: 1, anio: E().anio, oro: 120, ciencia: 0,
       sabidas: {}, investiga: -1, ciu: {}, vista: "batalla", verCiudad: -1,
-      finTurno: 0, corriendo: false, ultimo: null, puntos: 0, rev: 0
+      finTurno: 0, corriendo: false, ultimo: null, puntos: 0, rev: 0,
+      // La civilización: con qué se gobierna, qué maravillas has levantado y
+      // cuál tienes en obra.
+      gobierno: "despotismo", anarquia: 0, maravillas: [], obraMar: null,
+      verRival: -1
     };
   }
 
@@ -3780,7 +4118,8 @@ body.jugando #g-imperio { display: none; }
   // día.
   function bonos() {
     var imp = juego.imp;
-    if (!imp) return { oro: 0, ciencia: 0, prod: 0, comida: 0, fuerza: 0, defensa: 0, recluta: 0 };
+    if (!imp) return { oro: 0, ciencia: 0, prod: 0, comida: 0, fuerza: 0, defensa: 0,
+                       recluta: 0, contento: 0 };
     if (imp.bonoDia === juego.dia && imp.bonoRev === imp.rev && imp.bono) return imp.bono;
     imp.bonoDia = juego.dia; imp.bonoRev = imp.rev;
     imp.bono = calculaBonos();
@@ -3788,7 +4127,8 @@ body.jugando #g-imperio { display: none; }
   }
 
   function calculaBonos() {
-    var b = { oro: 0, ciencia: 0, prod: 0, comida: 0, fuerza: 0, defensa: 0, recluta: 0 };
+    var b = { oro: 0, ciencia: 0, prod: 0, comida: 0, fuerza: 0, defensa: 0,
+              recluta: 0, contento: 0 };
     var imp = juego.imp;
     for (var i = 0; i < TECNOS.length; i++) {
       if (!imp.sabidas[TECNOS[i].id]) continue;
@@ -3802,6 +4142,13 @@ body.jugando #g-imperio { display: none; }
         if (ed) for (var k2 in ed.da) b[k2] += ed.da[k2];
       }
     });
+    // La forma de gobierno y las maravillas del mundo, que pesan lo suyo.
+    var g = gobiernoActual();
+    for (var k3 in g.da) b[k3] += g.da[k3];
+    for (var m = 0; imp.maravillas && m < imp.maravillas.length; m++) {
+      var mv = porId(MARAVILLAS, imp.maravillas[m]);
+      if (mv) for (var k4 in mv.da) b[k4] += mv.da[k4];
+    }
     return b;
   }
 
@@ -3853,11 +4200,17 @@ body.jugando #g-imperio { display: none; }
     // gente, y por eso una ciudad grande levanta una catedral y una aldea no.
     var prod = 0;
     for (var i = 0; i < ciu.length; i++) prod += prodCiudad(ciu[i], b);
+    // Y lo que se pierde por el camino: un pueblo descontento rinde menos, y un
+    // cambio de gobierno es un año en que no manda nadie.
+    var desc = descontento();
+    var anar = juego.imp.anarquia > 0 ? 0.5 : 0;
+    var merma = (1 - desc) * (1 - anar);
     return {
-      oro: Math.round(base * 1.6 * (1 + b.oro) - mant),
-      ciencia: Math.round(base * 0.5 * (1 + b.ciencia)),
-      prod: Math.round(prod),
-      mant: mant, pob: pob, ciudades: ciu.length, bonos: b
+      oro: Math.round(base * 1.6 * (1 + b.oro) * merma - mant),
+      ciencia: Math.round(base * 0.5 * (1 + b.ciencia) * merma),
+      prod: Math.round(prod * merma),
+      mant: mant, pob: pob, ciudades: ciu.length, bonos: b,
+      desc: desc, anarquia: juego.imp.anarquia > 0
     };
   }
 
@@ -3913,11 +4266,33 @@ body.jugando #g-imperio { display: none; }
       }
     }
 
+    // La gran obra del imperio: una maravilla la levanta el país entero, no una
+    // ciudad, y por eso se lleva una parte de todo lo que se produce.
+    if (imp.obraMar) {
+      var mv = porId(MARAVILLAS, imp.obraMar.id);
+      if (!mv || juego.maravillasDelMundo[mv.id]) imp.obraMar = null;
+      else {
+        imp.obraMar.hecho += r.prod * 0.35;
+        if (imp.obraMar.hecho >= mv.coste) {
+          imp.maravillas.push(mv.id);
+          juego.maravillasDelMundo[mv.id] = "tú";
+          imp.obraMar = null;
+          imp.rev++;
+          parte.push("Se termina " + mv.n);
+        }
+      }
+    }
+
+    // El turno de los demás: crecen, investigan, se atacan y a veces te atacan.
+    turnoRivales(parte);
+
+    if (imp.anarquia > 0) imp.anarquia--;
     imp.turno++;
     imp.anio += anosPorTurno();
-    imp.ultimo = { oro: r.oro, ciencia: r.ciencia, prod: r.prod, parte: parte };
+    imp.ultimo = { oro: r.oro, ciencia: r.ciencia, prod: r.prod, desc: r.desc, parte: parte };
     for (var i = 0; i < parte.length; i++) anota(parte[i]);
     imp.puntos = puntuacion();
+    revisaVictoria();
   }
 
   // Reclutar una formación: cuesta oro y sale de la capital, con la tropa que
@@ -3964,11 +4339,557 @@ body.jugando #g-imperio { display: none; }
     return -1;
   }
 
+  // Los puntos, con la misma vara para todos: la gente pesa más que la tierra
+  // —un imperio de estepa no vale lo que uno de ciudades—, el saber pesa mucho y
+  // las maravillas quedan para siempre.
+  function puntosDe(km2, pob, sabe, maravillas) {
+    return Math.round(km2 / 40000 + pob / 200000 + sabe * 30 + maravillas * 60 +
+                      (juego.imp ? juego.imp.turno : 0));
+  }
+
   function puntuacion() {
     var sabe = 0;
     for (var k in juego.imp.sabidas) if (juego.imp.sabidas[k]) sabe++;
-    return Math.round(juego.mias / (ESC * ESC) * 0.2 + misCiudades().length * 4 + sabe * 30 +
-                      juego.imp.turno);
+    var pob = 0, ciu = misCiudades();
+    for (var i = 0; i < ciu.length; i++) pob += pobCiudad(ciu[i]);
+    return puntosDe(juego.km2, pob, sabe, juego.imp.maravillas ? juego.imp.maravillas.length : 0);
+  }
+
+  // ---------------------------------------------------------------- //
+  // Las otras civilizaciones                                          //
+  // ---------------------------------------------------------------- //
+  //
+  // Hasta aquí el mundo era decorado: países que sólo existían cuando los
+  // atacabas. Un juego de civilizaciones necesita que los demás también jueguen
+  // —que crezcan, investiguen, se traguen al vecino y se te echen encima— y eso
+  // es esto. Los rivales llevan su partida en el mismo tablero, pero a escala
+  // de país: no mueven cuerpos por el mapa —eso sólo pasa en las guerras
+  // contigo, que son las que se ven— y sin embargo pelean entre ellos, ganan y
+  // pierden provincias, levantan maravillas y cambian el color del mundo por su
+  // cuenta. Cuando uno te declara la guerra, esa sí baja al mapa: sus países
+  // entran en la campaña de verdad, con sus cuerpos y su frente.
+
+  var LIBRE = -1, MIO = -2;
+  var COLOR_RIVAL = ["#C9962F", "#3E8E8A", "#8E5BA6", "#4E8F4A", "#B85C6E",
+                     "#5C74B8", "#A8703C", "#6E9E2F"];
+  var N_RIVALES = 7;
+
+  // Las formas de gobierno. No son un adorno: cada una cambia lo que rinde el
+  // imperio, cuánta gente puede llamar a filas y cuántas ciudades aguanta
+  // contenta. Un despotismo saca soldados y poco más; una democracia es rica y
+  // sabia y no quiere guerras largas.
+  var GOBIERNOS = [
+    { id: "despotismo", n: "Despotismo", req: null,
+      da: { recluta: 0.20, prod: 0.10 }, aguanta: 6, guerra: 0.2,
+      nota: "muchos brazos, poca riqueza" },
+    { id: "monarquia", n: "Monarquía", req: "feudalismo",
+      da: { oro: 0.20, recluta: 0.25, defensa: 0.10 }, aguanta: 10, guerra: 0.4,
+      nota: "la corona cobra y arma" },
+    { id: "republica", n: "República", req: "imprenta",
+      da: { oro: 0.40, ciencia: 0.25, recluta: -0.15 }, aguanta: 15, guerra: 1.4,
+      nota: "rica; las guerras largas la cansan" },
+    { id: "imperio", n: "Imperio", req: "nacion",
+      da: { prod: 0.30, recluta: 0.45, ciencia: -0.10 }, aguanta: 22, guerra: 0.5,
+      nota: "el estado al servicio del ejército" },
+    { id: "democracia", n: "Democracia", req: "telegrafo",
+      da: { oro: 0.50, ciencia: 0.50, prod: 0.15, recluta: -0.30 }, aguanta: 34, guerra: 2.2,
+      nota: "lo mejor en paz, lo peor en guerra" }
+  ];
+
+  // Las maravillas: una en el mundo entero. Si un rival la termina antes, te
+  // quedas sin ella —y con parte de la piedra ya cortada para otra cosa—. Es la
+  // carrera que hace que la técnica importe aunque no vayas a pelear.
+  var MARAVILLAS = [
+    { id: "piramides", n: "Las Pirámides", era: 0, coste: 200, req: "agri",
+      da: { prod: 0.25, comida: 0.30 }, nota: "cien mil hombres y treinta años" },
+    { id: "alejandria", n: "Biblioteca de Alejandría", era: 0, coste: 260, req: "escritura",
+      da: { ciencia: 0.60 }, nota: "todo lo escrito, bajo un techo" },
+    { id: "muralla", n: "La Gran Muralla", era: 1, coste: 340, req: "castillos",
+      da: { defensa: 0.45 }, nota: "una frontera que se ve desde el cielo" },
+    { id: "catedral", n: "La Gran Catedral", era: 1, coste: 400, req: "arado",
+      da: { contento: 8 }, nota: "trescientos años de obra y un pueblo entero mirándola" },
+    { id: "banco", n: "La Banca de Florencia", era: 2, coste: 520, req: "banca",
+      da: { oro: 0.55 }, nota: "letras de cambio: el dinero viaja sin carreta" },
+    { id: "canal", n: "El Gran Canal", era: 4, coste: 900, req: "vapor",
+      da: { oro: 0.35, prod: 0.25 }, nota: "dos océanos cosidos" },
+    { id: "instituto", n: "El Instituto", era: 5, coste: 1500, req: "telegrafo",
+      da: { ciencia: 0.55, contento: 4 }, nota: "la ciencia deja de ser cosa de aficionados" },
+    { id: "espacio", n: "Programa espacial", era: 7, coste: 4200, req: "satelites",
+      da: { ciencia: 0.40 }, victoria: true,
+      nota: "quien lo termina gana la partida sin disparar" }
+  ];
+
+  function creaRivales() {
+    juego.dueno = new Int16Array(NP);
+    for (var i = 0; i < NP; i++) juego.dueno[i] = LIBRE;
+    if (juego.pais >= 0) juego.dueno[juego.pais] = MIO;
+    juego.rivales = [];
+    juego.maravillasDelMundo = {};       // id → quién la tiene
+    // Los candidatos son los países con más gente: los que en cualquier siglo
+    // han tenido con qué. Y repartidos por el globo, que dos imperios pegados se
+    // comen entre ellos en el primer turno y el mundo se queda sin partida.
+    var orden = [];
+    for (var i = 0; i < NP; i++) {
+      if (i === juego.pais || !paises[i].c) continue;
+      orden.push([i, poblacion(i) * 2.2 + paises[i].a * 0.03]);
+    }
+    orden.sort(function (a, b) { return b[1] - a[1]; });
+    var puestos = juego.pais >= 0 && paises[juego.pais].c ? [paises[juego.pais].c] : [];
+    for (var k = 0; k < orden.length && juego.rivales.length < N_RIVALES; k++) {
+      var ip = orden[k][0], c = paises[ip].c, vale = true;
+      for (var q = 0; q < puestos.length; q++) {
+        if (Math.abs(c[0] - puestos[q][0]) < 24 && Math.abs(c[1] - puestos[q][1]) < 18) {
+          vale = false; break;
+        }
+      }
+      if (!vale) continue;
+      puestos.push(c);
+      juego.rivales.push(nuevoRival(ip, juego.rivales.length));
+    }
+  }
+
+  function nuevoRival(ip, k) {
+    juego.dueno[ip] = k;
+    return {
+      k: k, ip: ip, n: paises[ip].n, col: COLOR_RIVAL[k % COLOR_RIVAL.length],
+      oro: 140, ciencia: 0, sabidas: {}, era: EPOCAS.indexOf(E()),
+      paises: [ip], maravillas: [], obra: null, hecho: 0,
+      // Lo belicoso que es y lo que piensa de ti. Uno agresivo se lanza a por
+      // el vecino en cuanto puede; uno tranquilo crece y espera.
+      agr: 0.25 + Math.random() * 0.6,
+      actitud: 5 + Math.round(Math.random() * 25),
+      guerra: null, conmigo: 0, tregua: 0, muerto: false, puntos: 0
+    };
+  }
+
+  // Los puntos de un imperio rival, en la misma moneda que los tuyos: lo que
+  // tiene, lo que sabe y lo que ha levantado.
+  function puntosRival(r) {
+    var sabe = 0;
+    for (var s in r.sabidas) if (r.sabidas[s]) sabe++;
+    var tierra = 0, pob = 0;
+    for (var i = 0; i < r.paises.length; i++) {
+      tierra += paises[r.paises[i]].a;
+      pob += poblacion(r.paises[i]);
+    }
+    return puntosDe(tierra, pob, sabe, r.maravillas.length);
+  }
+
+  function rivalDe(ip) {
+    var d = juego.dueno ? juego.dueno[ip] : LIBRE;
+    return d >= 0 ? juego.rivales[d] : null;
+  }
+
+  // Lo que pesa un imperio: la gente y la tierra que tiene, con lo que sabe.
+  function fuerzaRival(r) {
+    var pob = 0, tierra = 0;
+    for (var i = 0; i < r.paises.length; i++) {
+      pob += poblacion(r.paises[i]);
+      tierra += paises[r.paises[i]].a;
+    }
+    var sabe = 0;
+    for (var s in r.sabidas) if (r.sabidas[s]) sabe++;
+    return (pob * 2.2 + tierra * 0.03) * (1 + r.era * 0.18 + sabe * 0.03);
+  }
+
+  function fuerzaPais(ip) {
+    return poblacion(ip) * 2.2 + paises[ip].a * 0.03;
+  }
+
+  // Mi peso en la misma balanza, para que la diplomacia compare peras con peras.
+  function miFuerza() {
+    var pob = 0, ciu = misCiudades();
+    for (var i = 0; i < ciu.length; i++) pob += pobCiudad(ciu[i]);
+    var sabe = 0;
+    for (var s in juego.imp.sabidas) if (juego.imp.sabidas[s]) sabe++;
+    return (pob * 2.2 + juego.km2 * 0.028) * (1 + EPOCAS.indexOf(E()) * 0.18 + sabe * 0.03);
+  }
+
+  // --- el turno de los demás ----------------------------------------------
+
+  function turnoRivales(parte) {
+    if (!juego.rivales) return;
+    var pinta = false;
+    for (var k = 0; k < juego.rivales.length; k++) {
+      var r = juego.rivales[k];
+      if (r.muerto) continue;
+      rentaRival(r, parte);
+      if (r.tregua > 0) r.tregua--;
+      // La opinión sobre ti se mueve sola: el tiempo cura, y crecer asusta.
+      var mide = miFuerza() / Math.max(1, fuerzaRival(r));
+      // Cómo te va mirando con los años. Al fuerte se le teme, al débil se le
+      // mira las provincias, y al que va parejo se le respeta: por eso el mejor
+      // sitio del mundo es el segundo. Y hay quien no necesita motivo ninguno.
+      r.actitud += (mide > 1.6 ? -3 : mide < 0.7 ? -2 : 1) - (r.agr > 0.6 ? 1 : 0);
+      r.actitud = Math.max(-100, Math.min(100, r.actitud));
+      if (decideRival(r, parte)) pinta = true;
+      if (resuelveGuerraRival(r, parte)) pinta = true;
+      r.puntos = puntosRival(r);
+    }
+    if (pinta) uploadPalette(SCENES[opts.scene]);
+  }
+
+  // Lo que rinde un imperio rival, en la misma escala que lo tuyo: la gente de
+  // sus ciudades y su tierra. Si se midiera de otra forma, China saldría con
+  // veinte mil de oro al turno y la partida no tendría gracia.
+  function baseRival(r) {
+    var pob = 0, area = 0;
+    for (var i = 0; i < r.paises.length; i++) {
+      pob += poblacion(r.paises[i]);
+      area += paises[r.paises[i]].a;
+    }
+    return area / 100000 + pob / 900000;
+  }
+
+  function rentaRival(r, parte) {
+    var base = baseRival(r);
+    r.oro += Math.round(base * 1.6);
+    // La ciencia les cunde algo menos que a ti: un imperio lo lleva un consejo,
+    // no un jugador, y sin esta ventaja la partida se decide sola en el año mil.
+    r.ciencia += base * 0.5 * 0.55;
+    // Y el mundo va más o menos junto: nadie se planta tres siglos por delante
+    // de todos los demás. Un rival puede adelantarte una época, no cuatro.
+    var tope = Math.min(EPOCAS.length - 1, EPOCAS.indexOf(E()) + 1);
+    // Investigación: la suya va por épocas, como la tuya, una técnica cada vez.
+    for (var i = 0; i < TECNOS.length; i++) {
+      var t = TECNOS[i];
+      if (r.sabidas[t.id] || t.era > r.era) continue;
+      if (r.ciencia >= t.coste) {
+        r.ciencia -= t.coste;
+        r.sabidas[t.id] = 1;
+        // Con las tres de su época, cambia de siglo como tú.
+        var falta = false;
+        for (var j = 0; j < TECNOS.length; j++) {
+          if (TECNOS[j].era === r.era && !r.sabidas[TECNOS[j].id]) falta = true;
+        }
+        if (!falta && r.era < tope) {
+          r.era++;
+          parte.push(r.n + " entra en la época " + EPOCAS[r.era].n);
+        }
+      }
+      break;
+    }
+    obraRival(r, parte);
+  }
+
+  // Los rivales también levantan maravillas, y por eso hay carrera.
+  function obraRival(r, parte) {
+    if (!r.obra) {
+      var libres = MARAVILLAS.filter(function (m) {
+        return !juego.maravillasDelMundo[m.id] && m.era <= r.era && r.sabidas[m.req];
+      });
+      if (!libres.length || Math.random() > 0.35) return;
+      r.obra = libres[(Math.random() * libres.length) | 0].id;
+      r.hecho = 0;
+      return;
+    }
+    var m = porId(MARAVILLAS, r.obra);
+    if (!m || juego.maravillasDelMundo[m.id]) { r.obra = null; r.hecho = 0; return; }
+    // Levantan con lo que producen, como tú: una parte de todo lo suyo.
+    r.hecho += baseRival(r) * 0.5;
+    if (r.hecho >= m.coste) {
+      r.maravillas.push(m.id);
+      juego.maravillasDelMundo[m.id] = r.n;
+      r.obra = null; r.hecho = 0;
+      parte.push(r.n + " termina " + m.n);
+      // Si era la tuya, te quedas mirando la obra a medias.
+      var mia = juego.imp.obraMar;
+      if (mia && mia.id === m.id) {
+        juego.imp.obraMar = null;
+        parte.push("Te has quedado sin " + m.n + ": la termina " + r.n);
+      }
+      if (m.victoria) finDeLaPartida("derrota-ciencia", r.n);
+    }
+  }
+
+  // Qué hace un imperio que no está en guerra: mirar a su alrededor y decidir.
+  function decideRival(r, parte) {
+    if (r.guerra || r.conmigo || r.tregua > 0) return false;
+    if (Math.random() > r.agr * 0.45) return false;
+    // Sus vecinos: los países que tocan a los suyos.
+    var vis = {}, cand = [];
+    for (var i = 0; i < r.paises.length; i++) {
+      var lim = paises[r.paises[i]].lim || [];
+      for (var j = 0; j < lim.length; j++) {
+        var ip = lim[j];
+        if (vis[ip] || juego.dueno[ip] === r.k) continue;
+        vis[ip] = 1;
+        cand.push(ip);
+      }
+    }
+    // Un imperio de islas no tiene vecinos por tierra: hasta que aprende a
+    // navegar de altura no puede crecer, y entonces le vale el mar de por medio.
+    if (!cand.length && (r.era >= 2 || r.sabidas.navegacion)) {
+      var mia = paises[r.paises[0]].c;
+      var cerca = [];
+      for (var z = 0; z < NP; z++) {
+        if (juego.dueno[z] === r.k || !paises[z].c) continue;
+        var dx = Math.abs(paises[z].c[0] - mia[0]), dy = Math.abs(paises[z].c[1] - mia[1]);
+        if (dx < 26 && dy < 20) cerca.push(z);
+      }
+      cand = cerca;
+    }
+    // Contigo no hace falta ser vecino: desde que hay barcos, el mar no es una
+    // frontera, y un imperio con flota se planta donde quiera.
+    if (juego.pais >= 0 && paises[juego.pais].c && cand.indexOf(juego.pais) < 0) {
+      var mia0 = paises[juego.pais].c, suya0 = paises[r.paises[0]].c;
+      var lejos = Math.abs(mia0[0] - suya0[0]) + Math.abs(mia0[1] - suya0[1]);
+      if (lejos < (r.era >= 4 ? 999 : r.era >= 2 ? 110 : 45)) cand.push(juego.pais);
+    }
+    if (!cand.length) return false;
+    var mio = miFuerza(), suya = fuerzaRival(r), mejor = null, mejorV = -1e9;
+    for (var q = 0; q < cand.length; q++) {
+      var ip2 = cand[q], d = juego.dueno[ip2];
+      // Lo apetecible que es cada guerra. La ventaja cuenta, pero con tope: por
+      // encima de tres a uno da igual, y entonces lo que decide es el rencor. Sin
+      // el tope, un imperio se pasaba la partida tragándose principados y no
+      // miraba nunca al jugador.
+      if (d === MIO) {
+        // A ti sólo se te echa encima quien te tiene ganas y se ve capaz.
+        if (r.actitud > -20 || suya < mio * 0.75) continue;
+        var v = Math.min(3, suya / Math.max(1, mio)) * 1.25 + (-r.actitud) / 90;
+        if (v > mejorV) { mejorV = v; mejor = { tipo: "yo", ip: ip2 }; }
+      } else if (d >= 0) {
+        var otro = juego.rivales[d];
+        if (otro.muerto) continue;
+        var v2 = suya / Math.max(1, fuerzaRival(otro));
+        if (v2 > 1.15 && Math.min(3, v2) * 0.9 > mejorV) {
+          mejorV = Math.min(3, v2) * 0.9;
+          mejor = { tipo: "rival", ip: ip2, k: d };
+        }
+      } else {
+        var v3 = suya / Math.max(1, fuerzaPais(ip2));
+        if (v3 > 1.05 && Math.min(3, v3) > mejorV) {
+          mejorV = Math.min(3, v3);
+          mejor = { tipo: "pais", ip: ip2 };
+        }
+      }
+    }
+    if (!mejor) return false;
+    if (mejor.tipo === "yo") { rivalMeDeclara(r, parte); return false; }
+    r.guerra = { tipo: mejor.tipo, ip: mejor.ip, k: mejor.k, marcador: 0, turnos: 0 };
+    parte.push(r.n + " ataca " + paises[mejor.ip].n);
+    return false;
+  }
+
+  // Una guerra entre imperios no se pelea celda a celda —no la ves— pero se
+  // decide igual: pesa quién es más fuerte, con su parte de suerte, y en dos o
+  // tres turnos alguien se queda con la provincia.
+  function resuelveGuerraRival(r, parte) {
+    if (!r.guerra) return false;
+    var g = r.guerra;
+    g.turnos++;
+    var suya = fuerzaRival(r);
+    var suyaObj = g.tipo === "rival" ? fuerzaRival(juego.rivales[g.k]) : fuerzaPais(g.ip);
+    var razon = suya / Math.max(1, suyaObj);
+    g.marcador += (razon - 1) * 0.5 + (Math.random() - 0.5) * 0.5;
+    if (g.marcador >= 1) {
+      anexa(r, g.ip, parte);
+      r.guerra = null;
+      return true;
+    }
+    if (g.marcador <= -1.2 || g.turnos > 6) {
+      // Guerra perdida o empantanada: se firma y se vuelve a casa.
+      r.guerra = null;
+      r.tregua = 2 + ((Math.random() * 3) | 0);
+      if (g.turnos > 3) parte.push(r.n + " no puede con " + paises[g.ip].n + " y firma la paz");
+    }
+    return false;
+  }
+
+  function anexa(r, ip, parte) {
+    var antes = juego.dueno[ip];
+    if (antes === MIO) return;                    // lo tuyo se pelea en el mapa
+    if (antes >= 0) {
+      var otro = juego.rivales[antes];
+      otro.paises = otro.paises.filter(function (x) { return x !== ip; });
+      if (!otro.paises.length) {
+        otro.muerto = true;
+        if (otro.guerra) otro.guerra = null;
+        parte.push(otro.n + " desaparece del mapa");
+      }
+    }
+    juego.dueno[ip] = r.k;
+    r.paises.push(ip);
+    parte.push(r.n + " se anexiona " + paises[ip].n);
+  }
+
+  // --- la diplomacia -------------------------------------------------------
+
+  function rivalMeDeclara(r, parte) {
+    if (r.conmigo) return;
+    r.conmigo = 1;
+    r.actitud = Math.min(r.actitud, -40);
+    (parte || []).push(r.n + " te declara la guerra");
+    anota(r.n + " te declara la guerra");
+    // Y aquí la guerra baja al mapa: sus países entran en la campaña de verdad.
+    for (var i = 0; i < r.paises.length; i++) declaraGuerra(r.paises[i], false);
+  }
+
+  function declaroA(r) {
+    if (!r || r.muerto || r.conmigo) return false;
+    r.conmigo = 1;
+    r.tregua = 0;
+    r.actitud = Math.min(r.actitud, -30);
+    anota("Declaras la guerra a " + r.n);
+    for (var i = 0; i < r.paises.length; i++) declaraGuerra(r.paises[i], true);
+    // Los demás toman nota: atacar sin motivo no sale gratis.
+    for (var k = 0; k < juego.rivales.length; k++) {
+      if (juego.rivales[k] !== r) juego.rivales[k].actitud -= 6;
+    }
+    pintaGuerra();
+    return true;
+  }
+
+  // Lo que cuesta la paz: si vas ganando, poco o nada; si vas perdiendo, lo que
+  // pida el vencedor. Y si le has quitado media nación, no firma.
+  function precioDeLaPaz(r) {
+    var mio = miFuerza(), suya = fuerzaRival(r);
+    var suyoTomado = 0, suyoTotal = 0;
+    for (var i = 0; i < r.paises.length; i++) {
+      suyoTomado += juego.miasDe[r.paises[i]];
+      suyoTotal += juego.celdasIni[r.paises[i]];
+    }
+    var quitado = suyoTomado / Math.max(1, suyoTotal);
+    var razon = suya / Math.max(1, mio);
+    return {
+      oro: Math.max(0, Math.round((razon - 0.6) * 260 + quitado * 400)),
+      acepta: quitado < 0.55 && r.actitud > -85
+    };
+  }
+
+  function pidoLaPaz(r) {
+    if (!r || !r.conmigo) return false;
+    var p = precioDeLaPaz(r);
+    if (!p.acepta) { anota(r.n + " no quiere ni oír hablar de paz"); return false; }
+    if (juego.imp.oro < p.oro) { anota("No hay oro para pagar la paz con " + r.n); return false; }
+    juego.imp.oro -= p.oro;
+    hazLaPaz(r);
+    anota("Paz con " + r.n + (p.oro ? " por " + fmtNum(p.oro) + " de oro" : ""));
+    return true;
+  }
+
+  function hazLaPaz(r) {
+    r.conmigo = 0;
+    r.tregua = 4;
+    r.actitud = Math.max(r.actitud, -10);
+    for (var i = 0; i < r.paises.length; i++) {
+      var ip = r.paises[i];
+      if (!juego.enGuerra[ip]) continue;
+      juego.enGuerra[ip] = 0;
+      juego.moral[ip] = Math.max(juego.moral[ip], 0.6);
+    }
+    // Sus cuerpos se retiran del tablero: la guerra se ha acabado.
+    var suyos = {};
+    for (var q = 0; q < r.paises.length; q++) suyos[r.paises[q]] = 1;
+    juego.cuerpos = juego.cuerpos.filter(function (u) { return u.mio || !suyos[u.ip]; });
+    recalculaFrente();
+    calculaSuministro(true);
+    pintaGuerra();
+  }
+
+  // Regalar oro es la forma más vieja de comprar una frontera tranquila.
+  function regaloA(r, cuanto) {
+    if (!r || juego.imp.oro < cuanto) return false;
+    juego.imp.oro -= cuanto;
+    r.actitud = Math.min(100, r.actitud + Math.round(cuanto / 12));
+    anota("Regalas " + fmtNum(cuanto) + " de oro a " + r.n);
+    return true;
+  }
+
+  // --- gobierno y descontento ---------------------------------------------
+
+  function gobiernoActual() {
+    return porId(GOBIERNOS, (juego.imp && juego.imp.gobierno) || "despotismo") || GOBIERNOS[0];
+  }
+
+  function cambiaGobierno(id) {
+    var g = porId(GOBIERNOS, id);
+    if (!g || !juego.imp) return false;
+    if (g.req && !juego.imp.sabidas[g.req]) return false;
+    if (g.id === juego.imp.gobierno) return false;
+    juego.imp.gobierno = g.id;
+    juego.imp.anarquia = 1;               // un turno de revuelo y nadie cobra
+    juego.imp.rev++;
+    anota("Cambio de gobierno: " + g.n + " · un turno de anarquía");
+    return true;
+  }
+
+  // El descontento: gobernar tu propia nación no cuesta —esa es tuya de siempre—
+  // pero un imperio construido a base de conquista sí. Lo que pesa es lo que has
+  // tomado de más, y lo que llevas de guerra: a un pueblo se le acaba la
+  // paciencia antes que los soldados.
+  function descontento() {
+    var g = gobiernoActual(), b = bonos();
+    var ciu = misCiudades().length;
+    var enGuerra = 0;
+    for (var i = 0; i < NP; i++) if (juego.enGuerra[i]) enGuerra++;
+    var tomadas = Math.max(0, ciu - (juego.ciudadesIni || 0));
+    var sobra = Math.max(0, tomadas - (g.aguanta + (b.contento || 0)));
+    var cansancio = enGuerra * 0.04 * g.guerra * Math.min(3, juego.imp.turno / 12);
+    return Math.min(0.6, sobra * 0.02 + cansancio);
+  }
+
+  // --- el final ------------------------------------------------------------
+
+  function tierraDelMundo() {
+    if (!juego.km2Mundo) {
+      // Una vez por partida: lo que mide toda la tierra firme del tablero.
+      var t = 0;
+      for (var c = 0; c < NCEL; c++) if (juego.est[c]) t += km2Celda(c);
+      juego.km2Mundo = t;
+    }
+    return juego.km2Mundo;
+  }
+
+  function vivos() {
+    var n = 0;
+    for (var k = 0; juego.rivales && k < juego.rivales.length; k++) {
+      if (!juego.rivales[k].muerto) n++;
+    }
+    return n;
+  }
+
+  function finDeLaPartida(tipo, quien) {
+    if (juego.fin) return;
+    // Se cuentan los puntos de todos antes de cerrar: el marcador final es lo
+    // último que se mira de una partida.
+    juego.imp.puntos = puntuacion();
+    for (var k = 0; juego.rivales && k < juego.rivales.length; k++) {
+      if (!juego.rivales[k].muerto) juego.rivales[k].puntos = puntosRival(juego.rivales[k]);
+    }
+    juego.fin = tipo;
+    juego.finQuien = quien || "";
+    anota(tipo.indexOf("victoria") === 0 ? "Has ganado la partida" : "Se acabó la partida");
+    pintaGuerra();
+    muestraFinal();
+  }
+
+  var ANIO_TOPE = 2050;
+  function revisaVictoria() {
+    if (juego.fin) return;
+    var imp = juego.imp;
+    // Conquista: no queda ningún imperio en pie, o la mitad del mundo es tuya.
+    if (juego.rivales && juego.rivales.length && !vivos()) {
+      return finDeLaPartida("victoria-conquista", "");
+    }
+    if (juego.km2 > tierraDelMundo() * 0.45) {
+      return finDeLaPartida("victoria-conquista", "");
+    }
+    // Ciencia: todo investigado y el programa espacial terminado.
+    if (imp.maravillas && imp.maravillas.indexOf("espacio") >= 0 && proximaTecno() < 0) {
+      return finDeLaPartida("victoria-ciencia", "");
+    }
+    // Y el reloj: al llegar el año tope gana quien más puntos tiene.
+    if (imp.anio >= ANIO_TOPE) {
+      var mejor = null;
+      for (var k = 0; juego.rivales && k < juego.rivales.length; k++) {
+        var r = juego.rivales[k];
+        if (!r.muerto && (!mejor || r.puntos > mejor.puntos)) mejor = r;
+      }
+      if (mejor && mejor.puntos > imp.puntos) finDeLaPartida("derrota-puntos", mejor.n);
+      else finDeLaPartida("victoria-puntos", "");
+    }
   }
 
   // --- el orden de batalla -------------------------------------------------
@@ -5023,6 +5944,11 @@ body.jugando #g-imperio { display: none; }
   function declaraGuerra(ip, yoAtaco) {
     if (ip < 0 || ip === MAR || ip === juego.pais) return;
     if (juego.enGuerra[ip] || juego.capitulado[ip]) return;
+    // Atacar a un país de un imperio es atacar al imperio entero: sus otras
+    // provincias entran en la guerra contigo. Es lo que hace que declarar una
+    // guerra sea una decisión y no un clic.
+    var suD = rivalDe(ip);
+    if (suD && !suD.conmigo && yoAtaco) { declaroA(suD); return; }
     juego.enGuerra[ip] = 1;
     anota(yoAtaco ? "Declaras la guerra a " + paises[ip].n
                   : paises[ip].n + " te declara la guerra");
@@ -5066,6 +5992,22 @@ body.jugando #g-imperio { display: none; }
     juego.capitulado[ip] = 1;
     juego.enGuerra[ip] = 0;
     anota(paises[ip].n + " capitula");
+    // Y pasa a ser tuyo en el mapa político: si era de un imperio, ese imperio
+    // acaba de perder una provincia —y si era la última, deja de existir—.
+    if (juego.dueno) {
+      var dueñoAntes = rivalDe(ip);
+      juego.dueno[ip] = MIO;
+      if (dueñoAntes) {
+        dueñoAntes.paises = dueñoAntes.paises.filter(function (x) { return x !== ip; });
+        if (!dueñoAntes.paises.length) {
+          dueñoAntes.muerto = true;
+          dueñoAntes.conmigo = 0;
+          dueñoAntes.guerra = null;
+          anota(dueñoAntes.n + " deja de existir");
+        }
+      }
+      uploadPalette(SCENES[opts.scene]);
+    }
     var suyas = juego.celdasDe[ip];
     for (var q = 0; q < suyas.length; q++) {
       if (juego.est[suyas[q]] === 1) { tomaCelda(suyas[q], porCelda(40)); juego.anexadas++; }
@@ -5323,6 +6265,7 @@ body.jugando #g-imperio { display: none; }
     if (juego.imp && juego.imp.corriendo && juego.dia >= juego.imp.finTurno) {
       juego.imp.corriendo = false;
       cierraTurno();
+      muestraParte();
     }
   }
 
@@ -5573,6 +6516,7 @@ body.jugando #g-imperio { display: none; }
   // general— deja de atacar, cancela lo que tuviera pendiente y se queda donde
   // está sosteniendo lo que ha tomado. Cualquier orden nueva lo levanta.
   var roImperio = document.getElementById("ro-imperio");
+  var roMundo = document.getElementById("ro-mundo");
   var roTec = document.getElementById("ro-tec");
   var gTurno = document.getElementById("g-turno");
   var gImperio = document.getElementById("g-imperio");
@@ -5695,8 +6639,8 @@ body.jugando #g-imperio { display: none; }
     if (juego.sinSum) extra += " · " + fmtNum(juego.sinSum) + " sin suministro";
     extra += " · bajas " + fmtNum(Math.round(juego.bajas)) + " / " +
              fmtNum(Math.round(juego.bajasEnemigas));
-    roContra.textContent = juego.fin === "victoria" ? "el mundo es tuyo"
-                         : juego.fin === "derrota" ? "has capitulado"
+    roContra.textContent = juego.fin && juego.fin.indexOf("victoria") === 0 ? "partida ganada"
+                         : juego.fin ? "partida perdida"
                          : enGuerra.length ? enGuerra.slice(0, 3).join(", ") +
                              (enGuerra.length > 3 ? " y " + (enGuerra.length - 3) + " más" : "") + extra
                          : "en paz · señala a quién atacas";
@@ -5724,9 +6668,25 @@ body.jugando #g-imperio { display: none; }
     // decisión: en qué gastas lo que produces.
     var imp = juego.imp, r = rentas();
     roImperio.textContent = "turno " + imp.turno + " · año " + anoTexto(imp.anio) + " · " +
+      gobiernoActual().n.toLowerCase() + " · " +
       fmtNum(imp.oro) + " de oro (" + (r.oro >= 0 ? "+" : "") + r.oro + ") · " +
       r.prod + " de producción · " + r.ciudades + " ciudades · " +
-      fmtNum(Math.round(r.pob / 1000)) + "k habitantes · " + imp.puntos + " puntos";
+      fmtNum(Math.round(r.pob / 1000)) + "k habitantes · " + imp.puntos + " puntos" +
+      (r.desc > 0 ? " · " + Math.round(r.desc * 100) + "% de descontento" : "");
+    // Y el mundo: quién más juega esta partida y con quién estás en guerra de
+    // verdad. Una partida no la deciden las provincias sueltas, los imperios.
+    if (juego.rivales && roMundo) {
+      var enG = [], vivas = 0;
+      for (var kr = 0; kr < juego.rivales.length; kr++) {
+        var rv = juego.rivales[kr];
+        if (rv.muerto) continue;
+        vivas++;
+        if (rv.conmigo) enG.push(rv.n);
+      }
+      roMundo.textContent = vivas + (vivas === 1 ? " civilización" : " civilizaciones") +
+        " en pie · " + (enG.length ? "en guerra con " + enG.join(", ") : "en paz con todas") +
+        " · tuyo el " + porcentaje(juego.km2 / tierraDelMundo());
+    }
     var t = imp.investiga >= 0 ? TECNOS[imp.investiga] : null;
     roTec.textContent = t
       ? t.n + " · " + fmtNum(imp.ciencia) + " / " + fmtNum(t.coste) + " (+" + r.ciencia +
@@ -6006,6 +6966,8 @@ body.jugando #g-imperio { display: none; }
     if (!elPortada) return;
     elPortada.hidden = true;
     elEleccion.hidden = true;
+    elFinal.hidden = true;
+    elParte.hidden = true;
     elPestanas.hidden = false;
     estado("jugando");
   }
@@ -6013,6 +6975,8 @@ body.jugando #g-imperio { display: none; }
   function salDePartida() {
     if (!elPortada) return;
     elPestanas.hidden = true;
+    elFinal.hidden = true;
+    elParte.hidden = true;
     panelH2.textContent = "Índice";
     searchEl.hidden = false;
     verPortada();
@@ -6061,6 +7025,111 @@ body.jugando #g-imperio { display: none; }
     verPortada();
     pintaGuerra();
   });
+  // --- el final de la partida ----------------------------------------------
+  //
+  // Una partida de civilizaciones se acaba de verdad: por conquista, por
+  // ciencia o porque se acabó el tiempo y se cuentan los puntos.
+  var elFinal = document.getElementById("final");
+  function muestraFinal() {
+    if (!juego) return;
+    var t = juego.fin || "", gano = t.indexOf("victoria") === 0;
+    var titulos = {
+      "victoria-conquista": "El mundo es tuyo",
+      "victoria-ciencia": "Las estrellas",
+      "victoria-puntos": "La historia te da la razón",
+      "derrota-puntos": "Otro escribió el siglo",
+      "derrota-ciencia": "Te ganaron la carrera",
+      "victoria": "El mundo es tuyo",
+      "derrota": "Tu gobierno capitula"
+    };
+    var textos = {
+      "victoria-conquista": "No queda potencia que se te oponga. La mitad de la tierra firme " +
+        "obedece a tu capital.",
+      "victoria-ciencia": "El programa espacial está terminado y no queda nada por descubrir. " +
+        "Ganas la partida sin necesidad de disparar.",
+      "victoria-puntos": "Se acaba el tiempo y eres quien más ha construido, sabido y " +
+        "conquistado.",
+      "derrota-puntos": "Se acaba el tiempo y " + (juego.finQuien || "otro imperio") +
+        " ha llegado más lejos que tú.",
+      "derrota-ciencia": (juego.finQuien || "Otro imperio") + " termina el programa espacial " +
+        "antes que tú y se lleva la partida.",
+      "victoria": "No queda territorio enemigo sobre el mapa.",
+      "derrota": "Tomada la capital y perdido el país, tu gobierno firma lo que le pongan " +
+        "delante."
+    };
+    document.getElementById("f-sello").textContent =
+      gano ? "Victoria · año " + anoTexto(juego.imp.anio) : "Derrota · año " + anoTexto(juego.imp.anio);
+    document.getElementById("f-titulo").textContent = titulos[t] || "Fin de la partida";
+    document.getElementById("f-texto").textContent = textos[t] || "";
+    // El marcador: tú y los que quedaban en pie.
+    var cont = document.getElementById("f-marcador");
+    cont.textContent = "";
+    var tabla = [{ n: "Tu imperio", p: juego.imp.puntos, mio: true }];
+    for (var k = 0; juego.rivales && k < juego.rivales.length; k++) {
+      var r = juego.rivales[k];
+      tabla.push({ n: r.n + (r.muerto ? " (desaparecida)" : ""), p: r.muerto ? 0 : r.puntos });
+    }
+    tabla.sort(function (a, b) { return b.p - a.p; });
+    for (var i = 0; i < tabla.length; i++) {
+      var d = document.createElement("div");
+      if (tabla[i].mio) d.className = "tuyo";
+      var s = document.createElement("span");
+      s.textContent = (i + 1) + ". " + tabla[i].n;
+      var b = document.createElement("b");
+      b.textContent = tabla[i].p + " puntos";
+      d.appendChild(s); d.appendChild(b);
+      cont.appendChild(d);
+    }
+    elFinal.hidden = false;
+  }
+  document.getElementById("f-otra").addEventListener("click", function () {
+    elFinal.hidden = true;
+    finCampana();
+    abreEleccion();
+  });
+  document.getElementById("f-mirar").addEventListener("click", function () {
+    elFinal.hidden = true;
+  });
+
+  // --- el parte del turno --------------------------------------------------
+  //
+  // Al cerrar un año pasan cosas mientras miras el frente: se descubre algo, un
+  // imperio se traga a su vecino, alguien te declara la guerra. El parte las
+  // junta en un sitio para que no se pierdan en el registro.
+  var elParte = document.getElementById("parte-turno");
+  function muestraParte() {
+    if (!juego || !juego.imp || !juego.imp.ultimo) return;
+    var u = juego.imp.ultimo;
+    document.getElementById("pt-titulo").textContent =
+      "Turno " + (juego.imp.turno - 1) + " · " + anoTexto(juego.imp.anio);
+    var cu = document.getElementById("pt-cuentas");
+    cu.textContent = "";
+    [["oro", (u.oro >= 0 ? "+" : "") + u.oro], ["ciencia", "+" + u.ciencia],
+     ["producción", String(u.prod)],
+     ["descontento", u.desc ? Math.round(u.desc * 100) + "%" : "ninguno"]].forEach(function (p) {
+      var s = document.createElement("span");
+      s.textContent = p[0] + " " + p[1];
+      cu.appendChild(s);
+    });
+    var ul = document.getElementById("pt-lista");
+    ul.textContent = "";
+    var hay = u.parte && u.parte.length;
+    for (var i = 0; hay && i < u.parte.length && i < 12; i++) {
+      var li = document.createElement("li");
+      li.textContent = u.parte[i];
+      ul.appendChild(li);
+    }
+    if (!hay) {
+      var li0 = document.createElement("li");
+      li0.textContent = "Año tranquilo: nada que contar.";
+      ul.appendChild(li0);
+    }
+    elParte.hidden = false;
+  }
+  document.getElementById("pt-cerrar").addEventListener("click", function () {
+    elParte.hidden = true;
+  });
+
   document.getElementById("t-capas").addEventListener("click", function () {
     var abre = !cuerpo.classList.contains("capas");
     cuerpo.classList.toggle("capas", abre);
@@ -6185,6 +7254,9 @@ body.jugando #g-imperio { display: none; }
     if (!juego || !juego.imp) return;
     juego.imp.vista = v;
     juego.imp.verCiudad = -1;
+    juego.imp.verGob = false;
+    juego.imp.verMar = false;
+    juego.imp.verRival = -1;
     Array.prototype.forEach.call(elPestanas.querySelectorAll("button"), function (b) {
       b.setAttribute("aria-pressed", String(b.dataset.vista === v));
     });
@@ -6192,7 +7264,7 @@ body.jugando #g-imperio { display: none; }
     // La cabecera del panel es la de la pestaña, y el buscador sólo tiene
     // sentido donde hay algo que buscar: el atlas y tus ciudades.
     var nom = { imperio: "Imperio", batalla: "Ejército", ciudades: "Ciudades",
-                tecno: "Técnica", atlas: "Atlas" };
+                tecno: "Técnica", mundo: "Mundo", atlas: "Atlas" };
     panelH2.textContent = nom[v] || "Índice";
     searchEl.hidden = !(v === "atlas" || v === "batalla");
     searchEl.value = "";
@@ -7175,7 +8247,11 @@ body.jugando #g-imperio { display: none; }
     gl.uniform1f(progLand.u.uAlpha, 1.0);
     gl.uniform1f(progLand.u.uExag, exag);
     gl.uniform1f(progLand.u.uRealce, opts.relieve ? 1.0 : 0.0);
-    gl.uniform1f(progLand.u.uFisico, verRelieve ? 0.68 : 0.0);
+    // Con el relieve encendido, el color político se apaga hacia un verde
+    // neutro. En partida no: el mapa político es el tablero —de quién es cada
+    // provincia— así que el relieve se queda en el sombreado y deja ver el color
+    // de cada imperio.
+    gl.uniform1f(progLand.u.uFisico, verRelieve ? (juego ? 0.34 : 0.68) : 0.0);
     gl.uniform3fv(progLand.u.uTierra, hexToRgb(scene.tierra));
     gl.uniform3fv(progLand.u.uLight, lightWorld);
     gl.uniform1f(progLand.u.uNight, night);
@@ -7425,6 +8501,12 @@ body.jugando #g-imperio { display: none; }
     eligePais: eligeDesdeMapa,
     pestana: function () { return juego && juego.imp ? juego.imp.vista : null; },
     ponVista: ponVista,
+    // La civilización, para poder probarla desde fuera.
+    paisPunto: function (ip) { return paises[ip] && paises[ip].c; },
+    descontento: function () { return juego ? descontento() : 0; },
+    capitula: function (ip) { if (juego) capitula(ip); },
+    fin: function (tipo) { if (juego) finDeLaPartida(tipo, "Roma"); },
+    rivales: function () { return juego ? juego.rivales : null; },
     dibujaBandera: function (g, x, y, w, h, bd) {
       var viejo = ctx; ctx = g; dibujaBandera(x, y, w, h, bd); ctx = viejo;
     },

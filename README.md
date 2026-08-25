@@ -227,6 +227,53 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**4b. Los demás también juegan.** Faltaba lo que convierte una campaña en una
+partida de civilizaciones: que el mundo no sea decorado. Hasta aquí los países
+sólo existían cuando los atacabas. Ahora hay **siete imperios rivales**
+—los países más poblados, repartidos por el globo para que no se coman entre
+ellos el primer turno— llevando su propia partida en el mismo tablero:
+
+- **Juegan a escala de país, no de celda.** No mueven cuerpos por el mapa —eso
+  sólo pasa en las guerras contigo, que son las que se ven— pero crecen,
+  investigan, se declaran la guerra, se anexionan provincias y desaparecen. El
+  mapa político cambia de color solo: cada imperio pinta lo suyo, y en noventa
+  turnos el mundo pasa de 249 países sueltos a un puñado de bloques.
+- **Con la misma vara que tú.** Su renta sale de la gente y la tierra que tienen
+  con la misma fórmula que la tuya —si se midiera de otra forma, China saldría
+  con veinte mil de oro al turno—, investigan el mismo árbol y no pueden
+  adelantarte más de una época: el mundo va más o menos junto, que es lo que
+  hace que la carrera se note.
+- **La guerra contigo sí baja al mapa.** Atacar a una provincia de un imperio es
+  atacar al imperio entero: todas sus provincias entran en la campaña, con sus
+  cuerpos, su frente y su suministro. Y al revés: si uno te declara la guerra, la
+  tienes encima con todo lo suyo.
+- **Diplomacia.** Cada uno tiene su carácter y su opinión de ti, que se mueve
+  sola: al fuerte se le teme, al débil se le miran las provincias y al que va
+  parejo se le respeta —por eso el mejor sitio del mundo es el segundo—. Puedes
+  declarar la guerra, pedir la paz (te la cobran según cómo vaya, y no la firman
+  si les has quitado media nación) y regalar oro.
+- **Formas de gobierno.** Despotismo, monarquía, república, imperio y democracia,
+  cada una desbloqueada por una técnica. Cambian lo que rinde el imperio, cuánta
+  gente puedes llamar a filas y **cuántas ciudades conquistadas aguantas sin
+  descontento**; cambiar de gobierno cuesta un turno de anarquía. Gobernar lo
+  tuyo no cuesta nada: lo que pesa es lo que has tomado de más y el cansancio de
+  la guerra, y a una democracia se le acaba la paciencia antes que a un
+  despotismo.
+- **Ocho maravillas, una en el mundo.** Las levanta el imperio entero con una
+  parte de todo lo que produce, y los rivales compiten por ellas: si uno la
+  termina antes, te quedas mirando la obra a medias. El **programa espacial**
+  gana la partida sin disparar —y también la pierde si la termina otro—.
+- **Tres formas de ganar**: media tierra firme del mundo, el programa espacial, o
+  más puntos que nadie al llegar el año 2050. Con marcador final de todos.
+- Y **el oro sirve para algo**: apresurar una obra a tocateja, pagar la paz,
+  comprar amistad, levantar tropas.
+
+Comprobado: partidas de noventa turnos desde la Antigüedad sin tocar nada más
+que el botón de turno terminan con el mundo repartido entre los que quedan —94
+países en siete imperios, dos civilizaciones borradas del mapa—, con maravillas
+levantadas por tres potencias distintas, alguien declarándote la guerra por el
+camino, y sin que nadie se dispare cuatro épocas por delante.
+
 **4a. Un juego se abre por su portada, no por una barra de capas.** Estaba todo
 —el mundo, la guerra, el imperio— y aun así seguía pareciendo una aplicación de
 mapas con cosas encima: al entrar, un globo y una fila de interruptores
@@ -1136,6 +1183,16 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   Baikal y los Andes se obtiene en cada caso el accidente correcto con su
   cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
   Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
+- **Las civilizaciones**, de punta a punta y sin un solo error de consola: al
+  empezar hay siete imperios repartidos por el globo, cada uno con su color y su
+  país; la pestaña Mundo trae una ficha por civilización con sus provincias y su
+  diplomacia; regalar oro mejora su actitud; declararle la guerra a uno arrastra
+  a todas sus provincias a la campaña y le baja la opinión a los demás; pedir la
+  paz saca a sus provincias de la guerra y deja tregua; hay cinco formas de
+  gobierno y ocho maravillas; catorce turnos bastan para que los rivales se coman
+  a sus vecinos y el mapa político cambie; conquistar una provincia suya te la
+  pasa a ti y, si era la última, borra al imperio; y el marcador final ordena a
+  los ocho.
 - **La cáscara del juego**, de punta a punta y sin un solo error de consola: se
   abre en la portada y con los mandos del atlas fuera; *Nueva partida* lleva a
   elegir, con las ocho épocas y 120 países en lista y el globo a la vista;
