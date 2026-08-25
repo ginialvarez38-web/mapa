@@ -227,6 +227,32 @@ desaparecía entera, y con ella la posibilidad de pincharla. Ahora el redondel
 está siempre —es lo que dice «aquí hay una ciudad»— y el nombre entra cuando
 hay hueco, como en un mapa de papel.
 
+**4c. El tablero de mando.** El mapa ya era el de un juego, pero todo lo demás
+seguía siendo el instrumental de un atlas: tiras de datos con rótulos en
+versalitas, tipografía de tabla, gris sobre gris. Un juego de civilizaciones
+tiene una interfaz de forma fija que se aprende de memoria y se lee sin leerla,
+así que el mapa se queda como está y la cáscara se rehace entera:
+
+- **La cinta de arriba**, siempre igual y siempre en el mismo orden: época y
+  año, oro con lo que entra, ciencia, producción, ciudades, descontento y
+  puntos con tu puesto entre las civilizaciones. Cada cifra con su símbolo,
+  números en oro, y debajo la línea del parte de guerra —fecha, estación,
+  tropas, con quién estás en guerra— que se pliega en un toque.
+- **El panel de consejeros** a la izquierda, con las seis pestañas arriba en
+  bronce: piedra oscura, filo dorado y títulos en letra romana.
+- **La ficha del mando** abajo, con la formación que llevas, el último parte y
+  sus órdenes.
+- **La turnera** en la esquina: la investigación con su barra y el botón de
+  turno, grande y de bronce, que mientras corre la temporada cuenta los días.
+- **En pantalla estrecha**, las pestañas se convierten en la barra fija de abajo
+  —la forma de todos los juegos de móvil— y el índice crece hacia arriba desde
+  ella; tocar la pestaña que ya está puesta lo recoge. Los mandos del mapa, que
+  son cosa del atlas, salen sólo si los pides con *Vista*, y entonces como
+  columna en el borde.
+
+Las pantallas de portada, elección y final van a juego: piedra, bronce y letra
+romana, con el globo girando detrás en lugar de un fondo apagado.
+
 **4b. Los demás también juegan.** Faltaba lo que convierte una campaña en una
 partida de civilizaciones: que el mundo no sea decorado. Hasta aquí los países
 sólo existían cuando los atacabas. Ahora hay **siete imperios rivales**

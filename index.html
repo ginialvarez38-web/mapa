@@ -298,68 +298,8 @@ body {
 
 /* --- campaña ------------------------------------------------------ */
 
-/* Una tira con lo justo. El juego se lleva tocando el mapa, así que no hay
-   panel de órdenes que tape el terreno. */
-.guerra {
-  position: fixed;
-  top: 76px; right: 22px;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  max-width: min(620px, calc(100vw - 360px));
-  gap: 8px 16px;
-  padding: 7px 12px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: var(--panel);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: var(--shadow);
-  font-family: var(--font-data);
-  font-size: 12px;
-}
-.guerra[hidden] { display: none; }
-.guerra > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.guerra span {
-  font-size: 8.5px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase;
-}
-.guerra b { font-weight: 600; letter-spacing: .01em; overflow-wrap: anywhere; }
-.guerra .btn { padding: 4px 9px; font-size: 10.5px; }
-.guerra select {
-  font-family: var(--font-data);
-  font-size: 12px; font-weight: 600;
-  color: var(--ink); background: transparent;
-  border: 1px solid var(--line); border-radius: 3px;
-  padding: 1px 4px;
-}
-.guerra select:disabled { opacity: 1; border-color: transparent; padding-left: 0; }
-/* Plegada deja lo imprescindible: la fecha y el cuerpo que llevas en la mano.
-   Con seis bloques desplegados, en un teléfono la tira tapaba media pantalla y
-   con ella las banderas que hay que tocar. */
-.guerra.mini .oculta-mini { display: none; }
-.guerra .plegar {
-  border: 1px solid var(--line); border-radius: 3px; background: transparent;
-  color: var(--muted); font: inherit; font-size: 11px; line-height: 1;
-  padding: 5px 7px; cursor: pointer;
-}
-.guerra .plegar:hover { color: var(--ink); }
-@media (max-width: 900px) {
-  /* El «100vw - 360px» dejaba la tira en treinta píxeles de ancho en un
-     teléfono: cada bloque caía en su propia línea y salía una columna de medio
-     metro encima del mapa. */
-  .guerra {
-    top: auto; bottom: 104px; right: 8px; left: 8px;
-    max-width: none; align-items: flex-start; justify-content: flex-start;
-    gap: 4px 12px; padding: 6px 10px; font-size: 11px;
-  }
-  /* Cada bloque pide 140 px y se reparte el resto; el texto largo parte de
-     línea dentro de su bloque en vez de empujar la tira fuera de la pantalla. */
-  .guerra > div { flex: 1 1 140px; }
-  .guerra .btn, .guerra .plegar { flex: 0 0 auto; }
-}
-}
-}
+/* La vieja tira de campaña ha dejado sitio al tablero de mando —la cinta, la
+   ficha del mando y la turnera—, que está más abajo con el resto del juego. */
 
 .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 
@@ -582,8 +522,8 @@ body {
   position: fixed; inset: 0; z-index: 40;
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
-  background: radial-gradient(120% 90% at 50% 0%, rgba(12,16,24,.35), rgba(8,11,17,.86) 60%);
-  backdrop-filter: blur(2px);
+  /* El mundo se ve por detrás: es de lo que va el juego. */
+  background: radial-gradient(120% 95% at 50% 0%, rgba(10,8,6,.18), rgba(8,6,4,.72) 68%);
 }
 /* La elección no tapa el mundo: se arrima a un lado y deja el globo a mano,
    porque parte de elegir país es verlo. Sólo la caja recoge el dedo. */
@@ -599,8 +539,8 @@ body {
 /* Mientras se elige o se mira la portada, los mandos del atlas estorban: lo
    que hay delante es un juego, no una barra de capas. */
 body.telon .masthead, body.telon .readout, body.telon .controls,
-body.telon .panel, body.telon .card, body.telon .guerra,
-body.eligiendo .masthead, body.eligiendo .controls, body.eligiendo .guerra,
+body.telon .panel, body.telon .card, body.telon .hud,
+body.eligiendo .masthead, body.eligiendo .controls, body.eligiendo .hud,
 body.eligiendo .readout, body.eligiendo .panel, body.eligiendo .card,
 body.telon .parte-turno, body.eligiendo .parte-turno { display: none !important; }
 body.jugando .masthead { display: none; }
@@ -609,142 +549,381 @@ body.jugando .masthead { display: none; }
 body.jugando .controls, body.jugando .readout { display: none; }
 body.jugando.capas .controls { display: flex; }
 
-/* Los dos botones sueltos de la esquina: el índice —que en pantalla estrecha es
-   la única forma de llegar a las pestañas— y los mandos de la vista. Van fuera
-   de la barra de capas a propósito: esa barra se esconde durante la partida, y
-   con ella se escondía el botón que abre el panel. */
-.chips {
-  position: fixed; right: 14px; bottom: 16px; z-index: 22;
-  display: flex; gap: 6px; align-items: center;
+/* ---------------------------------------------------------------- */
+/* El tablero de mando                                               */
+/* ---------------------------------------------------------------- */
+/*
+   El mapa se queda como está —es el tablero— y todo lo demás deja de parecer
+   una aplicación de mapas. La interfaz de un juego de civilizaciones tiene
+   forma fija y se aprende de memoria: una cinta arriba con el estado del
+   imperio, un panel de consejeros a un lado, la ficha de lo que llevas
+   seleccionado abajo y, en la esquina, el botón de pasar turno. Piedra oscura,
+   filo de bronce y letra romana; los números en oro, que es lo que se mira.
+*/
+:root { --ancho-panel: 282px; --alto-cinta: 84px; }
+.hud {
+  position: fixed; inset: 0; z-index: 6;
+  pointer-events: none;
+  display: flex; flex-direction: column; justify-content: space-between;
+  font-family: var(--font-ui);
 }
-.chips .btn { background: var(--panel); backdrop-filter: blur(14px); }
-.capas-chip { display: none; }
-body.jugando .capas-chip { display: inline-flex; }
-body.telon .chips, body.eligiendo .chips { display: none; }
-@media (max-width: 900px) { .chips { bottom: 12px; right: 10px; } }
+.hud[hidden] { display: none; }
+.hud > * { pointer-events: auto; }
 
-/* ---- el reparto de la pantalla durante la partida ---- */
-/* Sin cabecera, el panel y la tira de guerra suben al borde: en la partida no
-   hay título que respetar, y así caben las seis pestañas y el parte. */
-body.jugando .panel { top: 20px; }
-/* La tira de guerra crece con lo que cuenta —el parte, el imperio, el mundo— y
-   en una ventana baja llegaba hasta media pantalla: se queda en su banda y lo
-   que no cabe se desliza dentro. */
-body.jugando .guerra { top: 20px; max-height: 40vh; overflow-y: auto; }
-body.jugando.capas .chips { bottom: 84px; }
-/* El parte del turno va abajo a la derecha, en el hueco que dejan el panel (a la
-   izquierda) y la tira (arriba). Antes salía centrado y se comía la barra. */
-.parte-turno.esquina {
-  left: auto; right: 22px; bottom: 62px; transform: none;
+/* ---- la cinta de arriba ---- */
+.cintas { display: flex; flex-direction: column; }
+.cinta {
+  display: flex; align-items: stretch; gap: 14px;
+  padding: 7px 14px;
+  background: linear-gradient(180deg, rgba(26,22,16,.97), rgba(17,14,10,.94));
+  border-bottom: 1px solid rgba(216,178,104,.55);
+  box-shadow: 0 8px 22px rgba(0,0,0,.42);
+  color: #F2E9D8;
 }
-body.jugando.capas .parte-turno.esquina { bottom: 108px; }
-/* Y la barra de capas, cuando se saca, se queda en el hueco de la derecha: el
-   panel del juego manda en su columna. */
+.cinta-era {
+  display: flex; flex-direction: column; justify-content: center;
+  min-width: 120px; padding-right: 14px;
+  border-right: 1px solid rgba(216,178,104,.22);
+}
+.cinta-era b {
+  font-family: var(--font-display); font-size: 16px; font-weight: 500;
+  line-height: 1.1; color: #FFF6E4;
+}
+.cinta-era span {
+  font-family: var(--font-data); font-size: 10px; letter-spacing: .14em;
+  text-transform: uppercase; color: #B9A98B;
+}
+.cinta-cifras {
+  flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: center;
+  gap: 2px 20px;
+}
+.cifra { display: flex; align-items: baseline; gap: 6px; }
+.cifra i {
+  font-style: normal; font-size: 13px; line-height: 1; color: #D9B45B;
+}
+.cifra b {
+  font-family: var(--font-data); font-size: 14px; font-weight: 600;
+  font-variant-numeric: tabular-nums; color: #FFF6E4;
+}
+.cifra em {
+  font-style: normal; font-family: var(--font-data); font-size: 10px;
+  letter-spacing: .06em; color: #B9A98B;
+}
+.cifra em.sube { color: #8FC08A; }
+.cifra em.baja { color: #E08A72; }
+.cifra b.mal { color: #E08A72; }
+.cinta-fin {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 14px; border-left: 1px solid rgba(216,178,104,.22);
+}
+.cinta-fin b {
+  font-family: var(--font-data); font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; color: #D9B45B; white-space: nowrap;
+}
+.hud .btn.fino {
+  padding: 5px 9px; font-size: 9.5px;
+  border-color: rgba(216,178,104,.34); color: #EADFC9; background: rgba(255,255,255,.04);
+}
+.hud .btn.fino:hover { background: rgba(216,178,104,.20); color: #FFF; }
+
+/* La línea del parte, pegada bajo la cinta */
+.tira {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 2px 18px;
+  padding: 5px 14px;
+  background: rgba(14,12,9,.86);
+  border-bottom: 1px solid rgba(216,178,104,.22);
+  font-family: var(--font-data); font-size: 11px; color: #C7B99F;
+  max-height: 22vh; overflow-y: auto;
+}
+.tira .plegar { margin-left: auto; }
+.tira #ro-frente { color: #D9B45B; }
+.hud .plegar {
+  padding: 0 6px; border: 0; background: none; cursor: pointer;
+  color: #B9A98B; font-size: 13px; line-height: 1;
+}
+.tira.mini .oculta-mini { display: none; }
+
+/* ---- el pie: la ficha del mando y la turnera ---- */
+.hud-pie {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 14px;
+  padding: 0 18px 18px calc(var(--ancho-panel, 282px) + 40px);
+}
+.mando {
+  width: min(330px, 42vw);
+  padding: 9px 12px 10px;
+  border: 1px solid rgba(198,160,88,.30); border-radius: 7px;
+  background: rgba(24,20,15,.94);
+  box-shadow: 0 10px 26px rgba(0,0,0,.42);
+  color: #F2E9D8;
+}
+.mando-nom {
+  margin: 0; font-family: var(--font-display); font-size: 14px; color: #FFF6E4;
+}
+.mando-parte {
+  margin: 2px 0 8px; font-family: var(--font-data); font-size: 10.5px;
+  color: #B9A98B; line-height: 1.4;
+}
+.mando-acc { display: flex; flex-wrap: wrap; gap: 6px; }
+.hud .mando-acc .btn {
+  padding: 5px 9px; font-size: 9.5px;
+  border-color: rgba(198,160,88,.32); color: #EADFC9; background: rgba(255,255,255,.04);
+}
+.hud .mando-acc .btn[aria-pressed="true"] {
+  border-color: #D9B45B; background: rgba(217,180,91,.22); color: #FFF6E4;
+}
+.hud .mando-acc .btn:hover { background: rgba(216,178,104,.20); color: #FFF; }
+
+.turnera { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.tec {
+  width: min(280px, 46vw);
+  padding: 7px 11px 8px;
+  border: 1px solid rgba(198,160,88,.30); border-radius: 7px;
+  background: rgba(24,20,15,.94);
+  font-family: var(--font-data); font-size: 10px; color: #C7B99F;
+  box-shadow: 0 10px 26px rgba(0,0,0,.42);
+}
+.barra {
+  height: 3px; margin-top: 6px; border-radius: 2px;
+  background: rgba(255,255,255,.10); overflow: hidden;
+}
+.barra i { display: block; height: 100%; width: 0; background: #D9B45B; transition: width .3s; }
+.turno {
+  appearance: none; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 20px;
+  border: 1px solid rgba(216,178,104,.62); border-radius: 8px;
+  background: linear-gradient(180deg, #8A5A24, #5A3712);
+  color: #FFF3DA;
+  font-family: var(--font-display); font-size: 16px; letter-spacing: .03em;
+  box-shadow: 0 8px 20px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.turno:hover { background: linear-gradient(180deg, #9C6829, #6B4318); }
+.turno b { color: #F5D998; font-size: 13px; }
+.turno.corriendo {
+  background: linear-gradient(180deg, #33302a, #22201c);
+  border-color: rgba(216,178,104,.30); color: #C7B99F;
+}
+.turno.corriendo b { color: #B9A98B; }
+
+/* ---- el panel de consejeros ---- */
+body.jugando .panel {
+  top: auto; bottom: 18px; left: 18px;
+  max-height: calc(100vh - var(--alto-cinta, 84px) - 36px);
+  width: var(--ancho-panel, 282px);
+  border-color: rgba(198,160,88,.30);
+  background: rgba(22,18,14,.95);
+  box-shadow: 0 14px 34px rgba(0,0,0,.45);
+}
+body.jugando .panel-head { border-bottom-color: rgba(216,178,104,.22); }
+body.jugando .panel-head h2 {
+  font-family: var(--font-display); font-size: 15px; font-weight: 500;
+  letter-spacing: .02em; text-transform: none; color: #FFF6E4;
+}
+body.jugando .search {
+  border-color: rgba(198,160,88,.26); background: rgba(0,0,0,.28); color: #F2E9D8;
+}
+body.jugando .list h3 {
+  border-top-color: rgba(216,178,104,.20); color: #C0A87A;
+}
+body.jugando .list button { color: #E4DAC6; }
+body.jugando .list button i { color: #A99878; }
+body.jugando .list button:hover { background: rgba(216,178,104,.16); color: #FFF6E4; }
+body.jugando .list button[aria-current="true"] {
+  background: rgba(216,178,104,.18); border-left-color: #D9B45B; color: #FFF6E4;
+}
+body.jugando .list p { color: #A99878; }
+body.jugando .dato { color: #E4DAC6; }
+body.jugando .dato span { color: #A99878; }
+body.jugando .dato b { color: #FFF6E4; }
+body.jugando .pestanas {
+  padding: 8px 8px 6px; gap: 3px;
+  border-bottom: 1px solid rgba(216,178,104,.18);
+  background: rgba(0,0,0,.24);
+}
+body.jugando .pestanas .btn {
+  flex: 1 1 30%; padding: 7px 4px; font-size: 9px; letter-spacing: .06em;
+  border-color: rgba(198,160,88,.22); color: #C7B99F; background: rgba(255,255,255,.03);
+}
+body.jugando .pestanas .btn:hover { background: rgba(216,178,104,.16); color: #FFF6E4; }
+body.jugando .pestanas .btn[aria-pressed="true"] {
+  border-color: #D9B45B; background: linear-gradient(180deg, #7A4F20, #543410); color: #FFF3DA;
+}
+
+/* El parte del turno, sobre el pie y a la derecha */
+.parte-turno.esquina { left: auto; right: 18px; bottom: 118px; transform: none; }
+.parte-caja {
+  border-color: rgba(198,160,88,.34);
+  background: rgba(24,20,15,.96);
+  color: #F2E9D8;
+}
+.parte-caja h3 { color: #D9B45B; }
+.parte-cuentas { color: #C7B99F; }
+.hud + .parte-turno .btn, .parte-caja .btn {
+  border-color: rgba(198,160,88,.34); color: #EADFC9; background: rgba(255,255,255,.04);
+}
+
+/* El cuadro de coordenadas y la barra de capas son cosa del atlas: durante la
+   partida no salen, y la barra vuelve sólo si la pides con «Vista». */
+body.jugando .controls, body.jugando .readout { display: none; }
+/* Los mandos del mapa, cuando se piden, salen como una columna en el borde
+   derecho: debajo de la cinta y por encima de la turnera, sin cruzarse con nada.
+   La barra centrada de abajo es del atlas; aquí estorbaba a todo. */
 body.jugando.capas .controls {
-  left: 330px; right: 112px; transform: none; justify-content: center;
+  display: flex; flex-direction: column; align-items: stretch;
+  left: auto; right: 18px; bottom: auto;
+  top: calc(var(--alto-cinta, 90px) + 12px);
+  width: 186px; transform: none; gap: 4px;
+  max-height: calc(100vh - var(--alto-cinta, 90px) - 140px); overflow-y: auto;
+  border-color: rgba(198,160,88,.30); background: rgba(24,20,15,.94);
 }
+body.jugando.capas .controls .btn { text-align: left; }
+body.jugando.capas .controls .sep { display: none; }
+body.jugando.capas .parte-turno.esquina { display: none; }
 
 @media (max-width: 900px) {
-  /* En estrecho, cada cosa en su banda: la tira arriba, el panel abajo y los
-     botones sueltos por debajo de todo. */
-  body.jugando .guerra { top: 8px; bottom: auto; }
-  body.jugando .panel { top: auto; bottom: 58px; }
-  body.jugando .card { bottom: 58px; }
-  /* Con los mandos fuera, la barra se pone encima de los botones sueltos, no
-     debajo: si no, tapaba el propio botón con el que se cierra. */
-  body.jugando.capas .controls { bottom: 56px; max-height: 34vh; overflow-y: auto; }
-  body.jugando.capas .chips { bottom: 12px; }
-  .parte-turno.esquina { left: 12px; right: 12px; bottom: 58px; width: auto; }
+  /* En estrecho: cinta arriba, mapa en medio y las pestañas como barra fija
+     abajo —la forma de todos los juegos de móvil—. El panel crece hacia arriba
+     desde esa barra y se recoge tocando la pestaña que ya está puesta. */
+  .cinta { flex-wrap: wrap; gap: 6px 12px; padding: 6px 10px; }
+  .cinta-era { min-width: 0; border-right: 0; padding-right: 0; }
+  .cinta-era b { font-size: 14px; }
+  .cinta-cifras { gap: 2px 14px; order: 3; flex-basis: 100%; }
+  .cinta-fin { margin-left: auto; padding-left: 0; border-left: 0; }
+  .cifra em { display: none; }
+  .tira { font-size: 10px; padding: 4px 10px; }
+  .hud-pie {
+    flex-direction: column; align-items: stretch; gap: 8px;
+    padding: 0 10px calc(var(--alto-tabs, 76px) + 10px);
+  }
+  .mando { width: auto; }
+  .turnera { flex-direction: row; align-items: center; gap: 8px; }
+  .tec { flex: 1 1 auto; width: auto; }
+  .turno { padding: 10px 16px; font-size: 14px; }
+  body.jugando .panel {
+    left: 0; right: 0; bottom: 0; width: auto;
+    max-height: 54vh; border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0;
+  }
+  body.jugando .panel.plegado .panel-head,
+  body.jugando .panel.plegado .list { display: none; }
+  body.jugando .card { bottom: calc(var(--alto-tabs, 76px) + 8px); }
+  body.jugando.capas .controls {
+    left: 10px; right: 10px; width: auto; flex-direction: row; flex-wrap: wrap;
+    top: calc(var(--alto-cinta, 90px) + 8px); max-height: 40vh;
+  }
+  .parte-turno.esquina {
+    left: 10px; right: 10px; width: auto;
+    bottom: calc(var(--alto-tabs, 76px) + 8px);
+  }
+  /* Con el índice desplegado —o con parte del turno que leer— no hace falta el
+     pie: en un teléfono se lee una cosa a la vez. */
+  body.jugando.panel-abierto .hud-pie,
+  body.jugando.parte-abierto .hud-pie { display: none; }
 }
 .portada-caja, .eleccion-caja {
   width: min(560px, 100%);
   max-height: 100%;
   overflow: auto;
-  padding: 26px 26px 22px;
-  border: 1px solid rgba(255,255,255,.14);
-  border-radius: 10px;
-  background: rgba(18,22,30,.92);
-  color: #EEF2F7;
-  box-shadow: 0 24px 70px rgba(0,0,0,.5);
+  padding: 28px 28px 24px;
+  border: 1px solid rgba(216,178,104,.42);
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(34,28,21,.96), rgba(20,17,12,.97));
+  color: #F2E9D8;
+  box-shadow: 0 26px 74px rgba(0,0,0,.58), inset 0 1px 0 rgba(216,178,104,.22);
 }
 .portada .sello, .eleccion .lema, .portada .pie {
   margin: 0; font-family: var(--font-data); font-size: 11px;
-  letter-spacing: .16em; text-transform: uppercase; color: #9FB0C4;
+  letter-spacing: .18em; text-transform: uppercase; color: #C0A87A;
+}
+.portada .sello { padding-bottom: 10px; border-bottom: 1px solid rgba(216,178,104,.28); }
+.portada .pie {
+  padding-top: 12px; border-top: 1px solid rgba(216,178,104,.28); line-height: 1.7;
 }
 .portada h1 {
   margin: 6px 0 10px; font-family: var(--font-display);
-  font-size: clamp(38px, 8vw, 62px); line-height: .95; letter-spacing: .01em;
-  color: #FFF;
+  font-size: clamp(38px, 8vw, 62px); line-height: .95; letter-spacing: .02em;
+  color: #FFF6E4; text-shadow: 0 2px 18px rgba(216,178,104,.25);
 }
 .portada .lema, .eleccion-caja .lema {
   margin: 0 0 18px; font-size: 14px; line-height: 1.5;
-  letter-spacing: 0; text-transform: none; color: #C6D2E0;
+  letter-spacing: 0; text-transform: none; color: #CFC1A6;
   font-family: var(--font-ui);
 }
 .portada .pie { margin-top: 16px; }
 .portada-botones { display: flex; flex-wrap: wrap; gap: 10px; }
 .btn.grande {
-  padding: 11px 20px; font-size: 13px; letter-spacing: .10em;
+  padding: 12px 22px; font-family: var(--font-display); font-size: 15px;
+  letter-spacing: .06em; text-transform: none;
   background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
 }
 .btn.grande[disabled] { opacity: .45; cursor: default; }
 /* Las cajas del juego son oscuras siempre, también con el atlas en claro: los
    botones de dentro llevan su propio color o se pierden sobre el fondo. */
-.portada .btn, .eleccion .btn {
-  color: #DDE5EF; border-color: rgba(255,255,255,.24); background: rgba(255,255,255,.05);
+.portada .btn, .eleccion .btn, .final .btn {
+  color: #EADFC9; border-color: rgba(216,178,104,.34); background: rgba(255,255,255,.04);
 }
-.portada .btn:hover, .eleccion .btn:hover {
-  background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.38); color: #FFF;
+.portada .btn:hover, .eleccion .btn:hover, .final .btn:hover {
+  background: rgba(216,178,104,.20); border-color: rgba(216,178,104,.6); color: #FFF6E4;
 }
-.portada .btn.grande, .eleccion .btn.grande {
-  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+.portada .btn.grande, .eleccion .btn.grande, .final .btn.grande {
+  border-color: rgba(216,178,104,.62); color: #FFF3DA;
+  background: linear-gradient(180deg, #8A5A24, #5A3712);
+  box-shadow: 0 8px 18px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.portada .btn.grande:hover, .eleccion .btn.grande:hover, .final .btn.grande:hover {
+  background: linear-gradient(180deg, #9C6829, #6B4318); color: #FFF;
 }
 .eleccion-caja h2 {
   margin: 0 0 6px; font-family: var(--font-display);
-  font-size: 26px; font-weight: 500; color: #FFF;
+  font-size: 27px; font-weight: 500; color: #FFF6E4;
 }
 .epocas { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; margin-bottom: 14px; }
 .epocas button {
   padding: 8px 9px; text-align: left; cursor: pointer;
-  border: 1px solid rgba(255,255,255,.16); border-radius: 5px;
-  background: rgba(255,255,255,.04); color: #DDE5EF;
+  border: 1px solid rgba(216,178,104,.22); border-radius: 3px;
+  background: rgba(255,255,255,.03); color: #E4DAC6;
   font-family: var(--font-ui); font-size: 12px;
 }
-.epocas button b { display: block; font-size: 12.5px; font-weight: 600; }
-.epocas button i { font-style: normal; font-family: var(--font-data); font-size: 10px; color: #93A3B6; }
+.epocas button b { display: block; font-family: var(--font-display); font-size: 13.5px; font-weight: 500; }
+.epocas button i { font-style: normal; font-family: var(--font-data); font-size: 9.5px; color: #A99878; letter-spacing: .06em; }
+.epocas button:hover { border-color: rgba(216,178,104,.45); background: rgba(216,178,104,.10); }
 .epocas button[aria-pressed="true"] {
-  border-color: var(--accent); background: rgba(224,106,90,.18); color: #FFF;
+  border-color: #D9B45B; color: #FFF3DA;
+  background: linear-gradient(180deg, #7A4F20, #533310);
 }
-.eleccion .search { width: 100%; margin-bottom: 8px; }
-.lista-paises { max-height: 34vh; overflow: auto; border: 1px solid rgba(255,255,255,.1); border-radius: 5px; }
+.eleccion .search {
+  width: 100%; margin-bottom: 8px;
+  border-color: rgba(216,178,104,.26); background: rgba(0,0,0,.30); color: #F2E9D8;
+}
+.lista-paises { max-height: 34vh; overflow: auto; border: 1px solid rgba(216,178,104,.20); border-radius: 3px; }
 .lista-paises button {
   display: flex; width: 100%; justify-content: space-between; gap: 10px;
   padding: 7px 11px; border: 0; background: transparent; cursor: pointer;
-  color: #D8E1EC; font-family: var(--font-ui); font-size: 13px; text-align: left;
+  color: #E4DAC6; font-family: var(--font-ui); font-size: 13px; text-align: left;
 }
 .lista-paises button i {
-  font-style: normal; font-family: var(--font-data); font-size: 10px; color: #8FA0B4; white-space: nowrap;
+  font-style: normal; font-family: var(--font-data); font-size: 10px; color: #A99878; white-space: nowrap;
 }
 .lista-paises button:hover, .lista-paises button[aria-pressed="true"] {
-  background: rgba(224,106,90,.18); color: #FFF;
+  background: rgba(216,178,104,.18); color: #FFF6E4;
 }
 .pie-eleccion {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin-top: 14px; flex-wrap: wrap;
 }
-.pie-eleccion b { font-family: var(--font-data); font-size: 11px; color: #A9B8C9; font-weight: 500; }
+.pie-eleccion b { font-family: var(--font-data); font-size: 11px; color: #C0A87A; font-weight: 500; }
 .pie-eleccion span { display: flex; gap: 8px; }
 
 /* ---- el marcador final ---- */
 .marcador { margin: 14px 0 18px; }
 .marcador div {
   display: flex; justify-content: space-between; gap: 12px;
-  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.08);
-  font-size: 13px; color: #C6D2E0;
+  padding: 6px 0; border-bottom: 1px solid rgba(216,178,104,.14);
+  font-size: 13px; color: #CFC1A6;
 }
-.marcador div b { font-family: var(--font-data); font-size: 11px; font-weight: 500; color: #FFF; }
-.marcador div.tuyo { color: #FFF; }
-.marcador div.tuyo span::before { content: "▸ "; color: var(--accent); }
+.marcador div b { font-family: var(--font-data); font-size: 11px; font-weight: 500; color: #FFF6E4; }
+.marcador div.tuyo { color: #FFF6E4; }
+.marcador div.tuyo span::before { content: "▸ "; color: #D9B45B; }
 
 /* ---- el parte del turno: lo que ha pasado mientras decidías ---- */
 .parte-turno {
@@ -824,7 +1003,7 @@ body.jugando #g-imperio { display: none; }
   </div>
 </div>
 
-<div class="portada" id="final" hidden>
+<div class="portada final" id="final" hidden>
   <div class="portada-caja">
     <p class="sello" id="f-sello">Fin de la partida</p>
     <h1 id="f-titulo">—</h1>
@@ -852,27 +1031,78 @@ body.jugando #g-imperio { display: none; }
   <div><span>Sol sobre</span><b id="ro-sun">—</b></div>
 </div>
 
-<div class="guerra" id="guerra" hidden aria-live="polite">
-  <div><span>Época</span><select id="g-epoca" aria-label="Época de la guerra"></select></div>
-  <div><span>Frente</span><b id="ro-frente">—</b></div>
-  <div class="oculta-mini"><span>Tropas</span><b id="ro-tropas">—</b></div>
-  <div class="oculta-mini"><span>En guerra con</span><b id="ro-contra">—</b></div>
-  <div><span>Mando</span><b id="ro-cuerpo">—</b></div>
-  <div class="oculta-mini"><span>Parte</span><b id="ro-parte">—</b></div>
-  <div><span>Imperio</span><b id="ro-imperio">—</b></div>
-  <div class="oculta-mini"><span>El mundo</span><b id="ro-mundo">—</b></div>
-  <div class="oculta-mini"><span>Investigando</span><b id="ro-tec">—</b></div>
-  <button class="btn" id="g-todos" type="button" aria-pressed="false"
-          title="Las órdenes van a todas tus formaciones a la vez">Todos: no</button>
-  <button class="btn" id="g-alto" type="button"
-          title="Detener: la formación deja de atacar y se queda donde está">Alto</button>
-  <button class="btn" id="g-turno" type="button"
-          title="Cierra el año: la campaña corre una temporada y luego se cobran las rentas">Turno »</button>
-  <button class="btn" id="g-imperio" type="button" aria-pressed="false"
-          title="Tecnología, ciudades y reclutamiento">Imperio</button>
-  <button class="plegar" id="g-mini" type="button" aria-expanded="true"
-          title="Plegar o desplegar el parte">▾</button>
-  <button class="btn" id="g-salir" type="button">Terminar</button>
+<!-- El tablero de mando del juego. Va por encima del mapa en tres sitios: la
+     cinta de arriba —el estado del imperio de un vistazo—, la ficha del mando
+     que llevas y, en la esquina, la investigación con el botón de turno. -->
+<div class="hud" id="guerra" hidden aria-live="polite">
+  <div class="cintas" id="cintas">
+    <div class="cinta">
+      <div class="cinta-era">
+        <b id="ro-epoca">—</b>
+        <span id="ro-anio">—</span>
+      </div>
+      <div class="cinta-cifras">
+        <div class="cifra" title="Oro en caja y lo que entra cada turno">
+          <i aria-hidden="true">❖</i><b id="ro-oro">—</b><em id="ro-oro-r"></em>
+        </div>
+        <div class="cifra" title="Ciencia acumulada y por turno">
+          <i aria-hidden="true">✦</i><b id="ro-cien">—</b><em id="ro-cien-r"></em>
+        </div>
+        <div class="cifra" title="Producción del imperio por turno">
+          <i aria-hidden="true">⚒</i><b id="ro-prod">—</b><em>producción</em>
+        </div>
+        <div class="cifra" title="Ciudades y gente">
+          <i aria-hidden="true">⌂</i><b id="ro-ciu">—</b><em id="ro-pob"></em>
+        </div>
+        <div class="cifra" title="Descontento del imperio">
+          <i aria-hidden="true">☹</i><b id="ro-desc">—</b><em id="ro-gob"></em>
+        </div>
+        <div class="cifra" title="Puntuación y puesto entre las civilizaciones">
+          <i aria-hidden="true">★</i><b id="ro-pts">—</b><em id="ro-puesto"></em>
+        </div>
+      </div>
+      <div class="cinta-fin">
+        <b id="ro-turno">—</b>
+        <button class="btn fino" id="t-capas" type="button" aria-pressed="false"
+                title="Mostrar u ocultar los mandos del mapa">Vista</button>
+        <button class="btn fino" id="g-salir" type="button">Terminar</button>
+      </div>
+    </div>
+    <div class="tira" id="tira">
+      <span id="ro-frente">—</span>
+      <span class="oculta-mini" id="ro-tropas">—</span>
+      <span class="oculta-mini" id="ro-contra">—</span>
+      <span class="oculta-mini" id="ro-mundo">—</span>
+      <button class="plegar" id="g-mini" type="button" aria-expanded="true"
+              title="Plegar o desplegar el parte">▾</button>
+    </div>
+  </div>
+
+  <div class="hud-pie" id="hud-pie">
+    <div class="mando">
+      <p class="mando-nom" id="ro-cuerpo">—</p>
+      <p class="mando-parte" id="ro-parte">—</p>
+      <div class="mando-acc">
+        <button class="btn" id="g-todos" type="button" aria-pressed="false"
+                title="Las órdenes van a todas tus formaciones a la vez">Todos: no</button>
+        <button class="btn" id="g-alto" type="button"
+                title="Detener: la formación deja de atacar y se queda donde está">Alto</button>
+        <button class="btn" id="g-imperio" type="button" aria-pressed="false"
+                title="Tecnología, ciudades y reclutamiento">Imperio</button>
+      </div>
+    </div>
+    <div class="turnera">
+      <div class="tec" id="tec-caja">
+        <span id="ro-tec">—</span>
+        <div class="barra"><i id="tec-barra"></i></div>
+      </div>
+      <button class="turno" id="g-turno" type="button"
+              title="Cierra el año: la campaña corre una temporada y luego se cobran las rentas">
+        <span>Turno</span><b>▶</b>
+      </button>
+    </div>
+  </div>
+  <select id="g-epoca" aria-label="Época de la guerra" hidden></select>
 </div>
 
 <nav class="panel" id="panel" aria-label="Índice de países">
@@ -922,13 +1152,8 @@ body.jugando #g-imperio { display: none; }
   </div>
 </section>
 
-<div class="chips">
-  <button class="btn panel-toggle" id="t-panel" aria-pressed="false">Índice</button>
-  <button class="btn capas-chip" id="t-capas" type="button" aria-pressed="false"
-          title="Mostrar u ocultar los mandos de la vista">Vista</button>
-</div>
-
 <div class="controls" role="group" aria-label="Controles de la vista">
+  <button class="btn panel-toggle" id="t-panel" aria-pressed="false">Índice</button>
   <button class="btn" id="t-spin" aria-pressed="true">Rotar</button>
   <button class="btn" id="t-night" aria-pressed="false">Día/Noche</button>
   <button class="btn" id="t-front" aria-pressed="true" title="Límites entre países; la costa se dibuja siempre">Fronteras</button>
@@ -6567,7 +6792,6 @@ body.jugando #g-imperio { display: none; }
   // formación que llevas —o el ejército entero, si está puesto el mando
   // general— deja de atacar, cancela lo que tuviera pendiente y se queda donde
   // está sosteniendo lo que ha tomado. Cualquier orden nueva lo levanta.
-  var roImperio = document.getElementById("ro-imperio");
   var roMundo = document.getElementById("ro-mundo");
   var roTec = document.getElementById("ro-tec");
   var gTurno = document.getElementById("g-turno");
@@ -6631,34 +6855,47 @@ body.jugando #g-imperio { display: none; }
   // En pantalla estrecha la tira nace plegada: lo que importa es ver el mapa y
   // poder tocar las banderas.
   var gMini = document.getElementById("g-mini");
-  if (matchMedia("(max-width: 900px)").matches) gEl.classList.add("mini");
+  var elTira = document.getElementById("tira");
+  var elCintas = document.getElementById("cintas");
+  if (matchMedia("(max-width: 900px)").matches) elTira.classList.add("mini");
   function pintaPlegar() {
-    var mini = gEl.classList.contains("mini");
+    var mini = elTira.classList.contains("mini");
     gMini.textContent = mini ? "▸" : "▾";
     gMini.setAttribute("aria-expanded", String(!mini));
+    mideCinta();
   }
   gMini.addEventListener("click", function () {
-    gEl.classList.toggle("mini");
+    elTira.classList.toggle("mini");
     pintaPlegar();
   });
   pintaPlegar();
 
-  function pintaGuerra() {
-    if (!juego && !eligiendo) { gEl.hidden = true; return; }
-    gEl.hidden = false;
-    gEpoca.disabled = !!juego;
-    if (!juego) {
-      var ep0 = EPOCAS[epocaElegida];
-      roFrente.textContent = "elige";
-      roTropas.textContent = "quinta del " + Math.round(ep0.movil * 1000) / 10 + "% · " +
-                             "cuerpos de " + fmtNum(ep0.cuerpo);
-      roContra.textContent = "toca tu país";
-      roCuerpo.textContent = "—";
-      roParte.textContent = ep0.nota;
-      roImperio.textContent = "elige un país y empieza";
-      roTec.textContent = "—";
-      return;
+  // Lo que mide la cinta se lo pasamos al CSS: el panel de consejeros arranca
+  // justo debajo, y la cinta crece o mengua con lo que tenga que contar.
+  var cintaAlta = -1, tabsAlto = -1;
+  function mideCinta() {
+    if (!elCintas || gEl.hidden) return;
+    var h = Math.round(elCintas.getBoundingClientRect().height);
+    if (h && h !== cintaAlta) {
+      cintaAlta = h;
+      document.documentElement.style.setProperty("--alto-cinta", h + "px");
     }
+    var pes = document.getElementById("pestanas");
+    var t = pes && !pes.hidden ? Math.round(pes.getBoundingClientRect().height) : 0;
+    if (t && t !== tabsAlto) {
+      tabsAlto = t;
+      document.documentElement.style.setProperty("--alto-tabs", t + "px");
+    }
+  }
+  window.addEventListener("resize", mideCinta);
+  if (window.ResizeObserver && elCintas) new ResizeObserver(mideCinta).observe(elCintas);
+
+  function pintaGuerra() {
+    // El tablero de mando sólo existe con una partida abierta: elegir país es
+    // cosa de la pantalla de elección, no de la cinta.
+    if (!juego) { gEl.hidden = true; return; }
+    gEl.hidden = false;
+    gEpoca.disabled = true;
     gEpoca.value = String(EPOCAS.indexOf(juego.ep));
     var enPie = 0, org = 0;
     for (var k = 0; k < juego.frente.length; k++) {
@@ -6716,15 +6953,28 @@ body.jugando #g-imperio { display: none; }
       : mios + " cuerpos · toca una bandera";
     roParte.textContent = juego.registro.length ? juego.registro[0] : "sin novedad";
 
-    // El estado del imperio: el año, la caja y lo que rinde. Un turno es una
-    // decisión: en qué gastas lo que produces.
+    // La cinta: el estado del imperio de un vistazo. Cada cifra en su sitio,
+    // siempre el mismo, que es lo que hace que se lea sin leerla.
     var imp = juego.imp, r = rentas();
-    roImperio.textContent = "turno " + imp.turno + " · año " + anoTexto(imp.anio) + " · " +
-      gobiernoActual().n.toLowerCase() + " · " +
-      fmtNum(imp.oro) + " de oro (" + (r.oro >= 0 ? "+" : "") + r.oro + ") · " +
-      r.prod + " de producción · " + r.ciudades + " ciudades · " +
-      fmtNum(Math.round(r.pob / 1000)) + "k habitantes · " + imp.puntos + " puntos" +
-      (r.desc > 0 ? " · " + Math.round(r.desc * 100) + "% de descontento" : "");
+    pon("ro-epoca", juego.ep.n);
+    pon("ro-anio", anoTexto(imp.anio) + " · " + gobiernoActual().n.toLowerCase());
+    pon("ro-turno", "Turno " + imp.turno);
+    pon("ro-oro", fmtNum(Math.round(imp.oro)));
+    var elOroR = document.getElementById("ro-oro-r");
+    elOroR.textContent = (r.oro >= 0 ? "+" : "") + r.oro;
+    elOroR.className = r.oro >= 0 ? "sube" : "baja";
+    pon("ro-cien", fmtNum(Math.round(imp.ciencia)));
+    document.getElementById("ro-cien-r").textContent = "+" + r.ciencia;
+    document.getElementById("ro-cien-r").className = "sube";
+    pon("ro-prod", String(r.prod));
+    pon("ro-ciu", String(r.ciudades));
+    pon("ro-pob", fmtNum(Math.round(r.pob / 1000)) + "k");
+    var elDesc = document.getElementById("ro-desc");
+    elDesc.textContent = Math.round(r.desc * 100) + "%";
+    elDesc.className = r.desc > 0.25 ? "mal" : "";
+    pon("ro-gob", r.anarquia ? "ANARQUÍA" : "descontento");
+    pon("ro-pts", String(imp.puntos));
+    pon("ro-puesto", puestoEnElMundo());
     // Y el mundo: quién más juega esta partida y con quién estás en guerra de
     // verdad. Una partida no la deciden las provincias sueltas, los imperios.
     if (juego.rivales && roMundo) {
@@ -6739,13 +6989,44 @@ body.jugando #g-imperio { display: none; }
         " en pie · " + (enG.length ? "en guerra con " + enG.join(", ") : "en paz con todas") +
         " · tuyo el " + porcentaje(juego.km2 / tierraDelMundo());
     }
+    // La investigación, con su barra: lo que le falta al siglo que viene.
     var t = imp.investiga >= 0 ? TECNOS[imp.investiga] : null;
     roTec.textContent = t
-      ? t.n + " · " + fmtNum(imp.ciencia) + " / " + fmtNum(t.coste) + " (+" + r.ciencia +
-        " al turno) · " + faltanTurnos(imp.ciencia, t.coste, r.ciencia)
-      : proximaTecno() >= 0 ? "nada · elige en la pestaña Técnica" : "todo investigado";
-    gTurno.textContent = imp.corriendo ? "…" + Math.max(0, imp.finTurno - juego.dia) + " d"
-                                       : "Turno »";
+      ? t.n + " · " + faltanTurnos(imp.ciencia, t.coste, r.ciencia)
+      : proximaTecno() >= 0 ? "sin investigar nada · elige en Técnica" : "todo investigado";
+    var barra = document.getElementById("tec-barra");
+    if (barra) {
+      barra.style.width = t ? Math.max(0, Math.min(100, imp.ciencia / t.coste * 100)) + "%" : "0";
+    }
+    // El botón de turno es el que manda: mientras la temporada corre, cuenta los
+    // días que quedan y se apaga.
+    var corriendo = !!imp.corriendo;
+    gTurno.classList.toggle("corriendo", corriendo);
+    gTurno.querySelector("span").textContent = corriendo
+      ? Math.max(0, imp.finTurno - juego.dia) + " días"
+      : "Turno";
+    gTurno.querySelector("b").textContent = corriendo ? "…" : "▶";
+    // La cinta cambia de alto con lo que cuenta; el panel arranca justo debajo.
+    mideCinta();
+  }
+
+  function pon(id, txt) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  }
+
+  // En qué puesto vas de todas las civilizaciones, que es la pregunta que se
+  // hace uno mirando el marcador.
+  function puestoEnElMundo() {
+    if (!juego.rivales || !juego.rivales.length) return "";
+    var mejores = 1;
+    for (var k = 0; k < juego.rivales.length; k++) {
+      var r = juego.rivales[k];
+      if (!r.muerto && r.puntos > juego.imp.puntos) mejores++;
+    }
+    var vivos = 1;
+    for (var q = 0; q < juego.rivales.length; q++) if (!juego.rivales[q].muerto) vivos++;
+    return mejores + ".º de " + vivos;
   }
 
   function anoTexto(a) {
@@ -7019,19 +7300,22 @@ body.jugando #g-imperio { display: none; }
     elPortada.hidden = true;
     elEleccion.hidden = true;
     elFinal.hidden = true;
-    elParte.hidden = true;
+    ponParte(false);
     elPestanas.hidden = false;
     estado("jugando");
+    syncPanel();
+    mideCinta();
   }
 
   function salDePartida() {
     if (!elPortada) return;
     elPestanas.hidden = true;
     elFinal.hidden = true;
-    elParte.hidden = true;
+    ponParte(false);
     panelH2.textContent = "Índice";
     searchEl.hidden = false;
     verPortada();
+    syncPanel();
   }
 
   function verPortada() {
@@ -7180,10 +7464,17 @@ body.jugando #g-imperio { display: none; }
     // abajo: manda el parte, que es lo que acaba de pasar, y el índice se
     // recoge hasta que lo cierras.
     cierraPanel();
-    elParte.hidden = false;
+    ponParte(true);
+  }
+
+  // El parte y el pie del tablero comparten banda en pantalla estrecha: cuando
+  // hay parte que leer, el pie se aparta.
+  function ponParte(v) {
+    elParte.hidden = !v;
+    document.body.classList.toggle("parte-abierto", !!v);
   }
   document.getElementById("pt-cerrar").addEventListener("click", function () {
-    elParte.hidden = true;
+    ponParte(false);
   });
 
   document.getElementById("t-capas").addEventListener("click", function () {
@@ -7191,7 +7482,7 @@ body.jugando #g-imperio { display: none; }
     cuerpo.classList.toggle("capas", abre);
     this.setAttribute("aria-pressed", String(abre));
     // En estrecho no caben la barra de capas y el parte a la vez.
-    if (abre && window.innerWidth <= 900) elParte.hidden = true;
+    if (abre && window.innerWidth <= 900) ponParte(false);
   });
 
   // Las ocho épocas, con lo que significan. Elegir siglo es elegir a qué juegas:
@@ -7302,10 +7593,17 @@ body.jugando #g-imperio { display: none; }
     ponVista("imperio");
   });
 
-  // Las pestañas: cada una es una parte del gobierno.
+  // Las pestañas: cada una es una parte del gobierno. En pantalla estrecha,
+  // tocar la que ya está puesta recoge el índice y devuelve el mapa entero.
   elPestanas.addEventListener("click", function (e) {
     var b = e.target.closest("button");
-    if (b) ponVista(b.dataset.vista);
+    if (!b) return;
+    if (window.innerWidth <= 900 && juego && juego.imp &&
+        juego.imp.vista === b.dataset.vista && !panel.classList.contains("plegado")) {
+      cierraPanel();
+      return;
+    }
+    ponVista(b.dataset.vista);
   });
 
   function ponVista(v) {
@@ -7335,7 +7633,7 @@ body.jugando #g-imperio { display: none; }
   function abrePanel() {
     if (window.innerWidth > 900) return;
     panelBtn.setAttribute("aria-pressed", "true");
-    elParte.hidden = true;              // no se leen los dos a la vez
+    ponParte(false);                    // no se leen los dos a la vez
     syncPanel();
   }
 
@@ -7361,10 +7659,28 @@ body.jugando #g-imperio { display: none; }
 
   var panel = document.getElementById("panel");
   var panelBtn = document.getElementById("t-panel");
+  // En pantalla estrecha, durante la partida, el panel no se va del todo: se
+  // queda su barra de pestañas pegada abajo —como en cualquier juego de móvil—
+  // y el índice crece hacia arriba desde ahí. Fuera de la partida sigue siendo
+  // el cajón de siempre, que aparece y desaparece.
   function syncPanel() {
     var small = window.innerWidth <= 900;
-    if (!small) { panel.hidden = false; return; }
-    panel.hidden = panelBtn.getAttribute("aria-pressed") !== "true";
+    var jugando = document.body.classList.contains("jugando");
+    var abierto = panelBtn.getAttribute("aria-pressed") === "true";
+    if (!small) {
+      panel.hidden = false;
+      panel.classList.remove("plegado");
+      document.body.classList.remove("panel-abierto");
+      return;
+    }
+    if (jugando) {
+      panel.hidden = false;
+      panel.classList.toggle("plegado", !abierto);
+    } else {
+      panel.classList.remove("plegado");
+      panel.hidden = !abierto;
+    }
+    document.body.classList.toggle("panel-abierto", jugando && abierto);
   }
   panelBtn.addEventListener("click", function () {
     var abre = panelBtn.getAttribute("aria-pressed") !== "true";
