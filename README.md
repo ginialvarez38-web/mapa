@@ -1183,6 +1183,16 @@ que caben, y codificados en base64: 4.322 divisiones (280.000 vértices,
   Baikal y los Andes se obtiene en cada caso el accidente correcto con su
   cumbre: Himalaya → Everest 8.848 m, Andes → Aconcagua 6.959 m, Alpes →
   Mont Blanc 4.807 m, Rocosas → Monte Elbert 4.402 m.
+- **Nada se pisa con nada.** Una prueba mide el rectángulo de cada pieza de la
+  interfaz —portada, elección, panel, tira de guerra, parte del turno, ficha,
+  botones sueltos— en cada estado del juego (las seis pestañas, el parte
+  abierto, los mandos de vista fuera, el panel plegado y desplegado) y a ocho
+  tamaños de pantalla, de 500×673 a 1920×993. Ninguna se solapa con otra ni se
+  sale de la pantalla. Encontró y arregló lo que se veía mal de verdad: el panel
+  y la tira de guerra montados uno encima del otro por debajo de 1024 px, el
+  parte del turno comiéndose la barra de mandos, y —lo peor— **el botón que abre
+  el índice vivía dentro de la barra que la partida esconde**: en un teléfono no
+  había manera de llegar a las pestañas.
 - **Las civilizaciones**, de punta a punta y sin un solo error de consola: al
   empezar hay siete imperios repartidos por el globo, cada uno con su color y su
   país; la pestaña Mundo trae una ficha por civilización con sus provincias y su

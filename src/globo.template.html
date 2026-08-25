@@ -604,11 +604,58 @@ body.eligiendo .masthead, body.eligiendo .controls, body.eligiendo .guerra,
 body.eligiendo .readout, body.eligiendo .panel, body.eligiendo .card,
 body.telon .parte-turno, body.eligiendo .parte-turno { display: none !important; }
 body.jugando .masthead { display: none; }
+/* El cuadro de coordenadas es cosa del atlas: durante la partida no vuelve ni
+   con los mandos fuera —chocaba con la tira de guerra, que ocupa ese rincón—. */
 body.jugando .controls, body.jugando .readout { display: none; }
-body.jugando.capas .controls, body.jugando.capas .readout { display: flex; }
-.capas-chip { position: fixed; right: 14px; bottom: 16px; z-index: 22; display: none; }
+body.jugando.capas .controls { display: flex; }
+
+/* Los dos botones sueltos de la esquina: el índice —que en pantalla estrecha es
+   la única forma de llegar a las pestañas— y los mandos de la vista. Van fuera
+   de la barra de capas a propósito: esa barra se esconde durante la partida, y
+   con ella se escondía el botón que abre el panel. */
+.chips {
+  position: fixed; right: 14px; bottom: 16px; z-index: 22;
+  display: flex; gap: 6px; align-items: center;
+}
+.chips .btn { background: var(--panel); backdrop-filter: blur(14px); }
+.capas-chip { display: none; }
 body.jugando .capas-chip { display: inline-flex; }
-@media (max-width: 900px) { .capas-chip { bottom: 12px; right: 10px; } }
+body.telon .chips, body.eligiendo .chips { display: none; }
+@media (max-width: 900px) { .chips { bottom: 12px; right: 10px; } }
+
+/* ---- el reparto de la pantalla durante la partida ---- */
+/* Sin cabecera, el panel y la tira de guerra suben al borde: en la partida no
+   hay título que respetar, y así caben las seis pestañas y el parte. */
+body.jugando .panel { top: 20px; }
+/* La tira de guerra crece con lo que cuenta —el parte, el imperio, el mundo— y
+   en una ventana baja llegaba hasta media pantalla: se queda en su banda y lo
+   que no cabe se desliza dentro. */
+body.jugando .guerra { top: 20px; max-height: 40vh; overflow-y: auto; }
+body.jugando.capas .chips { bottom: 84px; }
+/* El parte del turno va abajo a la derecha, en el hueco que dejan el panel (a la
+   izquierda) y la tira (arriba). Antes salía centrado y se comía la barra. */
+.parte-turno.esquina {
+  left: auto; right: 22px; bottom: 62px; transform: none;
+}
+body.jugando.capas .parte-turno.esquina { bottom: 108px; }
+/* Y la barra de capas, cuando se saca, se queda en el hueco de la derecha: el
+   panel del juego manda en su columna. */
+body.jugando.capas .controls {
+  left: 330px; right: 112px; transform: none; justify-content: center;
+}
+
+@media (max-width: 900px) {
+  /* En estrecho, cada cosa en su banda: la tira arriba, el panel abajo y los
+     botones sueltos por debajo de todo. */
+  body.jugando .guerra { top: 8px; bottom: auto; }
+  body.jugando .panel { top: auto; bottom: 58px; }
+  body.jugando .card { bottom: 58px; }
+  /* Con los mandos fuera, la barra se pone encima de los botones sueltos, no
+     debajo: si no, tapaba el propio botón con el que se cierra. */
+  body.jugando.capas .controls { bottom: 56px; max-height: 34vh; overflow-y: auto; }
+  body.jugando.capas .chips { bottom: 12px; }
+  .parte-turno.esquina { left: 12px; right: 12px; bottom: 58px; width: auto; }
+}
 .portada-caja, .eleccion-caja {
   width: min(560px, 100%);
   max-height: 100%;
@@ -719,7 +766,10 @@ body.jugando .capas-chip { display: inline-flex; }
   display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 8px;
   font-family: var(--font-data); font-size: 11px; color: #B9C7D8;
 }
-.parte-caja ul { margin: 0 0 10px; padding-left: 16px; max-height: 26vh; overflow: auto; }
+/* En una ventana baja el parte no puede crecer hasta comerse la tira de guerra:
+   se queda en su cuarto de pantalla y lo que no cabe se desliza dentro. */
+.parte-caja { max-height: 40vh; overflow: auto; }
+.parte-caja ul { margin: 0 0 10px; padding-left: 16px; }
 .parte-caja li { font-size: 12.5px; line-height: 1.45; margin: 2px 0; }
 @media (max-width: 900px) { .parte-turno { bottom: 12px; } }
 
@@ -787,7 +837,7 @@ body.jugando #g-imperio { display: none; }
   </div>
 </div>
 
-<div class="parte-turno" id="parte-turno" hidden aria-live="polite">
+<div class="parte-turno esquina" id="parte-turno" hidden aria-live="polite">
   <div class="parte-caja">
     <h3 id="pt-titulo">—</h3>
     <div class="parte-cuentas" id="pt-cuentas"></div>
@@ -872,11 +922,13 @@ body.jugando #g-imperio { display: none; }
   </div>
 </section>
 
-<button class="btn capas-chip" id="t-capas" type="button" aria-pressed="false"
-        title="Mostrar u ocultar los mandos de la vista">Vista</button>
+<div class="chips">
+  <button class="btn panel-toggle" id="t-panel" aria-pressed="false">Índice</button>
+  <button class="btn capas-chip" id="t-capas" type="button" aria-pressed="false"
+          title="Mostrar u ocultar los mandos de la vista">Vista</button>
+</div>
 
 <div class="controls" role="group" aria-label="Controles de la vista">
-  <button class="btn panel-toggle" id="t-panel" aria-pressed="false">Índice</button>
   <button class="btn" id="t-spin" aria-pressed="true">Rotar</button>
   <button class="btn" id="t-night" aria-pressed="false">Día/Noche</button>
   <button class="btn" id="t-front" aria-pressed="true" title="Límites entre países; la costa se dibuja siempre">Fronteras</button>
@@ -7124,6 +7176,10 @@ body.jugando #g-imperio { display: none; }
       li0.textContent = "Año tranquilo: nada que contar.";
       ul.appendChild(li0);
     }
+    // En pantalla estrecha el parte y el panel se disputan la misma banda de
+    // abajo: manda el parte, que es lo que acaba de pasar, y el índice se
+    // recoge hasta que lo cierras.
+    cierraPanel();
     elParte.hidden = false;
   }
   document.getElementById("pt-cerrar").addEventListener("click", function () {
@@ -7134,6 +7190,8 @@ body.jugando #g-imperio { display: none; }
     var abre = !cuerpo.classList.contains("capas");
     cuerpo.classList.toggle("capas", abre);
     this.setAttribute("aria-pressed", String(abre));
+    // En estrecho no caben la barra de capas y el parte a la vez.
+    if (abre && window.innerWidth <= 900) elParte.hidden = true;
   });
 
   // Las ocho épocas, con lo que significan. Elegir siglo es elegir a qué juegas:
@@ -7277,6 +7335,13 @@ body.jugando #g-imperio { display: none; }
   function abrePanel() {
     if (window.innerWidth > 900) return;
     panelBtn.setAttribute("aria-pressed", "true");
+    elParte.hidden = true;              // no se leen los dos a la vez
+    syncPanel();
+  }
+
+  function cierraPanel() {
+    if (window.innerWidth > 900) return;
+    panelBtn.setAttribute("aria-pressed", "false");
     syncPanel();
   }
 
@@ -7302,7 +7367,11 @@ body.jugando #g-imperio { display: none; }
     panel.hidden = panelBtn.getAttribute("aria-pressed") !== "true";
   }
   panelBtn.addEventListener("click", function () {
-    panelBtn.setAttribute("aria-pressed", String(panelBtn.getAttribute("aria-pressed") !== "true"));
+    var abre = panelBtn.getAttribute("aria-pressed") !== "true";
+    panelBtn.setAttribute("aria-pressed", String(abre));
+    // El índice y el parte del turno comparten la banda de abajo en pantalla
+    // estrecha: se lee uno u otro.
+    if (abre) { var p = document.getElementById("parte-turno"); if (p) p.hidden = true; }
     syncPanel();
   });
   window.addEventListener("resize", syncPanel);
